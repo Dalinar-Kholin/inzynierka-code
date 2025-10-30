@@ -1,32 +1,61 @@
 use anchor_lang::prelude::*;
 
-declare_id!("Be4zMFBtAeH8mwgmuyAQjbdeXnSfh9PDQwk9Ac9SCfsN");
+declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
 
 #[program]
 mod counter {
     use super::*;
 
-    pub fn create(ctx: Context<Create>, message: String) -> Result<()> {
+    pub fn create_commitment_auth_pack(
+        ctx: Context<CreateAuthPackCommitment>,
+        auth_serial : [u8; 16],
+        encrypted_data : String,
+    ) -> Result<()> {
+        let commitment_data = &mut ctx.accounts.commitment;
+        commitment_data.auth_serial = auth_serial;
+        commitment_data.encrypted_data = encrypted_data;
+        commitment_data.bump = ctx.bumps.commitment;
+
+        Ok(())
+    }
+
+    pub fn create(ctx: Context<Create>, index: u64, message: String) -> Result<()> {
         let account_data = &mut ctx.accounts.message_account;
         account_data.user = ctx.accounts.user.key();
         account_data.message = message;
+        account_data.index = index;
         account_data.bump = ctx.bumps.message_account;
-        Ok(())
-    }
-
-    pub fn update(ctx: Context<Update>, message: String) -> Result<()> {
-        let account_data = &mut ctx.accounts.message_account;
-        account_data.message = message;
-        Ok(())
-    }
-
-    pub fn delete(_ctx: Context<Delete>) -> Result<()> {
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-#[instruction(message: String)]
+#[instruction(auth_serial: [u8; 16], encrypted_data : String)]
+pub struct CreateAuthPackCommitment<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = encrypted_data.len() + 16 + 1 + 1 + 30, // todo : poprawnie to policzyć a nie na palcach
+        seeds = [b"createAuthPackCommitment", auth_serial.as_ref()],
+        bump
+    )]
+    pub commitment: Account<'info, AuthPackCommitment>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+pub struct AuthPackCommitment {
+    pub auth_serial: [u8; 16],
+    pub encrypted_data: String,
+    pub bump: u8,
+}
+
+#[derive(Accounts)]
+#[instruction(index: u64, message: String)]
 pub struct Create<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -35,45 +64,10 @@ pub struct Create<'info> {
 
     #[account(
         init,
-        seeds = [b"message", user.key().as_ref()],
+        seeds = [b"message", user.key().as_ref(), &index.to_le_bytes()],
         bump,
         payer = payer,
-        space = 8 + 32 + 4 + message.len() + 1
-    )]
-    pub message_account: Account<'info, MessageAccount>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(message: String)]
-pub struct Update<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    #[account(mut)]
-    pub user: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [b"message", user.key().as_ref()],
-        bump = message_account.bump,
-        realloc = 8 + 32 + 4 + message.len() + 1,
-        realloc::payer = payer,
-        realloc::zero = true,
-    )]
-    pub message_account: Account<'info, MessageAccount>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct Delete<'info> {
-    #[account(mut)]
-    pub user: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [b"message", user.key().as_ref()],
-        bump = message_account.bump,
-        close = user,
+        space = 8 + 32 + 8 + 4 + message.len() + 1
     )]
     pub message_account: Account<'info, MessageAccount>,
     pub system_program: Program<'info, System>,
@@ -82,6 +76,7 @@ pub struct Delete<'info> {
 #[account]
 pub struct MessageAccount {
     pub user: Pubkey,
+    pub index: u64,
     pub message: String,
     pub bump: u8,
 }

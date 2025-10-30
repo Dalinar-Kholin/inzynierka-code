@@ -2,6 +2,7 @@ import { Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from
 
 import * as anchor from "@coral-xyz/anchor";
 import {Program, web3} from "@coral-xyz/anchor";
+import BN from "bn.js";
 
 describe("pda", () => {
 
@@ -9,11 +10,7 @@ describe("pda", () => {
     anchor.setProvider(provider);
 
     const program = anchor.workspace.Counter as Program;
-
-    const [messagePda, messageBump] = PublicKey.findProgramAddressSync(
-        [Buffer.from("message"), provider.wallet.publicKey.toBuffer()],
-        program.programId
-    );
+    const index = new BN(Math.floor(Date.now() / 1000));
 
 
     it("Create Message Account (separate payer)", async () => {
@@ -32,14 +29,14 @@ describe("pda", () => {
 
         // 3) Wyznacz PDA dla message_account: seeds = ["message", user.key()]
         const [messagePda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("message"), userPubkey.toBuffer()],
+            [Buffer.from("message"), userPubkey.toBuffer(), index.toArrayLike(Buffer, "le", 8)],
             program.programId
         );
 
-        const message = "Hello, World!";
+        const message = "no asdfasdf";
 
         const ix = await program.methods
-            .create(message)
+            .create(index, message)
             .accounts({
                 user: userPubkey,
                 payer: payerPubkey,
@@ -80,6 +77,12 @@ describe("pda", () => {
             { signature: sig, blockhash, lastValidBlockHeight },
             "confirmed"
         );
+
+
+        const results = await program.account.messageAccount.all([
+            { memcmp: { offset: 8, bytes: userPubkey.toBase58() } },
+        ]);
+        console.log(results)
     });
 
 
