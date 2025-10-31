@@ -1,17 +1,18 @@
-package voting
+package endpoint
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"simpleSolanaSignerServer/DB"
+	"votingServer/DB"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	. "golangShared"
 )
 
 type GetVotingPackBody struct {

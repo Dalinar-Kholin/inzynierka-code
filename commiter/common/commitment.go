@@ -1,4 +1,4 @@
-package commitment
+package common
 
 import (
 	"crypto/ecdh"

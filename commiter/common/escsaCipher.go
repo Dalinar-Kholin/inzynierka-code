@@ -1,4 +1,4 @@
-package commitment
+package common
 
 import (
 	"bytes"
@@ -11,10 +11,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
-
 	"golang.org/x/crypto/hkdf"
+	"io"
 )
+
+// ICOM: na razie unused
 
 const (
 	versionByte    = 0x01

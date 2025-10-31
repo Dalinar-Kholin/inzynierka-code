@@ -1,11 +1,10 @@
-package voting
+package endpoint
 
 import (
 	"encoding/json"
-	"net/http"
-	"simpleSolanaSignerServer/DB"
-
 	"github.com/gin-gonic/gin"
+	"net/http"
+	"votingServer/DB"
 )
 
 /*
