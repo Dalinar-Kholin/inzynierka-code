@@ -5,3 +5,118 @@ target
 node_modules
 test-ledger
 .yarn
+
+
+# ------------ System / OS ------------
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.swp
+*.swo
+
+# ------------ JetBrains (GoLand / IntelliJ) ------------
+.idea/
+*.iml
+out/
+
+# (opcjonalnie zostaw, jeśli chcesz współdzielić ustawienia):
+# !.idea/codeStyles/
+# !.idea/runConfigurations/
+
+# ------------ VS Code (jeśli ktoś używa) ------------
+.vscode/
+.history/
+
+# ------------ Go ------------
+# Build artefacts
+bin/
+build/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test / narzędzia
+*.test
+coverage.out
+
+# Mod caches (lokalne narzędzia)
+.gocache/
+.go-build/
+
+# (opcjonalnie) jeśli nie używasz vendoringu, możesz ignorować vendor/
+# vendor/
+
+# ------------ Rust / Cargo ------------
+target/
+**/*.rs.bk
+
+# Pliki narzędziowe
+.cargo-ok
+
+# Uwaga dot. Cargo.lock:
+# - Aplikacje/binary: ZAZWYCZAJ TRZYMAJ Cargo.lock w repo (NIE ignoruj).
+# - Biblioteki: CZĘSTO ignoruje się Cargo.lock.
+# Odkomentuj poniższą linię tylko dla bibliotek:
+# Cargo.lock
+
+# ------------ Node / React ------------
+node_modules/
+# build output
+build/
+dist/
+.out/
+.next/
+.nuxt/
+.svelte-kit/
+# narzędzia bundlingu/dev
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+.eslintcache
+.stylelintcache
+
+# Logi
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# Env / sekrety
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Coverage / raporty
+coverage/
+.lcov
+*.lcov
+
+# Storybook / docs
+.storybook-out/
+storybook-static/
+
+# ------------ Docker / Compose ------------
+docker-data/
+docker-volumes/
+**/tmp/
+*.local.yml
+docker-compose.override.yml
+
+# ------------ Test / CI artefacts ------------
+junit.xml
+test-results/
+reports/
+
+# ------------ Misc ------------
+# lockfile innych managerów pakietów (zachowaj tylko jeden, którego używacie)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
