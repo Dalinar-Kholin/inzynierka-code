@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/inz.iml" filepath="$PROJECT_DIR$/.idea/inz.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/commiter.iml" filepath="$PROJECT_DIR$/.idea/commiter.iml" />
     </modules>
   </component>
 </project>

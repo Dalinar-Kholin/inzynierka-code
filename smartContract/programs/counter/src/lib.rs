@@ -6,16 +6,15 @@ declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
 mod counter {
     use super::*;
 
-    pub fn create_commitment_auth_pack(
+    pub fn create_commitment_pack(
         ctx: Context<CreateAuthPackCommitment>,
-        auth_serial : [u8; 16],
-        encrypted_data : String,
+        serial: [u8; 16],
+        hashed_data: [u8; 32],
     ) -> Result<()> {
         let commitment_data = &mut ctx.accounts.commitment;
-        commitment_data.auth_serial = auth_serial;
-        commitment_data.encrypted_data = encrypted_data;
+        commitment_data.serial = serial;
+        commitment_data.hashed_data = hashed_data;
         commitment_data.bump = ctx.bumps.commitment;
-
         Ok(())
     }
 
@@ -30,7 +29,7 @@ mod counter {
 }
 
 #[derive(Accounts)]
-#[instruction(auth_serial: [u8; 16], encrypted_data : String)]
+#[instruction(serial: [u8; 16], hashed_data : [u8; 32])]
 pub struct CreateAuthPackCommitment<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -38,19 +37,19 @@ pub struct CreateAuthPackCommitment<'info> {
     #[account(
         init,
         payer = payer,
-        space = encrypted_data.len() + 16 + 1 + 1 + 30, // todo : poprawnie to policzyć a nie na palcach
-        seeds = [b"createAuthPackCommitment", auth_serial.as_ref()],
+        space = 32 + 16 + 1 + 8, // todo : poprawnie to policzyć a nie na palcach
+        seeds = [b"createPackCommitment", serial.as_ref()],
         bump
     )]
-    pub commitment: Account<'info, AuthPackCommitment>,
+    pub commitment: Account<'info, PackCommitment>,
 
     pub system_program: Program<'info, System>,
 }
 
 #[account]
-pub struct AuthPackCommitment {
-    pub auth_serial: [u8; 16],
-    pub encrypted_data: String,
+pub struct PackCommitment {
+    pub serial: [u8; 16],
+    pub hashed_data: [u8; 32],
     pub bump: u8,
 }
 

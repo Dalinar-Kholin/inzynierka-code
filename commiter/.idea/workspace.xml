@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6ee22fda-2c38-414e-9585-a2325b4d54b8" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../.idea/counter.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/inz.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Anchor.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Cargo.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Cargo.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../migrations/deploy.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../package-lock.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../programs/counter/Cargo.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../programs/counter/Xargo.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../programs/counter/src/lib.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../signer" beforeDir="false" afterPath="$PROJECT_DIR$/../signer" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/counter.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tsconfig.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../yarn.lock" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="GOROOT" url="file://$USER_HOME$/sdk/go1.25.3" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 8
+}]]></component>
+  <component name="ProjectId" id="34qQ8huDgAzdITBnPx9dvcMHmT5" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.GoLinterPluginOnboarding": "true",
+    "RunOnceActivity.GoLinterPluginStorageMigration": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "go.import.settings.migrated": "true",
+    "last_opened_file_path": "/home/dalinarkholin",
+    "nodejs_package_manager_path": "npm",
+    "onboarding.tips.debug.path": "/home/dalinarkholin/uczelnia/inzynierka/inzynierka-code/commiter/main.go"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-gosdk-f466f9b0953e-146d08934cbf-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-252.26830.102" />
+        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-GO-252.26830.102" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6ee22fda-2c38-414e-9585-a2325b4d54b8" name="Changes" comment="" />
+      <created>1761938465043</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1761938465043</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VgoProject">
+    <settings-migrated>true</settings-migrated>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/main.go</url>
+          <line>18</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
