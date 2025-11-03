@@ -11,8 +11,9 @@ import (
 )
 
 func FinalCommit(c *gin.Context) {
-	hash := fmt.Sprintf("%v", h.list)
+	hash := fmt.Sprintf("%s", h.list)
 	fmt.Printf("%s\n", hash)
+	h = newHashes()
 	c.Status(200)
 }
 

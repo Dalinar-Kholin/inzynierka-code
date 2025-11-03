@@ -16,6 +16,7 @@ import (
 
 func CreatePackages() {
 	createAuthPackage()
+	commitment.FinalCommit()
 	createVotingPackage()
 	commitment.FinalCommit()
 }

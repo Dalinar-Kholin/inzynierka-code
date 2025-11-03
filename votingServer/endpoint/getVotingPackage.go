@@ -114,5 +114,4 @@ func popRandomDocumentTx[T any](ctx context.Context, coll *mongo.Collection) (*T
 	}
 
 	return nil, fmt.Errorf("could not reserve a document after %d attempts", 100)
-
 }

@@ -24,9 +24,7 @@ func GetDataBase(name, collection string) *mongo.Collection {
 }
 
 func conectToDb(name string) *mongo.Database {
-	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI("mongodb://root:nice123@localhost:27017/?directConnection=true").SetServerAPIOptions(serverAPI)
-	// Create a new client and connect to the serer
+	opts := options.Client().ApplyURI("mongodb://root:nice123@localhost:27017/?directConnection=true")
 	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
 		panic(err)
