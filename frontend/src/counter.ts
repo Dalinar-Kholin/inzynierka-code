@@ -1,1 +1,1 @@
-../../../target/types/counter.ts
+../../smartContract/target/types/counter.ts

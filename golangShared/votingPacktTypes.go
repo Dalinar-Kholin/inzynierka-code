@@ -4,7 +4,10 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type Serial [16]byte
 type CandidateCode [candidatesCodeLength]byte
-type AuthCode [authCodeLength]byte
+type AuthCode struct {
+	Code        [authCodeLength]byte `bson:"code"`
+	IsScratched bool                 `bson:"isScratched"`
+}
 type AckCode [ackCodeLength]byte
 
 const NumberOfCandidates = 4
@@ -12,7 +15,7 @@ const NumberOfCandidates = 4
 var Candidates = []CandidateCode{{'a', 'l', 'a'}, {'b', 'o', 'b'}, {'c', 'a', 't'}, {'d', 'e', 'f'}}
 
 const candidatesCodeLength = 3
-const NumberOfAuthCodes = 2
+const NumberOfAuthCodes = 8
 
 const NumberOfPackagesToCreate = 100
 

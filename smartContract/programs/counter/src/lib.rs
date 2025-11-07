@@ -6,6 +6,18 @@ declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
 mod counter {
     use super::*;
 
+    pub fn first_stage_vote(
+        ctx: Context<CreateAuthPackCommitment>,
+        serial: [u8; 16],
+        hashed_data: [u8; 32],
+    ) -> Result<()> {
+        let commitment_data = &mut ctx.accounts.commitment;
+        commitment_data.serial = serial;
+        commitment_data.hashed_data = hashed_data;
+        commitment_data.bump = ctx.bumps.commitment;
+        Ok(())
+    }
+
     pub fn create_commitment_pack(
         ctx: Context<CreateAuthPackCommitment>,
         serial: [u8; 16],

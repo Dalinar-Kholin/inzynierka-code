@@ -6,7 +6,8 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { BraveWalletAdapter } from '@solana/wallet-adapter-brave';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import "@solana/wallet-adapter-react-ui/styles.css";
-import {YourComponent} from "./xd.tsx";
+import {CommitmentComp} from "./CommitmentComp.tsx";
+import SendVote from "./sendVote.tsx";
 
 
 const endpoint = "http://127.0.0.1:8899";
@@ -24,7 +25,8 @@ export default function RouterSwitcher(){
                     <Routes>
                         <Route path={"/"} element={<App />}/>
                         <Route path={"/ballots"} element={<GetBallots />}/>
-                        <Route path={"/commits"} element={<YourComponent />}/>
+                        <Route path={"/commits"} element={<CommitmentComp />}/>
+                        <Route path={"/sendVote"} element={<SendVote />}/>
                     </Routes>
                 </WalletModalProvider>
             </WalletProvider>

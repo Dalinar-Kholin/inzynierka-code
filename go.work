@@ -1,9 +1,9 @@
 go 1.25.0
 
 use (
-	./commiter
-	./simpleSolanaSignerServer
 	.
+	./commiter
 	./golangShared
-	votingServer
+	./simpleSolanaSignerServer
+	./votingServer
 )

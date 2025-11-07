@@ -1,19 +1,45 @@
 package endpoint
 
 import (
+	"bytes"
+	"commiter/common"
+	"commiter/merkeleTree"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/sha3"
 	. "golangShared"
 	"golangShared/commiterStruct"
+	"slices"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/sha3"
 )
 
+var number = 1
+
 func FinalCommit(c *gin.Context) {
-	hash := fmt.Sprintf("%s", h.list)
-	fmt.Printf("%s\n", hash)
-	h = newHashes()
+	slices.SortFunc(h.list, func(a, b sha) int {
+		return bytes.Compare(a, b)
+	})
+	for _, x := range h.list {
+		fmt.Printf("%v\n", x[:3])
+	}
+
+	tree, err := merkeleTree.NewMerkleTree(h.list)
+	defer func() {
+		h = newHashes()
+		number++
+	}()
+	if err != nil {
+		panic(err)
+	}
+	var authSerial [16]byte
+	authSerial[0] = byte(number % 255)
+	_, err = common.CallCreateCommitmentPack(authSerial, tree.Root())
+	if err != nil {
+		panic(err)
+	}
+
 	c.Status(200)
 }
 
@@ -40,7 +66,7 @@ func AddAuthPackage(c *gin.Context) {
 	c.Status(200)
 }
 
-type sha []byte
+type sha = []byte
 
 type Hashes struct {
 	list   []sha

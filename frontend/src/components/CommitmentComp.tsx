@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import {
     useConnection,
-    useAnchorWallet, // <-- zamiast useWallet
+    useAnchorWallet,
     type AnchorWallet
 } from "@solana/wallet-adapter-react";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
@@ -9,7 +9,12 @@ import idl from "../counter.json";
 import Commitments from "./commitments";
 import type {Counter} from "../counter.ts";
 
-export function YourComponent() {
+
+import { Buffer } from "buffer";
+
+(window as any).Buffer = Buffer;
+
+export function CommitmentComp() {
     const { connection } = useConnection();
     const anchorWallet = useAnchorWallet();
 

@@ -8,14 +8,15 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"golangShared"
 	"log"
 	"os"
 	"time"
+
+	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/rpc"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 /*

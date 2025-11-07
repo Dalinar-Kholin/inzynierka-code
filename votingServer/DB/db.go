@@ -13,6 +13,7 @@ var db *mongo.Database = nil
 
 const AuthCollection = "authCard"
 const VoteCollection = "votesCard"
+const ObliviousTransferInit = "obliviousTransferInit"
 
 func GetDataBase(name, collection string) *mongo.Collection {
 	if db == nil {

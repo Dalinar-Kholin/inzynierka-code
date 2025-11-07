@@ -13,7 +13,7 @@ export interface VotingPack {
 }
 
 export default async function getVotingPackage({ sign } : IGetVotingPackage) : Promise<VotingPack>{
-    return fetch(consts.API_URL + '/getPackage', {
+    return fetch(consts.API_URL + '/getVotingPack', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

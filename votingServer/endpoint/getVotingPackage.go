@@ -2,17 +2,17 @@ package endpoint
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"votingServer/DB"
+
+	. "golangShared"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	. "golangShared"
 )
 
 type GetVotingPackBody struct {
@@ -30,7 +30,8 @@ type VotingPack struct {
 func GetVotingPack(c *gin.Context) {
 
 	var bodyData GetVotingPackBody
-	if err := json.NewDecoder(c.Request.Body).Decode(&bodyData); err != nil {
+
+	if err := c.ShouldBindBodyWithJSON(&bodyData); err != nil {
 		panic(err)
 	}
 

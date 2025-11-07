@@ -5,13 +5,14 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	. "golangShared"
 	"math/big"
 	"unsafe"
 	"votingServer/DB"
 	"votingServer/commitment"
+
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func CreatePackages() {
@@ -70,6 +71,12 @@ func createAuthPackage() {
 			AuthCode: [NumberOfAuthCodes]AuthCode{
 				SecureRandomString(),
 				SecureRandomString(),
+				SecureRandomString(),
+				SecureRandomString(),
+				SecureRandomString(),
+				SecureRandomString(),
+				SecureRandomString(),
+				SecureRandomString(),
 			},
 			AckCode: newAckCode,
 		}
@@ -115,8 +122,9 @@ const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 func SecureRandomString() AuthCode {
 	var out AuthCode
-	for i := range out {
-		out[i] = charset[cryptoRandInt(len(charset))]
+	for i := range out.Code {
+		out.Code[i] = charset[cryptoRandInt(len(charset))]
 	}
+	out.IsScratched = false
 	return out
 }
