@@ -6,7 +6,6 @@ import (
 	"time"
 	"votingServer/endpoint"
 	"votingServer/initElection"
-	"votingServer/obliviousTransfer"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -16,7 +15,7 @@ func main() {
 	r := gin.Default()
 	initElection.CreatePackages()
 	r.Use(cors.New(cors.Config{
-		AllowAllOrigins:  true, // uwaga: nie z credentials
+		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"*"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
@@ -26,8 +25,8 @@ func main() {
 
 	r.POST(golangShared.GetVotingPackEndpoint, endpoint.GetVotingPack)
 
-	r.POST(golangShared.GetAuthCodeInitEndpoint, obliviousTransfer.InitProtocol)
-	r.POST(golangShared.GetAuthCodeEndpoint, obliviousTransfer.Encrypt)
+	r.POST(golangShared.GetAuthCodeInitEndpoint, endpoint.GetAuthCodeInit)
+	r.POST(golangShared.GetAuthCodeEndpoint, endpoint.GetAuthCodeFinal)
 
 	_ = r.Run(fmt.Sprintf(":%d", golangShared.VotingPort))
 }

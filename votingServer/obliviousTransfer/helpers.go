@@ -3,7 +3,10 @@ package obliviousTransfer
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"errors"
+	"golangShared"
 	"math/big"
 
 	"golang.org/x/crypto/hkdf"
@@ -18,6 +21,16 @@ var (
 	p = new(big.Int)
 	g = big.NewInt(2)
 )
+
+func FindUnused(auth *golangShared.AuthPackage) (string, error) {
+	for i := range auth.AuthCode {
+		if !auth.AuthCode[i].IsScratched {
+			auth.AuthCode[i].IsScratched = true
+			return base64.StdEncoding.EncodeToString(auth.AuthCode[i].Code[:]), nil
+		}
+	}
+	return "", errors.New("no unused auth code")
+}
 
 func init() {
 	b, _ := hex.DecodeString(pHex)
@@ -47,7 +60,6 @@ func randZq() *big.Int {
 }
 
 func modExp(a, e, mod *big.Int) *big.Int { return new(big.Int).Exp(a, e, mod) }
-func modInv(a, mod *big.Int) *big.Int    { return new(big.Int).ModInverse(a, mod) }
 func mulMod(a, b, mod *big.Int) *big.Int { return new(big.Int).Mod(new(big.Int).Mul(a, b), mod) }
 
 func padTo(bytesLen int, b []byte) []byte {
