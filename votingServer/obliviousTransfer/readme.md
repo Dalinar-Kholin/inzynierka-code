@@ -26,5 +26,5 @@ użytkownik za pomocą klucza deszyfruje szyfrowanie i ma authCode
 dlaczego to dziala, dlatego ze
 
 C = A×B
-g^c = g^a × g^b
+g^c mod p= g^a × g^b mod p
 Aby poznac klucz prywatny od b user musiałby odwrócić g^c%p a to jest złożony problem
