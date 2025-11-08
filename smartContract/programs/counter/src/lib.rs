@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
+declare_id!("5Me1semZqTJzDwrCR4qsBx1BMX5MfHdvNNqdNAGWBa56");
 
 #[program]
 mod counter {
@@ -49,7 +49,7 @@ pub struct CreateAuthPackCommitment<'info> {
     #[account(
         init,
         payer = payer,
-        space = 32 + 16 + 1 + 8, // todo : poprawnie to policzyć a nie na palcach
+        space = 32 + 16 + 1 + 8, // todo : poprawn8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Afie to policzyć a nie na palcach
         seeds = [b"createPackCommitment", serial.as_ref()],
         bump
     )]

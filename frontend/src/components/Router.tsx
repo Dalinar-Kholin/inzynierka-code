@@ -18,7 +18,6 @@ const wallets = [
 ];
 export default function RouterSwitcher(){
     return (
-
         <ConnectionProvider endpoint={endpoint}>
             <WalletProvider wallets={wallets} autoConnect>
                 <WalletModalProvider>

@@ -3,6 +3,7 @@ package initElection
 import (
 	"context"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	. "golangShared"
@@ -10,6 +11,7 @@ import (
 	"unsafe"
 	"votingServer/DB"
 	"votingServer/commitment"
+	"votingServer/obliviousTransfer"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -68,15 +70,8 @@ func createAuthPackage() {
 				Subtype: 0x04,    // UUID (standard) – BSON subtype 4
 				Data:    guid[:], // 16 bajtów
 			},
-			AuthCode: [NumberOfAuthCodes]AuthCode{
-				SecureRandomString(),
-				SecureRandomString(),
-				SecureRandomString(),
-				SecureRandomString(),
-				SecureRandomString(),
-				SecureRandomString(),
-				SecureRandomString(),
-				SecureRandomString(),
+			AuthCode: [NumberOfAuthCodes]AuthCodePack{
+				*generateAuthCodePack(), *generateAuthCodePack(), *generateAuthCodePack(), *generateAuthCodePack(),
 			},
 			AckCode: newAckCode,
 		}
@@ -120,11 +115,32 @@ func randomPerm(s *[NumberOfCandidates]CandidateCode) {
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-func SecureRandomString() AuthCode {
-	var out AuthCode
-	for i := range out.Code {
-		out.Code[i] = charset[cryptoRandInt(len(charset))]
+func generateAuthCodePack() *AuthCodePack {
+
+	c := obliviousTransfer.RandZq()
+	size := 128
+	b := c.Bytes() // big-endian, bez wiodących zer
+	if len(b) < size {
+		padded := make([]byte, size)
+		copy(padded[size-len(b):], b) // left-pad zerami
+		b = padded
 	}
-	out.IsScratched = false
+	cHex := hex.EncodeToString(b)
+	return &AuthCodePack{
+		Code: [2][AuthCodeLength]byte{
+			SecureRandomString(), SecureRandomString(),
+		},
+		C:      cHex,
+		Status: UNUSED,
+	}
+
+}
+
+func SecureRandomString() [AuthCodeLength]byte {
+	var out [AuthCodeLength]byte
+	for x := range out {
+		out[x] = charset[cryptoRandInt(len(charset))]
+	}
+
 	return out
 }

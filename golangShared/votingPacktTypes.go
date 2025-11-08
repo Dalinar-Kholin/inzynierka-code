@@ -4,9 +4,19 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type Serial [16]byte
 type CandidateCode [candidatesCodeLength]byte
-type AuthCode struct {
-	Code        [authCodeLength]byte `bson:"code"`
-	IsScratched bool                 `bson:"isScratched"`
+
+type Status uint8
+
+const (
+	UNUSED Status = iota
+	USED
+	ACTUAL
+)
+
+type AuthCodePack struct {
+	Code   [2][AuthCodeLength]byte `bson:"code"`
+	C      string                  `bson:"c"` // c jest generowane w celu zcommitowania wszystkiego przed wyborami
+	Status Status                  `bson:"status"`
 }
 type AckCode [ackCodeLength]byte
 
@@ -15,11 +25,11 @@ const NumberOfCandidates = 4
 var Candidates = []CandidateCode{{'a', 'l', 'a'}, {'b', 'o', 'b'}, {'c', 'a', 't'}, {'d', 'e', 'f'}}
 
 const candidatesCodeLength = 3
-const NumberOfAuthCodes = 8
+const NumberOfAuthCodes = 4
 
 const NumberOfPackagesToCreate = 100
 
-const authCodeLength = 64
+const AuthCodeLength = 64
 const ackCodeLength = 8
 
 type VotingPackage struct {
@@ -29,8 +39,8 @@ type VotingPackage struct {
 }
 
 type AuthPackage struct {
-	AuthSerial primitive.Binary            `bson:"authSerial" json:"authSerial"`
-	AuthCode   [NumberOfAuthCodes]AuthCode `bson:"authCode" json:"authCode"`
-	AckCode    AckCode                     `bson:"ackCode" json:"ackCode"`
-	Used       bool                        `bson:"used"`
+	AuthSerial primitive.Binary                `bson:"authSerial" json:"authSerial"`
+	AuthCode   [NumberOfAuthCodes]AuthCodePack `bson:"authCode" json:"authCode"`
+	AckCode    AckCode                         `bson:"ackCode" json:"ackCode"`
+	Used       bool                            `bson:"used"`
 }

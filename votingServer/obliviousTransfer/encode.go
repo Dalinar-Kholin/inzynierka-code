@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"golangShared"
-	"math/big"
 	"votingServer/DB"
 
 	"github.com/google/uuid"
@@ -34,24 +33,8 @@ type EncryptResponse struct {
 }
 
 func Encrypt(userResponse *UserResponse) *EncryptResponse {
-	var otid ObliviousTransferInitData
 	authSerial, err := uuid.Parse(userResponse.AuthSerial)
 	if err != nil {
-		panic(err)
-	}
-	if err := DB.GetDataBase("inz", DB.ObliviousTransferInit).FindOne(
-		context2.Background(),
-		bson.M{
-			"$and": []bson.M{
-				{"authSerial": primitive.Binary{
-					Subtype: 0x04,
-					Data:    authSerial[:],
-				}}, {
-					"used": false,
-				},
-			},
-		},
-	).Decode(&otid); err != nil {
 		panic(err)
 	}
 
@@ -66,44 +49,23 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 		panic(err)
 	}
 
-	ac1, err := FindUnused(&Auth)
-	if err != nil {
-		panic(err)
-	}
-	ac2, err := FindUnused(&Auth)
+	authPack, err := FindActual(&Auth)
 	if err != nil {
 		panic(err)
 	}
 
-	if _, err := DB.GetDataBase("inz", DB.AuthCollection).ReplaceOne(
-		context2.Background(),
-		bson.M{"authSerial": primitive.Binary{
-			Subtype: 0x04,
-			Data:    authSerial[:],
-		}},
-		Auth,
-	); err != nil {
-		panic(err)
-	}
+	c := HexToBigInt(authPack.C)
 
-	c, ok := StringToBigInt(otid.C)
-	if !ok {
-		panic("invalid otid")
-	}
-
-	Abytes, _ := hex.DecodeString(userResponse.A)
-	Bbytes, _ := hex.DecodeString(userResponse.B)
-
-	A := new(big.Int).SetBytes(Abytes)
-	B := new(big.Int).SetBytes(Bbytes)
+	A := HexToBigInt(userResponse.A)
+	B := HexToBigInt(userResponse.B)
 
 	CValue := modExp(g, c, p)
 	if mulMod(A, B, p).Cmp(CValue) != 0 {
-		panic(fmt.Sprintf("invalid A * B != C %v", c))
+		panic(fmt.Sprintf("invalid A * B != C\nC:= %v\nA:= %v\nB:= %v\n", c, A, B))
 	}
 
-	s0 := randZq() // server secrets
-	s1 := randZq()
+	s0 := RandZq() // server secrets
+	s1 := RandZq()
 
 	X0 := modExp(g, s0, p) // server pub key
 	X1 := modExp(g, s1, p)
@@ -111,23 +73,34 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 	Z0 := modExp(A, s0, p) // shared secret
 	Z1 := modExp(B, s1, p)
 
-	info := []byte("p:" + pHex + "|g:02|A:" + userResponse.A + "|B:" + userResponse.B + "|X0:" + hex.EncodeToString(X0.Bytes()) + "|X1:" + hex.EncodeToString(X1.Bytes()))
+	info := []byte("p:" + PHex + "|g:02|A:" + userResponse.A + "|B:" + userResponse.B + "|X0:" + hex.EncodeToString(X0.Bytes()) + "|X1:" + hex.EncodeToString(X1.Bytes()))
 
 	k0 := kdfKey(Z0, info, 32)
 	k1 := kdfKey(Z1, info, 32)
 
-	b0, _ := aes.NewCipher(k0)
-	aead0, _ := cipher.NewGCM(b0)
+	b0, err := aes.NewCipher(k0)
+	if err != nil {
+		panic(err)
+	}
+	aead0, err := cipher.NewGCM(b0)
+	if err != nil {
+		panic(err)
+	}
 	n0 := make([]byte, aead0.NonceSize())
 	rand.Read(n0)
-	c0 := aead0.Seal(nil, n0, []byte(ac1), info)
-	fmt.Printf("%v\n", ac1)
+	c0 := aead0.Seal(nil, n0, authPack.Code[0][:], info)
 
-	b1, _ := aes.NewCipher(k1)
-	aead1, _ := cipher.NewGCM(b1)
+	b1, err := aes.NewCipher(k1)
+	if err != nil {
+		panic(err)
+	}
+	aead1, err := cipher.NewGCM(b1)
+	if err != nil {
+		panic(err)
+	}
 	n1 := make([]byte, aead1.NonceSize())
 	rand.Read(n1)
-	c1 := aead1.Seal(nil, n1, []byte(ac2), info)
+	c1 := aead1.Seal(nil, n1, authPack.Code[1][:], info)
 	return &EncryptResponse{
 		hex.EncodeToString(X0.Bytes()),
 		hex.EncodeToString(X1.Bytes()),

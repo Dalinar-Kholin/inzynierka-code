@@ -6,7 +6,7 @@ interface IGetAuthCode{
 }
 
 interface IGetAuthCodeInitResponse{
-    C: string,
+    c: string,
     g: string,
     n: string,
 }
@@ -16,22 +16,27 @@ interface IGetAuthCodeResponse{
     c1: string,
     n0: string,
     n1: string,
-    X0: string,
-    X1: string,
+    x0: string,
+    x1: string,
 }
-export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) {
-    if (authSerial === "") return {};
+
+interface IResponse{
+    result : string
+}
+
+export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) : Promise<IResponse> {
+    if (authSerial === "") return {result: ""};
 
     const initRes: IGetAuthCodeInitResponse = await fetch(consts.API_URL + "/getAuthCodeInit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ AuthSerial: authSerial }),
+        body: JSON.stringify({ authSerial: authSerial }),
     })
         .then(r => { if (!r.ok) throw new Error("bad response"); return r.json(); });
 
     const pHex = initRes.n;
     const gHex = initRes.g;
-    const CHex = initRes.C;
+    const CHex = initRes.c;
 
     const n = hexToBigInt(pHex);
     const g = hexToBigInt(gHex);
@@ -61,11 +66,11 @@ export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) {
     const encRes: IGetAuthCodeResponse = await fetch(consts.API_URL + "/getAuthCode", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ A: AHex, B: BHex, AuthSerial: authSerial }),
+        body: JSON.stringify({ a: AHex, b: BHex, authSerial: authSerial }),
     }).then(r => r.json());
 
-    const X0Hex = encRes.X0;
-    const X1Hex = encRes.X1;
+    const X0Hex = encRes.x0;
+    const X1Hex = encRes.x1;
     const X0 = BigInt('0x' + X0Hex);
     const X1 = BigInt('0x' + X1Hex);
 
@@ -76,8 +81,10 @@ export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) {
         `p:${pHex}|g:${gHex}|A:${AHex}|B:${BHex}|X0:${X0Hex}|X1:${X1Hex}`;
     const infoBytes = new TextEncoder().encode(infoStr);
 
-    const Z0b = hexToBytes(Z0.toString(16));
-    const Z1b = hexToBytes(Z1.toString(16));
+    const pByteLen = Math.ceil(pHex.length / 2);
+
+    const Z0b = bigintToFixedBytes(Z0, pByteLen);
+    const Z1b = bigintToFixedBytes(Z1, pByteLen);
 
     const salt = new Uint8Array();
 
@@ -95,10 +102,22 @@ export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) {
     const text0 = m0 ? bytesToUtf8(m0) : null;
     const text1 = m1 ? bytesToUtf8(m1) : null;
 
-    console.log(text0)
-    console.log(text1)
-
     return { result: (bit ? text0 : text1) as string };
+}
+
+function hexToBytesEven(h: string): Uint8Array {
+    const s = h.length % 2 ? "0" + h : h;
+    const out = new Uint8Array(s.length / 2);
+    for (let i = 0; i < out.length; i++) out[i] = parseInt(s.slice(2*i, 2*i+2), 16);
+    return out;
+}
+
+function bigintToFixedBytes(x: bigint, byteLen: number): Uint8Array {
+    let h = x.toString(16);
+    if (h.length > byteLen * 2) throw new Error("overflow");
+    if (h.length % 2) h = "0" + h;
+    if (h.length < byteLen * 2) h = "0".repeat(byteLen * 2 - h.length) + h;
+    return hexToBytesEven(h);
 }
 
 async function hkdfSha256(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length = 32): Promise<Uint8Array> {
