@@ -1,0 +1,6 @@
+tno.mpc.communication>=4.8,<4.9
+tno.mpc.encryption_schemes.utils>=0.10,<0.11
+tno.mpc.encryption_schemes.paillier>=3.0.1,<3.1
+tno.mpc.encryption_schemes.shamir>=1.3.0,<1.4
+tno.mpc.protocols.distributed_keygen
+sympy

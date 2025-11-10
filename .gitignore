@@ -39,6 +39,10 @@ dist/
 *.so
 *.dylib
 
+# ------------ C# ------------
+obj/
+bin/
+
 # Test / narzędzia
 *.test
 coverage.out
