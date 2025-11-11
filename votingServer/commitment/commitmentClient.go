@@ -2,6 +2,7 @@ package commitment
 
 import (
 	"bytes"
+	"commiter/common"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,9 +11,9 @@ import (
 	"net/http"
 )
 
-func FinalCommit() bool {
+func FinalCommit(commitmentType common.CommitmentType) bool {
 	res, err := (&http.Client{}).Get(
-		fmt.Sprintf("http://127.0.0.1:%d%s", CommiterPort, FinalCommitEndpoint),
+		fmt.Sprintf("http://127.0.0.1:%d%s?commitment_type=%d", CommiterPort, FinalCommitEndpoint, commitmentType),
 	)
 	if err != nil {
 		panic(err)

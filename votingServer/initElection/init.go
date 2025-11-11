@@ -1,6 +1,7 @@
 package initElection
 
 import (
+	"commiter/common"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -19,9 +20,9 @@ import (
 
 func CreatePackages() {
 	createAuthPackage()
-	commitment.FinalCommit()
+	commitment.FinalCommit(common.AuthPack)
 	createVotingPackage()
-	commitment.FinalCommit()
+	commitment.FinalCommit(common.VotePacks)
 }
 
 func createVotingPackage() {
@@ -113,7 +114,7 @@ func randomPerm(s *[NumberOfCandidates]CandidateCode) {
 	}
 }
 
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+=-{}[]"
 
 func generateAuthCodePack() *AuthCodePack {
 

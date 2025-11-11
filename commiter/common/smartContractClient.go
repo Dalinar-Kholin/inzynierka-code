@@ -34,10 +34,19 @@ func borshAppendString(dst []byte, s string) []byte {
 	return append(dst, []byte(s)...)
 }
 
-func CallCreateCommitmentPack(authSerial [16]byte, hashedData [32]byte) (solana.Signature, error) {
+type CommitmentType uint8
+
+const (
+	VotePacks CommitmentType = iota
+	AuthPack
+)
+
+func CallCreateCommitmentPack(commitmentType CommitmentType, hashedData [32]byte) (solana.Signature, error) {
 	seedA := []byte("createPackCommitment")
 	commitmentPDA, _, err := solana.FindProgramAddress(
-		[][]byte{seedA, authSerial[:]},
+		[][]byte{seedA, []uint8{
+			uint8(commitmentType),
+		}},
 		ProgramID,
 	)
 	if err != nil {
@@ -47,7 +56,7 @@ func CallCreateCommitmentPack(authSerial [16]byte, hashedData [32]byte) (solana.
 
 	var data []byte
 	data = append(data, disc("create_commitment_pack")...)
-	data = append(data, authSerial[:]...)
+	data = append(data, []uint8{uint8(commitmentType)}...)
 	data = append(data, hashedData[:]...)
 
 	ix := &solana.GenericInstruction{

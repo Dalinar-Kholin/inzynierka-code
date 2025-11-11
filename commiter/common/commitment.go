@@ -19,14 +19,11 @@ func CommitVotePack() {
 	panic("implement me")
 }
 
-func CommitAuthPack(authSerial, data []byte) {
-	var out [16]byte
-	copy(out[:], authSerial)
-
+func CommitAuthPack(commitmentType CommitmentType, data []byte) {
 	var dataCopied [32]byte
 	copy(dataCopied[:], data)
 
-	_, err := CallCreateCommitmentPack(out, dataCopied)
+	_, err := CallCreateCommitmentPack(commitmentType, dataCopied)
 	if err != nil {
 		panic(err)
 	}

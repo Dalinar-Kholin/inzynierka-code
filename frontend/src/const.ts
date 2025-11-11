@@ -6,5 +6,6 @@ export const consts = {
     VOTE_SERIAL : "",
     AUTH_SERIAL : "",
     ACK_CODE : "",
-    VOTE_CODES : [""]
+    VOTE_CODES : [""],
+    AUTH_CODE: ""
 }

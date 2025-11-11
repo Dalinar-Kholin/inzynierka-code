@@ -10,6 +10,7 @@ import (
 	. "golangShared"
 	"golangShared/commiterStruct"
 	"slices"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/sha3"
@@ -25,6 +26,16 @@ func FinalCommit(c *gin.Context) {
 		fmt.Printf("%v\n", x[:3])
 	}
 
+	ct := c.Request.URL.Query().Get("commitment_type")
+	if ct == ""{
+		panic("bad commitment_type")
+	}
+	ctInted, err := strconv.Atoi(ct)
+	if err != nil{
+		panic(err)
+	}
+
+
 	tree, err := merkeleTree.NewMerkleTree(h.list)
 	defer func() {
 		h = newHashes()
@@ -33,9 +44,7 @@ func FinalCommit(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
-	var authSerial [16]byte
-	authSerial[0] = byte(number % 255)
-	_, err = common.CallCreateCommitmentPack(authSerial, tree.Root())
+	_, err = common.CallCreateCommitmentPack(common.CommitmentType(ctInted), tree.Root())
 	if err != nil {
 		panic(err)
 	}
