@@ -1,6 +1,11 @@
 use anchor_lang::prelude::*;
 
-declare_id!("5Me1semZqTJzDwrCR4qsBx1BMX5MfHdvNNqdNAGWBa56");
+declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
+// 8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af
+// !5Me1semZqTJzDwrCR4qsBx1BMX5MfHdvNNqdNAGWBa56
+
+const VOTE_CODE_LENGTH: usize = 3;
+const AUTHCODE_CODE_LENGTH: usize = 64;
 
 #[program]
 mod counter {
@@ -8,13 +13,21 @@ mod counter {
 
     pub fn cast_vote( // do umieszczenia krotki <VoteCode,AuthCode> na BB
         ctx: Context<Cast>,
-        auth_code: [u8; 64],
-        vote_code: [u8; 32],
+        vote_code: Vec<u8>,
+        auth_code: Vec<u8>
     ) -> Result<()> {
-        let commitment_data = &mut ctx.accounts.cast;
-        commitment_data.auth_code = auth_code;
-        commitment_data.vote_code = vote_code                                                                               ;
-        commitment_data.bump = ctx.bumps.cast;
+        require!(auth_code.len() == 64, ErrorCode::InvalidProgramId);
+        require!(vote_code.len() == 3, ErrorCode::InvalidProgramId);
+
+        let mut auth_fixed = [0u8; 64];
+        auth_fixed.copy_from_slice(&auth_code);
+        let mut vote_fixed = [0u8; 3];
+        vote_fixed.copy_from_slice(&vote_code);
+
+        let cast = &mut ctx.accounts.cast;
+        cast.auth_code = auth_fixed;
+        cast.vote_code = vote_fixed;
+        cast.bump = ctx.bumps.cast;
         Ok(())
     }
 
@@ -69,7 +82,7 @@ pub struct PackCommitment {
 }
 
 #[derive(Accounts)]
-#[instruction(vote_code: [u8; 32], auth_code: [u8; 32])]
+#[instruction(vote_code: Vec<u8>, auth_code: Vec<u8>)]
 pub struct Cast<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -78,10 +91,12 @@ pub struct Cast<'info> {
 
     #[account(
         init,
-        seeds = [b"castVote".as_ref(), vote_code.as_ref(), auth_code.as_ref()], // todo : poprawnie to policzyć a nie na palcach
+        seeds = [b"castVote".as_ref(),
+            &vote_code[..3],
+            &auth_code[..32]], // todo : poprawnie to policzyć a nie na palcach
         bump,
         payer = payer,
-        space = 8 + 32 + 8 + 4 + 64 + 1
+        space = 8 + core::mem::size_of::<CastVote>()
     )]
     pub cast: Account<'info, CastVote>,
     pub system_program: Program<'info, System>,
@@ -89,16 +104,16 @@ pub struct Cast<'info> {
 
 #[account]
 pub struct CastVote {
-    pub vote_code: [u8; 32],
-    pub auth_code: [u8; 64],
+    pub vote_code: [u8; VOTE_CODE_LENGTH],
+    pub auth_code: [u8; AUTHCODE_CODE_LENGTH],
     pub bump: u8,
 }
 
 #[derive(Accounts)]
 #[instruction(vote_serial: [u8; 32],
-    vote_code: [u8; 32],
+    vote_code: [u8; VOTE_CODE_LENGTH],
     auth_serial: [u8; 64],
-    auth_code: [u8; 64],
+    auth_code: [u8; AUTHCODE_CODE_LENGTH],
     ack_code: [u8; 64],
     server_sign: [u8; 64])]
 pub struct Accept<'info> {
@@ -113,16 +128,16 @@ pub struct Accept<'info> {
         bump,
         payer = payer,
         space = 32 + 32 + 64 + 64 + 64 + 64 + 8)]
-    pub cast: Account<'info, CastVote>,
+    pub accept: Account<'info, CastVote>,
     pub system_program: Program<'info, System>,
 }
 
 #[account]
 pub struct AcceptVote {
     pub vote_serial: [u8; 32],
-    pub vote_code: [u8; 32],
+    pub vote_code: [u8; VOTE_CODE_LENGTH],
     pub auth_serial: [u8; 64],
-    pub auth_code: [u8; 64],
+    pub auth_code: [u8; AUTHCODE_CODE_LENGTH],
     pub ack_code: [u8; 64],
     pub server_sign: [u8; 64],
     pub bump: u8,
@@ -130,7 +145,7 @@ pub struct AcceptVote {
 
 #[derive(Accounts)]
 #[instruction(vote_serial: [u8; 32],
-    vote_code: [u8; 32],
+    vote_code: [u8; VOTE_CODE_LENGTH],
     auth_serial: [u8; 64],
     auth_code: [u8; 64],
     ack_code: [u8; 64],
@@ -144,7 +159,9 @@ pub struct Commit<'info> {
 
     #[account(
         init,
-        seeds = [b"commitVote".as_ref(), voter_sign.as_ref()], // todo : poprawnie to policzyć a nie na palcach
+        seeds = [b"commitVote".as_ref(),
+            &vote_code[..3],
+            &auth_code[..32]],
         bump,
         payer = payer,
         space = 32 + 32 + 64+ 64 + 64 + 64 + 64 + 64 + 64 + 8
@@ -156,9 +173,9 @@ pub struct Commit<'info> {
 #[account]
 pub struct CommitVote {
     pub vote_serial: [u8; 32],
-    pub vote_code: [u8; 32],
+    pub vote_code: [u8; VOTE_CODE_LENGTH],
     pub auth_serial: [u8; 64],
-    pub auth_code: [u8; 64],
+    pub auth_code: [u8; AUTHCODE_CODE_LENGTH],
     pub ack_code: [u8; 64],
     pub server_sign: [u8; 64],
     pub voter_sign: [u8; 64],

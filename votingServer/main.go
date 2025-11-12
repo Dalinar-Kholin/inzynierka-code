@@ -27,6 +27,7 @@ func main() {
 
 	r.POST(golangShared.GetAuthCodeInitEndpoint, endpoint.GetAuthCodeInit)
 	r.POST(golangShared.GetAuthCodeEndpoint, endpoint.GetAuthCodeFinal)
+	r.POST(golangShared.AcceptVoteEndpoint, endpoint.AcceptVote)
 
 	_ = r.Run(fmt.Sprintf(":%d", golangShared.VotingPort))
 }

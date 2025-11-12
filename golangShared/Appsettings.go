@@ -9,6 +9,7 @@ const (
 
 	GetAuthCodeInitEndpoint = "/getAuthCodeInit"
 	GetAuthCodeEndpoint     = "/getAuthCode"
+	AcceptVoteEndpoint      = "/acceptVote"
 
 	AddCommitPackEndpoint = "/addAuthPack"
 
