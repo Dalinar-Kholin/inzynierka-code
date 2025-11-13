@@ -10,7 +10,8 @@ public class PaillierPublicKey
     public BigInteger g { get; }
     public BigInteger n_squared { get; }
 
-    public PaillierPublicKey(string publicKeyPath="../keys/paillier_keys_public.json") {
+    public PaillierPublicKey(string publicKeyPath = "../keys/paillier_keys_public.json")
+    {
         string publicKeyJson = File.ReadAllText(publicKeyPath);
         JObject publicKey = JObject.Parse(publicKeyJson);
         this.n = BigInteger.Parse(publicKey["n"]!.ToString());
@@ -18,19 +19,22 @@ public class PaillierPublicKey
         this.g = BigInteger.Parse(publicKey["g"]!.ToString());
     }
 
-    public PaillierPublicKey(BigInteger n, BigInteger g) {
+    public PaillierPublicKey(BigInteger n, BigInteger g)
+    {
         this.n = n;
         this.g = g;
         this.n_squared = n * n;
     }
 
-    public BigInteger Encrypt(BigInteger m) {
-        // sprawdzic czy napewno jest to m >= this.n
+    public BigInteger Encrypt(BigInteger m)
+    {
+        // trzeba chyba jakies ograniczenie zrobic zeby zostawić zapas na dodawanie
         if (m < 0 || m >= this.n)
             throw new ArgumentException("Message out of range");
 
         BigInteger r;
-        do {
+        do
+        {
             r = RandomBigInteger(1, this.n - 1);
         } while (BigInteger.GreatestCommonDivisor(r, this.n) != 1);
 
@@ -41,12 +45,15 @@ public class PaillierPublicKey
     }
 
 
-    private BigInteger RandomBigInteger(BigInteger minValue, BigInteger maxValue) {
+    private BigInteger RandomBigInteger(BigInteger minValue, BigInteger maxValue)
+    {
         byte[] bytes = maxValue.ToByteArray();
         BigInteger result;
 
-        using (RandomNumberGenerator rng = RandomNumberGenerator.Create()) {
-            do {
+        using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+        {
+            do
+            {
                 rng.GetBytes(bytes);
                 bytes[bytes.Length - 1] &= 0x7F;
                 result = new BigInteger(bytes);

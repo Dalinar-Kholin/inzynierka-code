@@ -1,7 +1,6 @@
 import asyncio
 from typing import List
 import json
-import base64
 from math import factorial
 
 from tno.mpc.communication import Pool
