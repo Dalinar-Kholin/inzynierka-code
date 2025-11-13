@@ -1,22 +1,24 @@
 import {useState} from "react";
 import {Button} from "@mui/material";
 import {consts} from "../const.ts";
-import {useWallet} from "@solana/wallet-adapter-react";
 import getAuthCode from "../api/getAuthCode.ts";
-import type {Program} from "@coral-xyz/anchor";
-import type {Counter} from "../counter.ts";
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import pingServerForAcceptVote from "../api/pingServerForAcceptVote.ts";
+import getVoteCode from "../api/getVoteCode.ts";
+import castVoteCode from "../api/castVote.ts";
+import {useAnchor} from "../hooks/useAnchor.ts";
+import getCastedVotes from "../api/getCastedVotes.ts";
+import commitVote from "../api/commitVote.ts";
 
-export default function SendVote({ program }: { program: Program<Counter> | null }){
+export default function SendVote(){
     const [authSerial, setAuthSerial] = useState<string>('');
     const [authCode, setAuthCode] = useState<string>('');
     const [voteSerial, setVoteSerial] = useState<string>('');
     const [bit, setBit] = useState<boolean>(false);
-
-    const { publicKey} = useWallet();
+    const [casted, setCasted] = useState<string[]>([]);
+    const [ackCode , setAckCode] = useState<string>('');
+    const { getProgram, getProvider } = useAnchor();
 
     const getAuthCodeFunc = (async() => {
-
         const res =  await getAuthCode({ authSerial, bit })
         if (res.result === "")
             return
@@ -25,46 +27,20 @@ export default function SendVote({ program }: { program: Program<Counter> | null
         setAuthCode(res.result)
     })
 
-    const sendVote = ( async (voteCode: string, authCode: string) => {
-        // public vote on BB
-        const enc = new TextEncoder();
-        const authU8 = enc.encode(authCode); // Uint8Array length 64
-        const voteU8 = enc.encode(voteCode); // Uint8Array length 32
+    const getVoteCodeFunc = (async() => {
+        consts.VOTE_CODES =  await getVoteCode({voteSerial: consts.VOTE_SERIAL})
+        console.log(consts.VOTE_CODES)
 
-        const authCodeNumbered: number[] = Array.from(authU8);
-        const voteCodeNumbered: number[] = Array.from(voteU8);
+    })
 
+    const getAcceptedVote = (async() => {
+        const program = getProgram()
+        const all = await program.account.vote.all();
 
-        const payerPubkey = new PublicKey("6zuVDoqf3KZmAWgDaqQK1K7XkmXnDyyPpCJneAYuyky1");
-
-        const [messagePda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("castVote"), voteCode.toArrayLike(Buffer, "le", 8), authCode.toArrayLike(Buffer, "le", 8)],
-            program?.programId as PublicKey
-        );
-
-
-        // todo: dogarnąć kont 
-        const t = await program?.methods.castVote(
-            authCodeNumbered as never, voteCodeNumbered as never
-        ).accounts({
-            user: publicKey?.toBase58(),
-            payer: payerPubkey,
-
-        })
-
-        const ix = await program.methods
-            .create(index, message)
-            .accounts({
-                user: userPubkey,
-                payer: payerPubkey,
-                messageAccount: messagePda,
-                systemProgram: SystemProgram.programId,
-            })
-            .instruction();
-
-
-
-        // ping server to accept vote
+        console.log(all[0])
+        setAckCode(new TextDecoder().decode(Uint8Array.from(all.filter(({ account }) => {
+            return new TextDecoder().decode(Uint8Array.from(account.authCode)) === consts.AUTH_CODE
+        })[0].account.ackCode)))
     })
 
     return (
@@ -73,11 +49,11 @@ export default function SendVote({ program }: { program: Program<Counter> | null
             <Button onClick={()=> {
                 setBit(!bit); /*obiviousTransfer use 1 or 2 authCode*/
             }}> set bit already := {bit ? "use first authCode" : "use second authCode"}</Button>
-            {publicKey?.toBase58()}
+            <p>auth code _{authCode}_</p>
             <p>
-                auth code _{authCode}_
+                vote codes{consts.VOTE_CODES}
             </p>
-
+            <p>ack code := {ackCode}</p>
             <p>{voteSerial}</p>
             <p>{authSerial}</p>
             <input onChange={e=> {setVoteSerial(e.target.value)}} value={voteSerial} />
@@ -86,14 +62,26 @@ export default function SendVote({ program }: { program: Program<Counter> | null
             <p></p>
             {consts.VOTE_CODES.map(code =>
                 <p key={code}>
-                    {<Button onClick={() => sendVote(code, authCode)}>{code.toUpperCase()}</Button>}
+                    {<Button onClick={() => castVoteCode({voteCode: code, authCode: authCode, program: getProgram(), provider: getProvider()})}>{code.toUpperCase()}</Button>}
                 </p>)}
 
             <Button onClick={()=>{
                 setAuthSerial(consts.AUTH_SERIAL)
                 setVoteSerial(consts.VOTE_SERIAL)
             }}>set stored AuthSerial and VoteSerial</Button>
+            <Button onClick={async () => await getVoteCodeFunc()}>get vote Code</Button>
+            <Button onClick={()=>{
+                consts.VOTE_SERIAL = voteSerial
+            }}>set vote serial</Button>
             <Button onClick={getAuthCodeFunc}>get Auth Code</Button>
+
+            <Button onClick={async ()=>{
+                setCasted(await getCastedVotes({program: getProgram()}));
+            }}> get casted</Button>
+            <Button onClick={getAcceptedVote}>look at accepted</Button>
+            <Button onClick={async () => await pingServerForAcceptVote({sign: "", authCode: consts.AUTH_CODE, voteSerial: consts.VOTE_SERIAL})}>AcceptVote</Button>
+            <Button onClick={async () => commitVote({sign: "A".repeat(64), authCode: consts.AUTH_CODE, program: getProgram(), provider: getProvider()})}>commit Vote</Button>
+            {casted.map((casted) => <p key={casted}>{casted}</p>)}
         </>
     )
 }

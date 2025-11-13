@@ -127,9 +127,13 @@ func generateAuthCodePack() *AuthCodePack {
 		b = padded
 	}
 	cHex := hex.EncodeToString(b)
+
+	codeOne := SecureRandomString()
+	codeTwo := SecureRandomString()
 	return &AuthCodePack{
-		Code: [2][AuthCodeLength]byte{
-			SecureRandomString(), SecureRandomString(),
+		Code: [2]primitive.Binary{
+			primitive.Binary{Subtype: 0x00, Data: codeOne[:]},
+			primitive.Binary{Subtype: 0x00, Data: codeTwo[:]},
 		},
 		C:      cHex,
 		Status: UNUSED,

@@ -88,7 +88,7 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 	}
 	n0 := make([]byte, aead0.NonceSize())
 	rand.Read(n0)
-	c0 := aead0.Seal(nil, n0, authPack.Code[0][:], info)
+	c0 := aead0.Seal(nil, n0, authPack.Code[0].Data, info)
 
 	b1, err := aes.NewCipher(k1)
 	if err != nil {
@@ -100,7 +100,7 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 	}
 	n1 := make([]byte, aead1.NonceSize())
 	rand.Read(n1)
-	c1 := aead1.Seal(nil, n1, authPack.Code[1][:], info)
+	c1 := aead1.Seal(nil, n1, authPack.Code[1].Data, info)
 	return &EncryptResponse{
 		hex.EncodeToString(X0.Bytes()),
 		hex.EncodeToString(X1.Bytes()),
