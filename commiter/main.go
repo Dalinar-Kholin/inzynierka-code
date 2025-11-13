@@ -5,11 +5,9 @@ import (
 	"commiter/endpoint"
 	"crypto/ecdh"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"golangShared"
-	"log"
 	"os"
 	"time"
 
@@ -32,7 +30,7 @@ func main() {
 	fmt.Printf("k1:%x k2:%x\n", k1, k2)
 	common.SetKeys(k1, k2)
 
-	payer := WalletFromPrivateKey(loadPrivateKeyFromJSON("../signer.json"))
+	payer := WalletFromPrivateKey(golangShared.LoadPrivateKeyFromJSON("../signer.json"))
 	common.Payer = payer
 
 	client := rpc.New("http://127.0.0.1:8899")
@@ -85,25 +83,6 @@ func parseX25519() (*ecdh.PrivateKey, *ecdh.PublicKey) {
 	}
 
 	return keyAny.(*ecdh.PrivateKey), pubAny.(*ecdh.PublicKey)
-}
-
-func loadPrivateKeyFromJSON(path string) *solana.PrivateKey {
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var nums []uint8
-	if err := json.Unmarshal(raw, &nums); err != nil {
-		log.Fatal(err)
-	}
-
-	// 64 bajty: 32 sekret + 32 public
-	pk := solana.PrivateKey(nums)
-	if len(pk) != 64 {
-		log.Fatalf("unexpected key length: %d", len(pk))
-	}
-	return &pk
 }
 
 func WalletFromPrivateKey(pk *solana.PrivateKey) *solana.Wallet {

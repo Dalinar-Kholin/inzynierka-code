@@ -13,11 +13,6 @@ const (
 	ACTUAL
 )
 
-type AuthCodePack struct {
-	Code   [2][AuthCodeLength]byte `bson:"code"`
-	C      string                  `bson:"c"` // c jest generowane w celu zcommitowania wszystkiego przed wyborami
-	Status Status                  `bson:"status"`
-}
 type AckCode [ackCodeLength]byte
 
 const NumberOfCandidates = 4
@@ -43,4 +38,10 @@ type AuthPackage struct {
 	AuthCode   [NumberOfAuthCodes]AuthCodePack `bson:"authCode" json:"authCode"`
 	AckCode    AckCode                         `bson:"ackCode" json:"ackCode"`
 	Used       bool                            `bson:"used"`
+}
+
+type AuthCodePack struct {
+	C      string              `bson:"c"`
+	Code   [2]primitive.Binary `bson:"code"`
+	Status Status              `bson:"status"`
 }

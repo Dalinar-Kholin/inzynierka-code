@@ -5,8 +5,8 @@ const (
 	VotingPort   = 8081
 	SignerPort   = 8082
 
-	GetVotingPackEndpoint = "/getVotingPack"
-
+	GetVotingPackEndpoint   = "/getVotingPack"
+	GetVoteCodesEndpoint    = "/getVoteCodes"
 	GetAuthCodeInitEndpoint = "/getAuthCodeInit"
 	GetAuthCodeEndpoint     = "/getAuthCode"
 	AcceptVoteEndpoint      = "/acceptVote"

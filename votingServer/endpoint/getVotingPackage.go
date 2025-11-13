@@ -28,7 +28,6 @@ type VotingPack struct {
 }
 
 func GetVotingPack(c *gin.Context) {
-
 	var bodyData GetVotingPackBody
 
 	if err := c.ShouldBindBodyWithJSON(&bodyData); err != nil {

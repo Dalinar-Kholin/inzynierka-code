@@ -1,21 +1,30 @@
 use anchor_lang::prelude::*;
 
 declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
-// 8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af
-// !5Me1semZqTJzDwrCR4qsBx1BMX5MfHdvNNqdNAGWBa56
 
 const VOTE_CODE_LENGTH: usize = 3;
 const AUTHCODE_CODE_LENGTH: usize = 64;
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VotingStage {
+    Empty,
+    Casted,
+    Accepted,
+    Committed,
+}
 
 #[program]
 mod counter {
     use super::*;
 
     pub fn cast_vote( // do umieszczenia krotki <VoteCode,AuthCode> na BB
-        ctx: Context<Cast>,
+        ctx: Context<CastCtx>,
+        auth_code: Vec<u8>,
         vote_code: Vec<u8>,
-        auth_code: Vec<u8>
     ) -> Result<()> {
+        let cast = &mut ctx.accounts.vote;
+        require!(cast.stage == VotingStage::Empty, ErrorCode::InvalidProgramId);
+
         require!(auth_code.len() == 64, ErrorCode::InvalidProgramId);
         require!(vote_code.len() == 3, ErrorCode::InvalidProgramId);
 
@@ -24,22 +33,55 @@ mod counter {
         let mut vote_fixed = [0u8; 3];
         vote_fixed.copy_from_slice(&vote_code);
 
-        let cast = &mut ctx.accounts.cast;
         cast.auth_code = auth_fixed;
         cast.vote_code = vote_fixed;
-        cast.bump = ctx.bumps.cast;
+        cast.bump = ctx.bumps.vote;
+        cast.stage = VotingStage::Casted;
         Ok(())
     }
 
     pub fn accept_vote(
-        ctx: Context<Accept>,
-    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, AckCode, sig> na BB
+        ctx: Context<AcceptCtx>,
+        auth_code: Vec<u8>,
+        auth_serial: Vec<u8>,
+        vote_serial: Vec<u8>,
+        ack_code: Vec<u8>,
+        server_sign: Vec<u8> // po co ack code skoro mamy podpis
+    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, AckCode, sig(servera)> na BB
+        let cast = &mut ctx.accounts.vote;
+        require!(cast.stage == VotingStage::Casted, ErrorCode::InvalidProgramId);
+
+        let mut auth_fixed = [0u8; 16];
+        auth_fixed.copy_from_slice(&auth_serial);
+        let mut vote_fixed = [0u8; 16];
+        vote_fixed.copy_from_slice(&vote_serial);
+        let mut ack_fixed = [0u8; 8];
+        ack_fixed.copy_from_slice(&ack_code);
+        let mut server_fixed = [0u8; 64];
+        server_fixed.copy_from_slice(&server_sign);
+
+        cast.vote_serial = vote_fixed;
+        cast.auth_serial = auth_fixed;
+        cast.ack_code = ack_fixed;
+        cast.server_sign = server_fixed;
+
+        cast.stage = VotingStage::Accepted;
         Ok(())
     }
 
     pub fn commit_vote(
-        ctx: Context<Commit>,
-    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, AckCode, sig(servera), sig(usera)> na BB
+        ctx: Context<CommitCtx>,
+        auth_code: Vec<u8>,
+        user_sign: Vec<u8>
+    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, AckCode, sig(servera)> na BB
+        let cast = &mut ctx.accounts.vote;
+        require!(cast.stage == VotingStage::Accepted, ErrorCode::InvalidProgramId);
+
+        let mut user_fixed = [0u8; 64];
+        user_fixed.copy_from_slice(&user_sign);
+
+        cast.voter_sign = user_fixed;
+        cast.stage = VotingStage::Committed;
         Ok(())
     }
 
@@ -82,101 +124,51 @@ pub struct PackCommitment {
 }
 
 #[derive(Accounts)]
-#[instruction(vote_code: Vec<u8>, auth_code: Vec<u8>)]
-pub struct Cast<'info> {
+#[instruction(auth_code: Vec<u8>)]
+pub struct CastCtx<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut)]
-    pub user: Signer<'info>,
-
     #[account(
         init,
-        seeds = [b"castVote".as_ref(),
-            &vote_code[..3],
-            &auth_code[..32]], // todo : poprawnie to policzyć a nie na palcach
-        bump,
         payer = payer,
-        space = 8 + core::mem::size_of::<CastVote>()
+        seeds = [b"commitVote", &auth_code[..32], &auth_code[32..]],
+        bump,
+        space = 64 + 64 + 64 + 64 + 64 + 64 + 64 + 64 + 64,
     )]
-    pub cast: Account<'info, CastVote>,
+    pub vote: Account<'info, Vote>,
     pub system_program: Program<'info, System>,
-}
-
-#[account]
-pub struct CastVote {
-    pub vote_code: [u8; VOTE_CODE_LENGTH],
-    pub auth_code: [u8; AUTHCODE_CODE_LENGTH],
-    pub bump: u8,
 }
 
 #[derive(Accounts)]
-#[instruction(vote_serial: [u8; 32],
-    vote_code: [u8; VOTE_CODE_LENGTH],
-    auth_serial: [u8; 64],
-    auth_code: [u8; AUTHCODE_CODE_LENGTH],
-    ack_code: [u8; 64],
-    server_sign: [u8; 64])]
-pub struct Accept<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    #[account(mut)]
-    pub user: Signer<'info>,
-
+#[instruction(auth_code: Vec<u8>)]
+pub struct AcceptCtx<'info> {
     #[account(
-        init,
-        seeds = [b"acceptVote".as_ref(), server_sign.as_ref()], // todo : poprawnie to policzyć a nie na palcach
-        bump,
-        payer = payer,
-        space = 32 + 32 + 64 + 64 + 64 + 64 + 8)]
-    pub accept: Account<'info, CastVote>,
-    pub system_program: Program<'info, System>,
-}
-
-#[account]
-pub struct AcceptVote {
-    pub vote_serial: [u8; 32],
-    pub vote_code: [u8; VOTE_CODE_LENGTH],
-    pub auth_serial: [u8; 64],
-    pub auth_code: [u8; AUTHCODE_CODE_LENGTH],
-    pub ack_code: [u8; 64],
-    pub server_sign: [u8; 64],
-    pub bump: u8,
+        mut,
+        seeds = [b"commitVote", &auth_code[..32], &auth_code[32..]],
+        bump = vote.bump
+    )]
+    pub vote: Account<'info, Vote>,
 }
 
 #[derive(Accounts)]
-#[instruction(vote_serial: [u8; 32],
-    vote_code: [u8; VOTE_CODE_LENGTH],
-    auth_serial: [u8; 64],
-    auth_code: [u8; 64],
-    ack_code: [u8; 64],
-    server_sign: [u8; 64],
-    voter_sign: [u8; 64])]
-pub struct Commit<'info> {
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    #[account(mut)]
-    pub user: Signer<'info>,
-
+#[instruction(auth_code: Vec<u8>)]
+pub struct CommitCtx<'info> {
     #[account(
-        init,
-        seeds = [b"commitVote".as_ref(),
-            &vote_code[..3],
-            &auth_code[..32]],
-        bump,
-        payer = payer,
-        space = 32 + 32 + 64+ 64 + 64 + 64 + 64 + 64 + 64 + 8
+        mut,
+        seeds = [b"commitVote", &auth_code[..32], &auth_code[32..]],
+        bump = vote.bump,
     )]
-    pub commit: Account<'info, CommitVote>,
-    pub system_program: Program<'info, System>,
+    pub vote: Account<'info, Vote>,
 }
 
 #[account]
-pub struct CommitVote {
-    pub vote_serial: [u8; 32],
+pub struct Vote {
+    pub stage: VotingStage,
+    pub vote_serial: [u8; 16],
     pub vote_code: [u8; VOTE_CODE_LENGTH],
-    pub auth_serial: [u8; 64],
+    pub auth_serial: [u8; 16],
     pub auth_code: [u8; AUTHCODE_CODE_LENGTH],
-    pub ack_code: [u8; 64],
+    pub ack_code: [u8; 8],
     pub server_sign: [u8; 64],
     pub voter_sign: [u8; 64],
     pub bump: u8,

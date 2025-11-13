@@ -1,0 +1,28 @@
+package golangShared
+
+import (
+	"encoding/json"
+	"log"
+	"os"
+
+	"github.com/gagliardetto/solana-go"
+)
+
+func LoadPrivateKeyFromJSON(path string) *solana.PrivateKey {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var nums []uint8
+	if err := json.Unmarshal(raw, &nums); err != nil {
+		log.Fatal(err)
+	}
+
+	// 64 bajty: 32 sekret + 32 public
+	pk := solana.PrivateKey(nums)
+	if len(pk) != 64 {
+		log.Fatalf("unexpected key length: %d", len(pk))
+	}
+	return &pk
+}

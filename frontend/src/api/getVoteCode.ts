@@ -1,17 +1,14 @@
 import {consts} from "../const.ts";
 
-interface IVotingPack {
-    authCode: string;
+
+interface IGetVoteCode {
     voteSerial: string;
-    sign: string;
 }
 
-export default async function pingServerForAcceptVote({ sign, authCode, voteSerial }: IVotingPack): Promise<void> {
-    return fetch(consts.API_URL + '/acceptVote', {
+export default function getVoteCode({voteSerial} : IGetVoteCode) {
+    return fetch(consts.API_URL + '/getVoteCodes', {
         method: 'POST',
         body: JSON.stringify({
-            basedSign: sign,
-            authCode: authCode,
             voteSerial: voteSerial
         }),
     }).then(response => {
