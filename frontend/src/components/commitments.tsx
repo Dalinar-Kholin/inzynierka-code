@@ -9,12 +9,6 @@ export default function Commitments({ program }: { program: Program<Counter> | n
     const [list, setList] = useState<ProgramAccount<AuthPackCommitment>[]>([]);
     const [loading, setLoading] = useState(false);
 
-     const bytesToUtf8 = (u8: Uint8Array | number[]): string => {
-        return new TextDecoder("utf-8", { fatal: false }).decode(
-            u8 instanceof Uint8Array ? u8 : new Uint8Array(u8)
-        );
-    }
-
     useEffect(() => {
         if (!program) return;
         let cancelled = false;
@@ -40,7 +34,7 @@ export default function Commitments({ program }: { program: Program<Counter> | n
             {list.length}
             {list.map((it) => (
                 <li key={it.publicKey.toBase58()}>
-                    {bytesToUtf8(it.account.serial)} - {Array.from(it.account.hashedData, b =>
+                    {it.account.commitmentType} - {Array.from(it.account.hashedData, b =>
                         Number(b).toString(16).padStart(2, '0')
                     ).join('')}
                 </li>
