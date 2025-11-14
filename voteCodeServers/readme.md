@@ -1,0 +1,7 @@
+voteCodesGenerator - uruchamiany przed glosowanie do generowania ciphertextu karty z voteCodami. Każdy wygenerowany ciphertext gdzieś zapisujemy (chyba trzeba na bb zeby byla pewnosc ze nic nie zostalo zmienione - ale trzeba domyśleć bo to za dużo bedzie zajmować). 
+Każdy głosujący powinien dostać przynajmniej 2 karty. Jedna to faktycznego głosowania, a druga do audytu.
+
+tallyingServer - uruchamiany podczas głosowania do sprawdzania czy dany voteCode z bb jest poprawny oraz wykonujemy wstępne zliczenie (zamiana na wektor homomorficzny - osobne klucze pailliera trzeba wygenerować tylko do tego celu - podzielenie klucza prywatnego na jakieś zaufane strony).
+Może to też w tym samym czasie obsługiwać deszyfracje ciphertextu karty do głosowania (chyba, że zakładamy, że głosujący przed rozpoczęciem głosowania może już dostać swoje vc). Każdy serwer wtedy musi mieć "kontakt" z głosującym by wysłać mu części potrzebne do odszyfrowania (jakbyśmy to robili przez jakiś 1 serwer to wtedy ten serwer by wszystko poznał - zaprzecza to całemu protokołowi printegrity). Na froncie będziemy potrzebowali funkcji do łączenia cześci kart.
+
+voteCodesGenerator generuje map, a tallyingServer z niej korzysta.
