@@ -16,7 +16,8 @@ function App() {
     return (
         <>
             <ConnectWallet/>
-            <Button onClick={()=> navigate("/vote")}>navigate</Button>
+            <Button onClick={()=> navigate("/helperDeviceView")}>helper device</Button>
+            <Button onClick={()=> navigate("/votingDeviceView")}>voter device</Button>
         </>
     )
 }

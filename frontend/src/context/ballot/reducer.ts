@@ -7,13 +7,19 @@ type BallotAction = {
     type: "SET_AUTH_SERIAL",
     payload : { authSerial: string }
 }| {
-    type: "SET_ACK_CODE",
+    type: "SET_ACK_CODES",
     payload : { code: string }
 }| {
-    type: "SET_VOTE_CODE",
+    type: "SET_VOTE_CODES",
     payload : { code: string[] }
 } | {
     type: "SET_AUTH_CODE",
+    payload : { code: string }
+}| {
+    type: "SET_VOTE_CODE",
+    payload : { code: string }
+} | {
+    type: "SET_VOTER_SIGN",
     payload : { code: string }
 }
 
@@ -24,12 +30,16 @@ export const ballotReducer = (state: Ballot, action: BallotAction): Ballot => {
             return { ...state, VOTE_SERIAL: action.payload.voteSerial };
         case "SET_AUTH_SERIAL":
             return { ...state, AUTH_SERIAL: action.payload.authSerial };
-        case "SET_ACK_CODE":
+        case "SET_ACK_CODES":
             return { ...state, ACK_CODE: action.payload.code };
-        case "SET_VOTE_CODE":
+        case "SET_VOTE_CODES":
             return { ...state, VOTE_CODES: action.payload.code };
         case "SET_AUTH_CODE":
             return { ...state, AUTH_CODE: action.payload.code };
+        case "SET_VOTE_CODE":
+            return { ...state, SELECTED_CODE: action.payload.code };
+        case "SET_VOTER_SIGN":
+            return { ...state, VOTER_SIGN: action.payload.code };
         default:
             return state;
     }

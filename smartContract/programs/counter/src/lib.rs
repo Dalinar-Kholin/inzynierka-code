@@ -72,16 +72,21 @@ mod counter {
     pub fn commit_vote(
         ctx: Context<CommitCtx>,
         auth_code: Vec<u8>,
+        offset: u32,
         user_sign: Vec<u8>
     ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, AckCode, sig(servera)> na BB
-        let cast = &mut ctx.accounts.vote;
-        require!(cast.stage == VotingStage::Accepted, ErrorCode::InvalidProgramId);
+        let vote = &mut ctx.accounts.vote;
 
-        let mut user_fixed = [0u8; 64];
-        user_fixed.copy_from_slice(&user_sign);
+        let offset = offset as usize;
+        let end = offset
+            .checked_add(user_sign.len())
+            .ok_or(ErrorCode::InvalidProgramId)?;
+        require!(end <= MAX_VOTER_SIGN_LEN, ErrorCode::InvalidProgramId);
 
-        cast.voter_sign = user_fixed;
-        cast.stage = VotingStage::Committed;
+        vote.voter_sign.resize(end, 0);
+
+        vote.voter_sign[offset..end].copy_from_slice(&user_sign);
+
         Ok(())
     }
 
@@ -133,7 +138,7 @@ pub struct CastCtx<'info> {
         payer = payer,
         seeds = [b"commitVote", &auth_code[..32], &auth_code[32..]],
         bump,
-        space = 64 + 64 + 64 + 64 + 64 + 64 + 64 + 64 + 64,
+        space = VOTE_ACCOUNT_SPACE,
     )]
     pub vote: Account<'info, Vote>,
     pub system_program: Program<'info, System>,
@@ -170,6 +175,47 @@ pub struct Vote {
     pub auth_code: [u8; AUTHCODE_CODE_LENGTH],
     pub ack_code: [u8; 8],
     pub server_sign: [u8; 64],
-    pub voter_sign: [u8; 64],
+    pub voter_sign: Vec<u8>,
     pub bump: u8,
+}
+const MAX_VOTER_SIGN_LEN: usize = 5000;
+
+const VOTE_ACCOUNT_SPACE: usize =
+    8    // discriminator
+        + 1    // stage
+        + 16   // vote_serial
+        + 3    // vote_code
+        + 16   // auth_serial
+        + 64   // auth_code
+        + 8    // ack_code
+        + 64   // server_sign
+        + 4    // voter_sign length prefix (u32)
+        + MAX_VOTER_SIGN_LEN
+        + 1;   // bump
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anchor_lang::prelude::*;
+    use borsh::BorshSerialize;
+
+    #[test]
+    fn print_vote_sizes() {
+        let vote = Vote {
+            stage: VotingStage::Empty,
+            vote_serial: [0; 16],
+            vote_code: [0; VOTE_CODE_LENGTH],
+            auth_serial: [0; 16],
+            auth_code: [0; AUTHCODE_CODE_LENGTH],
+            ack_code: [0; 8],
+            server_sign: [0; 64],
+            voter_sign: vec![0u8; MAX_VOTER_SIGN_LEN],
+            bump: 0,
+        };
+
+        let serialized = vote.try_to_vec().unwrap();
+        println!("Vote serialized size (bez discriminatora) = {}", serialized.len());
+        println!("Vote account space = {}", VOTE_ACCOUNT_SPACE);
+    }
 }

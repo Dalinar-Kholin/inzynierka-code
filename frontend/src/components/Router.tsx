@@ -2,14 +2,16 @@ import {Route, Routes} from 'react-router-dom';
 import App from "../App.tsx";
 import GetBallots from "./getBallots.tsx";
 import {ConnectionProvider, WalletProvider} from "@solana/wallet-adapter-react";
-import {WalletModalProvider} from "@solana/wallet-adapter-react-ui";
-import {BraveWalletAdapter} from '@solana/wallet-adapter-brave';
-import {PhantomWalletAdapter} from '@solana/wallet-adapter-phantom';
 import "@solana/wallet-adapter-react-ui/styles.css";
 import {CommitmentComp} from "./CommitmentComp.tsx";
 import SendVote from "./sendVote.tsx";
 import ConnectWallet from "./ConnectWallet.tsx";
 import Vote from "./Vote.tsx";
+import {WalletModalProvider} from "@solana/wallet-adapter-react-ui";
+import {BraveWalletAdapter} from "@solana/wallet-adapter-brave";
+import {PhantomWalletAdapter} from "@solana/wallet-adapter-phantom";
+import VotingDeviceView from "./voting/VotingDeviceView.tsx";
+import HelperDeviceView from "./voting/HelperDeviceView.tsx";
 
 const endpoint = "http://127.0.0.1:8899";
 const wallets = [
@@ -29,6 +31,8 @@ export default function RouterSwitcher() {
                             <Route path={"/sendVote"} element={<SendVote/>}/>
                             <Route path={"/connectWallet"} element={<ConnectWallet/>}/>
                             <Route path={"/vote"} element={<Vote/>}/>
+                            <Route path={"/votingDeviceView"} element={<VotingDeviceView/>}/>
+                            <Route path={"/helperDeviceView"} element={<HelperDeviceView/>}/>
                         </Routes>
                     </WalletModalProvider>
                 </WalletProvider>

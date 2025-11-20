@@ -7,6 +7,8 @@ export class Ballot{
     ACK_CODE : string;
     VOTE_CODES : string[];
     AUTH_CODE: string;
+    SELECTED_CODE: string;
+    VOTER_SIGN : string;
     constructor(VOTE_SERIAL : string,
                 AUTH_SERIAL : string,
                 ACK_CODE : string,
@@ -18,6 +20,8 @@ export class Ballot{
         this.ACK_CODE = ACK_CODE
         this.VOTE_CODES = VOTE_CODES
         this.AUTH_CODE = AUTH_CODE
+        this.SELECTED_CODE = ""
+        this.VOTER_SIGN = ""
     }
 }
 
@@ -31,6 +35,8 @@ export const BallotContext = createContext<{
     setAckCode: (s : string) => void
     setVoteCodes: (s : string[]) => void
     setAuthCode: (s : string) => void
+    setSelectedCode: (s : string) => void
+    setVoterSign: (s : string) => void
 }>(
     {
         ballot : initialState,
@@ -39,6 +45,8 @@ export const BallotContext = createContext<{
         setAckCode: () => {},
         setAuthCode: ()=>{},
         setVoteCodes: () => {},
+        setSelectedCode: () => {},
+        setVoterSign: () => {},
     }
 )
 
@@ -55,7 +63,7 @@ export const BallotProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     function setAckCode(ackCode: string){
-        dispatch({type: "SET_ACK_CODE", payload: {code: ackCode}})
+        dispatch({type: "SET_ACK_CODES", payload: {code: ackCode}})
     }
 
     function setAuthCode(authCode: string){
@@ -63,11 +71,19 @@ export const BallotProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     function setVoteCodes(voteCodes: string[]){
-        dispatch({type: "SET_VOTE_CODE", payload: {code: voteCodes}})
+        dispatch({type: "SET_VOTE_CODES", payload: {code: voteCodes}})
+    }
+
+    function setSelectedCode(voteCode: string){
+        dispatch({type: "SET_VOTE_CODE", payload: {code: voteCode}})
+    }
+
+    function setVoterSign(sign: string){
+        dispatch({type: "SET_VOTER_SIGN", payload: {code: sign}})
     }
 
     return(
-        <BallotContext.Provider value={{ballot, setVoteSerial, setAuthSerial, setAckCode, setAuthCode, setVoteCodes}}>
+        <BallotContext.Provider value={{ballot, setVoteSerial, setAuthSerial, setAckCode, setAuthCode, setVoteCodes, setSelectedCode, setVoterSign}}>
             {children}
         </BallotContext.Provider>
     )

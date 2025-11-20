@@ -114,7 +114,7 @@ func randomPerm(s *[NumberOfCandidates]CandidateCode) {
 	}
 }
 
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+=-{}[]"
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 func generateAuthCodePack() *AuthCodePack {
 

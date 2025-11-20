@@ -1,9 +1,10 @@
-package AcceptVote
+package helper
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/gagliardetto/solana-go"
@@ -113,3 +114,60 @@ func SendAcceptVote(
 
 	return sig.String(), nil
 }
+
+type Vote struct {
+	Stage      uint8
+	VoteSerial [16]byte
+	VoteCode   [3]byte
+	AuthSerial [16]byte
+	AuthCode   [64]byte
+	AckCode    [8]byte
+	ServerSign [64]byte
+	VoterSign  []byte
+	Bump       uint8
+}
+
+func DecodeVoteAnchor(data []byte) (Vote, error) {
+
+	const total = 5185
+	if len(data) != total {
+		return Vote{}, fmt.Errorf("unexpected length %d, want %d", len(data), total)
+	}
+	var v Vote
+	payload := data[8:]
+
+	v.Stage = payload[0]
+
+	copy(v.VoteSerial[:], payload[1:1+16])
+	copy(v.VoteCode[:], payload[17:17+3])
+	copy(v.AuthSerial[:], payload[20:20+16])
+	copy(v.AuthCode[:], payload[36:36+64])
+	copy(v.AckCode[:], payload[100:100+8])
+	copy(v.ServerSign[:], payload[108:108+64])
+	length, _ := ReadSolanaU32AsInt32(payload[172 : 172+4])
+	fmt.Printf("length: %v\n", payload[172:172+100])
+	v.VoterSign = make([]byte, length)
+	copy(v.VoterSign[:], payload[176:176+length])
+	v.Bump = payload[176+length]
+
+	fmt.Printf("%v\n", length)
+	return v, nil
+}
+
+func ReadSolanaU32AsInt32(data []byte) (int32, error) {
+	if len(data) < 4 {
+		return 0, errors.New("not enough bytes for u32")
+	}
+
+	// Odczytaj jako uint32 (LE)
+	u := binary.LittleEndian.Uint32(data)
+
+	return int32(u), nil
+}
+
+var (
+	ProgramID = solana.MustPublicKeyFromBase58("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af")
+	FeePayer  *solana.Wallet
+	Client    *rpc.Client
+	ctx       = context.Background()
+)

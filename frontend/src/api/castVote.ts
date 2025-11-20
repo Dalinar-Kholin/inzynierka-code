@@ -51,10 +51,8 @@ export default async function castVoteCode({voteCode, authCode, program, provide
 
     const txPayerSigned = await SignTransaction(unsignedBase64);
 
-    const txFullySigned = await provider.wallet.signTransaction(txPayerSigned);
-
     await provider.connection.sendRawTransaction(
-        txFullySigned.serialize({ requireAllSignatures: true }),
+        txPayerSigned.serialize({ requireAllSignatures: true }),
         { skipPreflight: false }
     );
 }

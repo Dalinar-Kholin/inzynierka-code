@@ -3,17 +3,20 @@ import * as anchor from "@coral-xyz/anchor";
 import SignTransaction from "./signTransaction.ts";
 import type {Counter} from "../counter.ts";
 import type {AnchorProvider, Program} from "@coral-xyz/anchor";
+import pako from "pako";
 
 interface ICommitVote {
-    sign: string;
+    signedDocument: string;
     authCode: string;
     program: Program<Counter>;
     provider: AnchorProvider;
 }
 
-export default async function commitVote({ sign, authCode, program, provider } : ICommitVote){
+export default async function commitVote({signedDocument, authCode, program, provider } : ICommitVote){
     const enc = new TextEncoder();
     const authU8 = enc.encode(authCode);
+
+    const zippedDocument = compressGzipString(signedDocument);
 
     if (authU8.length !== 64) throw new Error(`authCode must be 64 bytes, got ${authU8.length}`);
 
@@ -26,28 +29,41 @@ export default async function commitVote({ sign, authCode, program, provider } :
         program.programId
     );
 
-    const ix = await program.methods
-        .commitVote(Buffer.from(authU8), Buffer.from(sign))
-        .accounts({
-            vote: messagePda,
-        })
-        .instruction();
-
     const { blockhash } = await provider.connection.getLatestBlockhash();
 
-    const tx = new Transaction({
-        feePayer: payerPubkey,
-        recentBlockhash: blockhash,
-    }).add(ix);
 
-    const unsignedBase64 = tx.serialize({ requireAllSignatures: false }).toString("base64");
+    const CHUNK_SIZE = 800; // bezpiecznie poniżej 1000 B
 
-    const txPayerSigned = await SignTransaction(unsignedBase64);
+    let x = 1
+    for (let offset = 0; offset < zippedDocument.length; offset += CHUNK_SIZE) {
+        const tx = new Transaction({
+            feePayer: payerPubkey,
+            recentBlockhash: blockhash,
+        })
+        const chunk = zippedDocument.slice(offset, Math.min(offset + CHUNK_SIZE, zippedDocument.length));
 
-    const txFullySigned = await provider.wallet.signTransaction(txPayerSigned);
+        const ix = await program.methods
+            .commitVote(Buffer.from(authU8), new anchor.BN(offset), Buffer.from(chunk))
+            .accounts({ vote: messagePda })
+            .instruction();
+        tx.add(ix)
+        const unsignedBase64 = tx.serialize({ requireAllSignatures: false }).toString("base64");
+        const txPayerSigned = await SignTransaction(unsignedBase64);
+        await provider.connection.sendRawTransaction(
+            txPayerSigned.serialize({ requireAllSignatures: true }),
+            { skipPreflight: false }
+        );
+        console.log(`transaction := ${x++} success`)
+    }
+}
 
-    await provider.connection.sendRawTransaction(
-        txFullySigned.serialize({ requireAllSignatures: true }),
-        { skipPreflight: false }
-    );
+export function compressGzipString(input: string): Uint8Array {
+    const data = new TextEncoder().encode(input);
+    // level: 9 = max
+    return pako.gzip(data, { level: 9 });
+}
+
+export function decompressGzipToString(input: Uint8Array): string {
+    const decompressed = pako.ungzip(input);
+    return new TextDecoder().decode(decompressed);
 }
