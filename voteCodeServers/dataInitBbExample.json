@@ -1,0 +1,20 @@
+{
+    "1": {
+        "s": 1111,
+        "s_prim": 1111,
+        "c0": "comm(c0)",
+        "c1": "comm(c1)",
+        "b": "comm(b1,b2,...,bk)",
+        "s_prev": "comm(s_prev)",
+        "s_prim_prev": "comm(s_prev_prim)"
+    },
+    "2": {
+        "s": 1111,
+        "s_prim": 1111,
+        "c0": "comm(c0)",
+        "c1": "comm(c1)",
+        "b": "comm(b1,b2,...,bk)",
+        "s_prev": "comm(s_prev)",
+        "s_prim_prev": "comm(s_prev_prim)"
+    }
+}
