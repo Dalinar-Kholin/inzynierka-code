@@ -5,6 +5,7 @@ public class BallotService
 {
     private readonly IMongoCollection<BallotData> _ballots;
 
+
     public BallotService(int serverId)
     {
         var client = new MongoClient("mongodb://localhost:27017");
@@ -15,27 +16,18 @@ public class BallotService
         _ballots.Indexes.CreateOne(new CreateIndexModel<BallotData>(indexKeys, new CreateIndexOptions { Unique = true }));
     }
 
-    public async Task<BallotData> GetOrCreateBallot(int ballotId)
+    public async Task CreateBallotsBatch(List<BallotData> ballots)
     {
-        var ballot = await _ballots
-            .Find(b => b.BallotId == ballotId)
-            .FirstOrDefaultAsync();
-
-        if (ballot == null)
+        if (ballots.Count > 0)
         {
-            ballot = new BallotData
-            {
-                BallotId = ballotId,
-            };
-            await _ballots.InsertOneAsync(ballot);
-            Console.WriteLine($"Created new ballot {ballotId}");
+            await _ballots.InsertManyAsync(ballots, new InsertManyOptions { IsOrdered = false });
         }
-
-        return ballot;
     }
 
-    public async Task SaveBallot(BallotData ballot)
+    public async Task<bool> BallotExists(int ballotId)
     {
-        await _ballots.ReplaceOneAsync(b => b.BallotId == ballot.BallotId, ballot);
+        return await _ballots
+            .Find(b => b.BallotId == ballotId)
+            .AnyAsync();
     }
 }

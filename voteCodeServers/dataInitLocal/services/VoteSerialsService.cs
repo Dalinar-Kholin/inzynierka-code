@@ -17,6 +17,14 @@ public class VoteSerialsService
         _voteSerials.Indexes.CreateOne(new CreateIndexModel<VoteSerialData>(indexKeys2, new CreateIndexOptions { Unique = true }));
     }
 
+    public async Task SaveVoteSerialsBatch(List<VoteSerialData> voteSerials)
+    {
+        if (voteSerials.Count > 0)
+        {
+            await _voteSerials.InsertManyAsync(voteSerials, new InsertManyOptions { IsOrdered = false });
+        }
+    }
+
     public async Task SaveVoteSerial(int id, string trueVoteSerial, string commitment, long randomKey)
     {
         var record = await _voteSerials

@@ -1,7 +1,6 @@
 using MongoDB.Driver;
 using MongoDB.Bson;
 
-
 public class BallotLinkingService
 {
     private readonly IMongoCollection<BallotLinking> _ballotLinking;
@@ -23,6 +22,11 @@ public class BallotLinkingService
         _ballotLinkingPrim.Indexes.CreateOne(new CreateIndexModel<BallotLinking>(indexKeys2, new CreateIndexOptions { Unique = true }));
     }
 
+    public async Task SaveLinkingBatch(List<BallotLinking> records, bool isPrim)
+    {
+        var collection = isPrim ? _ballotLinkingPrim : _ballotLinking;
+        await collection.InsertManyAsync(records);
+    }
 
     public async Task SaveLinking(int id, int prevBallot, string commitment, long randomKey, bool isPrim)
     {
