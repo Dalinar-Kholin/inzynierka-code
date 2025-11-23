@@ -65,7 +65,9 @@ func AcceptVote(c *gin.Context) {
 	filter = bson.D{{"voteSerial", bin}}
 	var votePack golangShared.VotingPackage
 	if err := DB.GetDataBase("inz", DB.VoteCollection).FindOne(context.Background(), filter).Decode(&votePack); err != nil {
-		panic(err)
+		c.JSON(401, gin.H{
+			"error": err.Error(),
+		})
 	}
 
 	data, err := json.Marshal(

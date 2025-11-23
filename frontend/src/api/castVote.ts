@@ -1,8 +1,8 @@
 import {PublicKey, Transaction} from "@solana/web3.js";
+import type {AnchorProvider, Program} from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import SignTransaction from "./signTransaction.ts";
 import type {Counter} from "../counter.ts";
-import type {AnchorProvider, Program} from "@coral-xyz/anchor";
 
 interface ICastVoteCode {
     voteCode: string;
@@ -51,8 +51,8 @@ export default async function castVoteCode({voteCode, authCode, program, provide
 
     const txPayerSigned = await SignTransaction(unsignedBase64);
 
-    await provider.connection.sendRawTransaction(
-        txPayerSigned.serialize({ requireAllSignatures: true }),
-        { skipPreflight: false }
+    return await provider.connection.sendRawTransaction(
+        txPayerSigned.serialize({requireAllSignatures: true}),
+        {skipPreflight: false}
     );
 }

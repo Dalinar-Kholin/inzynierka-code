@@ -1,28 +1,36 @@
-import GetBallots from "../getBallots.tsx";
+import {GetBallots} from "../getBallots.tsx";
 import BallotDataPirnt from "../BallotDataPirnt.tsx";
 import GetVoteStatus from "../getVoteStatus.tsx";
 import UploadSignedDocument from "../UploadSignedDocument.tsx";
-import {useEffect} from "react";
-import {useAnchor} from "../../hooks/useAnchor.ts";
+import {useState} from "react";
+import {Alert} from "@mui/material"
+
+
 
 export default function HelperDeviceView(){
-    const {getProgram} = useAnchor()
+    const [successMessage, setSuccessMessage] = useState<string>("")
+    const [errorMessage, setErrorMessage] = useState<string>("")
 
-    useEffect(()=>{
-        // todo : mam zcommitowany public key, teraz dodać narzędzie do weryfikacji podpisu servera
-        const fetch = async () => {
-            console.log(await getProgram().account.signKey.all())
-        }
-        fetch().then(r => console.log(r))
-    }, [])
+    const setErrorWrapper = (m :string) => {
+        setErrorMessage(m)
+        setSuccessMessage("")
+    }
+
+    const setSuccessWrapper = (m :string) => {
+        setErrorMessage("")
+        setSuccessMessage(m)
+    }
 
     return(
         <>
             <BallotDataPirnt />
             <p></p>
-            <GetBallots/>
-            <GetVoteStatus />
+            <GetBallots setErrorMessage={setErrorWrapper} setSuccessMessage={setSuccessWrapper}/>
+            <GetVoteStatus setErrorMessage={setErrorWrapper} setSuccessMessage={setSuccessWrapper}/>
             <UploadSignedDocument />
+            {successMessage !== "" ? <Alert severity="success">{successMessage}</Alert> : <></>}
+            {errorMessage !== "" ? <Alert severity="error">{errorMessage}</Alert> : <></>}
+
         </>
     )
 }

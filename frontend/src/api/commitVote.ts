@@ -34,7 +34,6 @@ export default async function commitVote({signedDocument, authCode, program, pro
 
     const CHUNK_SIZE = 800; // bezpiecznie poniżej 1000 B
 
-    let x = 1
     for (let offset = 0; offset < zippedDocument.length; offset += CHUNK_SIZE) {
         const tx = new Transaction({
             feePayer: payerPubkey,
@@ -53,7 +52,6 @@ export default async function commitVote({signedDocument, authCode, program, pro
             txPayerSigned.serialize({ requireAllSignatures: true }),
             { skipPreflight: false }
         );
-        console.log(`transaction := ${x++} success`)
     }
 }
 

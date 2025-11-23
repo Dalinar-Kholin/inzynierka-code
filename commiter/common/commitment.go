@@ -14,11 +14,6 @@ func SetKeys(privKey *ecdh.PrivateKey, pubKey *ecdh.PublicKey) {
 	privateKey = privKey
 }
 
-func CommitVotePack() {
-	//TODO implement me
-	panic("implement me")
-}
-
 func CommitAuthPack(commitmentType CommitmentType, data []byte) {
 	var dataCopied [32]byte
 	copy(dataCopied[:], data)

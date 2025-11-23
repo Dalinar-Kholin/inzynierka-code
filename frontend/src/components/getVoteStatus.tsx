@@ -26,7 +26,12 @@ function getStageName(stage: VotingStage): StageName {
     return key;
 }
 
-export default function GetVoteStatus() {
+interface IGetVoteStatus{
+    setErrorMessage: (message: string) => void;
+    setSuccessMessage: (message: string) => void;
+}
+
+export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGetVoteStatus) {
     const {getProgram} = useAnchor()
     const [authSerial, setAuthSerial] = useState<string>("")
     const [accountData, setAccountData] = useState<accountData[]>([])
@@ -54,7 +59,6 @@ export default function GetVoteStatus() {
                     ServerSign: r.account.serverSign,
                     VoterSign: decoder.decode(new Uint8Array(r.account.voterSign))
                 }
-                console.log(newItem.AuthSerial)
                 data.push(newItem)
             })
             setAccountData(data)
@@ -87,12 +91,11 @@ export default function GetVoteStatus() {
                                 VoteCode: stringToByteArray(ad.VoteCode),
                                 AuthCode: stringToByteArray(ad.AuthCode),
                             };
-                            console.log(ad.ServerSign);
                             const res = await verifyEd25519(key.current, JSON.stringify(signedObject), Buffer.from(ad.ServerSign).toString('base64'), "base64")
-                            console.log(`verify ${res}`)
+                            res ? setSuccessMessage("good signature") : setErrorMessage("bad signature")
                         }}>Verify Server Sign</Button>
                     </p>
-                    <p>---------------------------------------</p>
+
                 </div>
             ))}
         </p>
@@ -157,21 +160,14 @@ export async function verifyEd25519(
             ? new TextEncoder().encode(message)
             : message;
 
-    console.log(new TextDecoder().decode(msgBytes));
-
-
     const sigBytes =
         signatureEncoding === "base64"
             ? base64ToUint8(signature)
             : hexToUint8(signature);
 
     console.log(sigBytes);
-    return crypto.subtle.verify(
-        {name: "Ed25519"},
-        publicKey,
-        sigBytes,
-        msgBytes
-    );
+    // @ts-ignore
+    return crypto.subtle.verify({name: "Ed25519"}, publicKey, sigBytes, msgBytes);
 }
 
 function stringToByteArray(str: string): number[] {

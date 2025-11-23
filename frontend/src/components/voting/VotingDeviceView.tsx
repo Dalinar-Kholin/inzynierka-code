@@ -1,6 +1,6 @@
 import {useContext, useState} from "react";
 import {BallotContext} from "../../context/ballot/context.tsx";
-import {Button} from "@mui/material";
+import {Alert, Button} from "@mui/material";
 import castVoteCode from "../../api/castVote.ts";
 import {useAnchor} from "../../hooks/useAnchor.ts";
 import getVoteCode from "../../api/getVoteCode.ts";
@@ -15,34 +15,39 @@ export default function VotingDeviceView() {
     const [bit, setBit] = useState<boolean>(false);
     const ballotCtx = useContext(BallotContext);
     const { getProgram, getProvider } = useAnchor();
-
+    const [successMessage, setSuccessMessage] = useState<string>("")
+    const [errorMessage, setErrorMessage] = useState<string>("")
 
     return (<>
+
+            <p>
+                auth serial
+
+                <input onChange={e => {
+                    ballotCtx.setAuthSerial(e.target.value)
+                }} value={ballotCtx.ballot.AUTH_SERIAL}/>
+            </p>
+
         <p>
             vote serial
             <input onChange={e => {
                 ballotCtx.setVoteSerial(e.target.value)
             }} value={ballotCtx.ballot.VOTE_SERIAL}/>
         </p>
-        <p>
-            auth serial
-            <input onChange={e => {
-                ballotCtx.setAuthSerial(e.target.value)
-            }} value={ballotCtx.ballot.AUTH_SERIAL}/>
-        </p>
+
 
 
         <p></p>
         {ballotCtx.ballot.VOTE_CODES.map(code =>
             <p key={code}>
-                {<Button onClick={() => {
+                {<Button onClick={async () => {
                     ballotCtx.setSelectedCode(code)
                     castVoteCode({
                         voteCode: code,
                         authCode: ballotCtx.ballot.AUTH_CODE,
                         program: getProgram(),
                         provider: getProvider()
-                    })
+                    }).then(r => setSuccessMessage(`Vote transaction signature := ${r}`)).catch(e => setErrorMessage(e.message))
                 }}>{code.toUpperCase()}</Button>}
             </p>
         )}
@@ -64,6 +69,8 @@ export default function VotingDeviceView() {
             <BallotDataPirnt />
             <DownloadXMLFile />
             <UploadSignedDocument />
+            {successMessage !== "" ? <Alert severity="success">{successMessage}</Alert> : <></>}
+            {errorMessage !== "" ? <Alert severity="error">{errorMessage}</Alert> : <></>}
         </>
     )
 }

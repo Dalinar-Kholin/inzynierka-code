@@ -6,18 +6,18 @@ interface IVotingPack {
     sign: string;
 }
 
-export default async function pingServerForAcceptVote({ sign, authCode, voteSerial }: IVotingPack): Promise<void> {
-    return fetch(consts.API_URL + '/acceptVote', {
+export default async function pingServerForAcceptVote({ sign, authCode, voteSerial }: IVotingPack): Promise<boolean> {
+    const response = await fetch(consts.API_URL + '/acceptVote', {
         method: 'POST',
         body: JSON.stringify({
             basedSign: sign,
             authCode: authCode,
             voteSerial: voteSerial
         }),
-    }).then(response => {
-        if (!response.ok) {
-            console.log("essa")
-        }
-        return response.json();
     })
+    const data = await response.json()
+    if(!response.ok){
+        throw new Error(data.error);
+    }
+    return true
 }

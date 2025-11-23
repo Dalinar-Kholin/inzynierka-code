@@ -26,13 +26,16 @@ interface IResponse{
 
 export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) : Promise<IResponse> {
     if (authSerial === "") return {result: ""};
-
-    const initRes: IGetAuthCodeInitResponse = await fetch(consts.API_URL + "/getAuthCodeInit", {
+    let response = await fetch(consts.API_URL + "/getAuthCodeInit", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ authSerial: authSerial }),
     })
-        .then(r => { if (!r.ok) throw new Error("bad response"); return r.json(); });
+    let data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error)
+    }
+    const initRes : IGetAuthCodeInitResponse = data as IGetAuthCodeInitResponse;
 
     const pHex = initRes.n;
     const gHex = initRes.g;
@@ -63,11 +66,17 @@ export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) : P
         AHex = bigIntToHex(A);
     }
 
-    const encRes: IGetAuthCodeResponse = await fetch(consts.API_URL + "/getAuthCode", {
+
+    response = await fetch(consts.API_URL + "/getAuthCode", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ a: AHex, b: BHex, authSerial: authSerial }),
-    }).then(r => r.json());
+    })
+    data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error)
+    }
+    const encRes: IGetAuthCodeResponse = data as IGetAuthCodeResponse;
 
     const X0Hex = encRes.x0;
     const X1Hex = encRes.x1;
@@ -122,8 +131,8 @@ function bigintToFixedBytes(x: bigint, byteLen: number): Uint8Array {
 
 async function hkdfSha256(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length = 32): Promise<Uint8Array> {
     const key = await crypto.subtle.importKey('raw', toArrayBufferStrict(ikm), 'HKDF', false, ['deriveBits']);
-    const bits = await crypto.subtle.deriveBits(
-        { name: 'HKDF', hash: 'SHA-256', salt, info },
+    // @ts-ignore
+    const bits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info },
         key,
         length * 8
     );
@@ -136,6 +145,7 @@ async function importAesGcmKey(keyBytes: Uint8Array) {
 
 async function decryptGCM(keyBytes: Uint8Array, nonce: Uint8Array, aad: Uint8Array, ct: Uint8Array): Promise<Uint8Array> {
     const key = await importAesGcmKey(keyBytes);
+    // @ts-ignore
     const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, key, ct);
     return new Uint8Array(pt);
 }

@@ -13,16 +13,17 @@ export interface VotingPack {
 }
 
 export default async function getVotingPackage({ sign } : IGetVotingPackage) : Promise<VotingPack>{
-    return fetch(consts.API_URL + '/getVotingPack', {
+    const request = await fetch(consts.API_URL + '/getVotingPack', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ basedSign : sign }),
-    }).then(response => {
-        if (!response.ok) {
-            console.log("essa")
-        }
-        return response.json();
     })
+    const data = await request.json();
+    if (request.ok) {
+        return data as VotingPack;
+    }
+
+    throw new Error(data.error);
 }
