@@ -36,6 +36,5 @@ export default function UploadSignedDocument() {
             program: getProgram(),
             provider: getProvider()
         })}>commit Vote</Button>
-        <Button>Commit Vote</Button>
     </>
 }

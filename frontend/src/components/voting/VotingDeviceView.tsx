@@ -7,6 +7,8 @@ import getVoteCode from "../../api/getVoteCode.ts";
 import getAuthCode from "../../api/getAuthCode.ts";
 import pingServerForAcceptVote from "../../api/pingServerForAcceptVote.ts";
 import BallotDataPirnt from "../BallotDataPirnt.tsx";
+import DownloadXMLFile from "../downloadXMLFile.tsx";
+import UploadSignedDocument from "../UploadSignedDocument.tsx";
 
 export default function VotingDeviceView() {
 
@@ -60,6 +62,8 @@ export default function VotingDeviceView() {
                 <Button onClick={async () => await pingServerForAcceptVote({sign: "", authCode: ballotCtx.ballot.AUTH_CODE, voteSerial: ballotCtx.ballot.VOTE_SERIAL})}>AcceptVote</Button>
             </p>
             <BallotDataPirnt />
+            <DownloadXMLFile />
+            <UploadSignedDocument />
         </>
     )
 }

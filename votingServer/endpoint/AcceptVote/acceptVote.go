@@ -68,17 +68,20 @@ func AcceptVote(c *gin.Context) {
 		panic(err)
 	}
 
-	fmt.Printf("auth pack := %v\n", authPack)
-	fmt.Printf("vote serial := %v\n", votePack.VoteSerial)
+	data, err := json.Marshal(
+		DataToSign{
+			AuthCode: voteAnchorModel.AuthCode,
+			VoteCode: voteAnchorModel.VoteCode,
+			Stage:    voteAnchorModel.Stage,
+		})
 
-	data, err := json.Marshal(voteAnchorModel)
 	if err != nil {
 		panic(err)
 	}
 
 	signature := helper.Sign(data)
 
-	res, err := helper.SendAcceptVote(
+	_, err = helper.SendAcceptVote(
 		context.Background(),
 		[]byte(body.AuthCode),
 		authPack.AuthSerial.Data,
@@ -86,13 +89,19 @@ func AcceptVote(c *gin.Context) {
 		authPack.AckCode[:],
 		signature)
 
+	fmt.Printf("signature := %v", signature)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("res data := %v\n", res)
 	c.JSON(200, gin.H{
 		"code": 200,
 	})
+}
+
+type DataToSign struct {
+	Stage    uint8
+	VoteCode [3]byte
+	AuthCode [64]byte
 }
 
 func disc(method string) []byte {

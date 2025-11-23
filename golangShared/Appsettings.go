@@ -16,7 +16,8 @@ const (
 
 	AddCommitPackEndpoint = "/addAuthPack"
 
-	FinalCommitEndpoint = "/finalCommit"
+	FinalCommitEndpoint   = "/finalCommit"
+	CommitSignKeyEndpoint = "/commitSignKey"
 
 	SignEndpoint = "/sign"
 )

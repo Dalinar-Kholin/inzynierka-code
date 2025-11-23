@@ -47,6 +47,7 @@ func main() {
 
 	r.POST(golangShared.AddCommitPackEndpoint, endpoint.AddAuthPackage)
 	r.GET(golangShared.FinalCommitEndpoint, endpoint.FinalCommit)
+	r.POST(golangShared.CommitSignKeyEndpoint, endpoint.CommitSignKey)
 
 	_ = r.Run(fmt.Sprintf(":%d", golangShared.CommiterPort))
 }

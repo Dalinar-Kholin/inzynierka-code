@@ -101,6 +101,17 @@ mod counter {
         commitment_data.bump = ctx.bumps.commitment;
         Ok(())
     }
+
+    pub fn create_key(
+        ctx: Context<CreateSignKey>,
+        key: [u8; 113],
+    ) -> Result<()> {
+        let commitment_data = &mut ctx.accounts.key;
+        commitment_data.key = key;
+        commitment_data.bump = ctx.bumps.key;
+        Ok(())
+    }
+
 }
 
 #[derive(Accounts)]
@@ -127,6 +138,31 @@ pub struct PackCommitment {
     pub hashed_data: [u8; 32],
     pub bump: u8,
 }
+
+#[derive(Accounts)]
+#[instruction(key : [u8; 32])]
+pub struct CreateSignKey<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 114 + 1 + 8, // todo : poprawnie to policzyć a nie na palcach
+        seeds = [b"signKey"], // aby przy próbie nadpisania klucza rzucało błędem
+        bump
+    )]
+    pub key: Account<'info, SignKey>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+pub struct SignKey {
+    pub key: [u8; 113],
+    pub bump: u8,
+}
+
 
 #[derive(Accounts)]
 #[instruction(auth_code: Vec<u8>)]
@@ -192,30 +228,3 @@ const VOTE_ACCOUNT_SPACE: usize =
         + 4    // voter_sign length prefix (u32)
         + MAX_VOTER_SIGN_LEN
         + 1;   // bump
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use anchor_lang::prelude::*;
-    use borsh::BorshSerialize;
-
-    #[test]
-    fn print_vote_sizes() {
-        let vote = Vote {
-            stage: VotingStage::Empty,
-            vote_serial: [0; 16],
-            vote_code: [0; VOTE_CODE_LENGTH],
-            auth_serial: [0; 16],
-            auth_code: [0; AUTHCODE_CODE_LENGTH],
-            ack_code: [0; 8],
-            server_sign: [0; 64],
-            voter_sign: vec![0u8; MAX_VOTER_SIGN_LEN],
-            bump: 0,
-        };
-
-        let serialized = vote.try_to_vec().unwrap();
-        println!("Vote serialized size (bez discriminatora) = {}", serialized.len());
-        println!("Vote account space = {}", VOTE_ACCOUNT_SPACE);
-    }
-}

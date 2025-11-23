@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"time"
+	"votingServer/commitment"
 	"votingServer/endpoint"
 	"votingServer/endpoint/AcceptVote"
 	"votingServer/helper"
@@ -25,6 +26,16 @@ import (
 
 func main() {
 	r := gin.Default()
+
+	pemBytes, err := os.ReadFile("../ed25519_pub.pem")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := commitment.CommitSignKey(string(pemBytes)); err != nil {
+
+	}
+
 	initElection.CreatePackages()
 	r.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
@@ -39,11 +50,10 @@ func main() {
 	helper.FeePayer = payer
 
 	pKey, err := loadEd25519PrivateKey("../ed25519_key.pem")
-	helper.SignKey = pKey
-
 	if err != nil {
 		panic(err)
 	}
+	helper.SignKey = pKey
 
 	r.POST(golangShared.GetVotingPackEndpoint, endpoint.GetVotingPack)
 	r.POST(golangShared.GetVoteCodesEndpoint, endpoint.GetVoteCodes)
