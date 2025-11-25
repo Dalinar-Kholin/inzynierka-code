@@ -18,17 +18,20 @@ type Body struct {
 func GetVoteCodes(c *gin.Context) {
 	var body Body
 	if err := c.ShouldBindBodyWithJSON(&body); err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
 	}
 	idFromBody, err := uuid.Parse(body.VoteSerial)
 	if err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
 	}
 	bin := primitive.Binary{Subtype: 0x04, Data: idFromBody[:]}
 	filter := bson.D{{"voteSerial", bin}}
 	var votePack golangShared.VotingPackage
 	if err := DB.GetDataBase("inz", DB.VoteCollection).FindOne(context.Background(), filter).Decode(&votePack); err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": "cant find vote code"})
+		return
 	}
 	voteCodes := []string{
 		string(votePack.Codes[0][:]),

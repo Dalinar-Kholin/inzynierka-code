@@ -26,7 +26,7 @@ import (
 
 func main() {
 	r := gin.Default()
-
+	// time.Sleep(5 * time.Second)
 	pemBytes, err := os.ReadFile("../ed25519_pub.pem")
 	if err != nil {
 		panic(err)

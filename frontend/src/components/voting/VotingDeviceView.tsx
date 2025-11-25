@@ -1,76 +1,103 @@
-import {useContext, useState} from "react";
-import {BallotContext} from "../../context/ballot/context.tsx";
 import {Alert, Button} from "@mui/material";
-import castVoteCode from "../../api/castVote.ts";
-import {useAnchor} from "../../hooks/useAnchor.ts";
-import getVoteCode from "../../api/getVoteCode.ts";
-import getAuthCode from "../../api/getAuthCode.ts";
-import pingServerForAcceptVote from "../../api/pingServerForAcceptVote.ts";
-import BallotDataPirnt from "../BallotDataPirnt.tsx";
+import BallotDataPrint from "../BallotDataPrint.tsx";
 import DownloadXMLFile from "../downloadXMLFile.tsx";
 import UploadSignedDocument from "../UploadSignedDocument.tsx";
+import ResponsiveDialog from "../obliviousTransferDialog.tsx";
+import useVoting from "../../hooks/useVoting.ts";
+import Vote from "../../XMLbuilder.ts";
 
 export default function VotingDeviceView() {
-
-    const [bit, setBit] = useState<boolean>(false);
-    const ballotCtx = useContext(BallotContext);
-    const { getProgram, getProvider } = useAnchor();
-    const [successMessage, setSuccessMessage] = useState<string>("")
-    const [errorMessage, setErrorMessage] = useState<string>("")
+    const {
+        bit,
+        authSerial,
+        authCode,
+        voteSerial,
+        voteCodes,
+        successMessage,
+        errorMessage,
+        selectedCode,
+        voterSign,
+        serverSign,
+        setVoteSerial,
+        setAuthSerial,
+        setVoterSign,
+        setBit,
+        CastVote,
+        GetVoteCodes,
+        GetAuthCodes,
+        PingForAccept,
+        GetAcceptedBallot
+    } = useVoting()
 
     return (<>
+            <form>
+                <div>
+                    <p>auth serial</p>
+                    <p>
+                        <input onChange={e => {
+                            setAuthSerial(e.target.value)
+                        }} value={authSerial}/>
+                    </p>
+                </div>
+                <div>
+                    <p>vote serial</p>
+                    <p>
+                        <input onChange={e => {setVoteSerial(e.target.value)}}
+                               value={voteSerial}/>
+                    </p>
+                </div>
+            </form>
 
-            <p>
-                auth serial
 
-                <input onChange={e => {
-                    ballotCtx.setAuthSerial(e.target.value)
-                }} value={ballotCtx.ballot.AUTH_SERIAL}/>
-            </p>
-
-        <p>
-            vote serial
-            <input onChange={e => {
-                ballotCtx.setVoteSerial(e.target.value)
-            }} value={ballotCtx.ballot.VOTE_SERIAL}/>
-        </p>
-
-
-
-        <p></p>
-        {ballotCtx.ballot.VOTE_CODES.map(code =>
-            <p key={code}>
-                {<Button onClick={async () => {
-                    ballotCtx.setSelectedCode(code)
-                    castVoteCode({
-                        voteCode: code,
-                        authCode: ballotCtx.ballot.AUTH_CODE,
-                        program: getProgram(),
-                        provider: getProvider()
-                    }).then(r => setSuccessMessage(`Vote transaction signature := ${r}`)).catch(e => setErrorMessage(e.message))
-                }}>{code.toUpperCase()}</Button>}
-            </p>
-        )}
+            <p></p>
+            {voteCodes?.map(code =>
+                <p key={code}>
+                    {<Button onClick={() =>
+                        CastVote(code)
+                    }>{code.toUpperCase()}</Button>}
+                </p>
+            )}
 
             <p>
             </p>
-            <Button onClick={async () => {ballotCtx.setVoteCodes(await getVoteCode({voteSerial: ballotCtx.ballot.VOTE_SERIAL}))}}>get vote codes</Button>
-            <p>
-                Auth code Oblivious Transfer
-                <Button onClick={() => setBit(b => !b)}>use {bit? "first" : "second"} AuthCod</Button>
-                <Button onClick={async () => {
-                    ballotCtx.setAuthCode((await getAuthCode({ authSerial: ballotCtx.ballot.AUTH_SERIAL, bit })).result)
-                }}>get AuthCode</Button>
-            </p>
+            <Button onClick={async () => {
+                await GetVoteCodes()
+            }}>get vote codes</Button>
+            <div>
+                <p>Auth code Oblivious Transfer</p>
+                <p>
+                    <ResponsiveDialog setUseFirstAuthCode={(v) => setBit(v)}/>
+                </p>
+                <p>
+                    {bit === undefined
+                        ? <Button variant="outlined" color="error">get AuthCode (firstly choose which code to choose)</Button>
+                        : <Button onClick={GetAuthCodes}>get AuthCode</Button>}
+                </p>
+            </div>
             <p>
                 ping server to Accept Vote
-                <Button onClick={async () => await pingServerForAcceptVote({sign: "", authCode: ballotCtx.ballot.AUTH_CODE, voteSerial: ballotCtx.ballot.VOTE_SERIAL})}>AcceptVote</Button>
+                <Button onClick={async () => {
+                    await PingForAccept()
+                }}>AcceptVote</Button>
             </p>
-            <BallotDataPirnt />
-            <DownloadXMLFile />
-            <UploadSignedDocument />
-            {successMessage !== "" ? <Alert severity="success">{successMessage}</Alert> : <></>}
-            {errorMessage !== "" ? <Alert severity="error">{errorMessage}</Alert> : <></>}
+            <p>
+                <Button onClick={GetAcceptedBallot}>
+                    get AcceptedBallot
+                </Button>
+            </p>
+
+            <BallotDataPrint
+                voteSerial={voteSerial} authSerial={authSerial} authCode={authCode}/>
+
+            <DownloadXMLFile vote={new Vote(
+                voteSerial || "", selectedCode || "", authSerial || "", authCode || "", serverSign || [])}/>
+
+            <UploadSignedDocument
+                setVoterSign={setVoterSign}
+                authCode={ authCode || ""}
+                voterSign={voterSign || ""}/>
+            {successMessage !== null ? <Alert severity="success">{successMessage}</Alert> : <></>}
+            {errorMessage !== null ? <Alert severity="error">{errorMessage}</Alert> : <></>}
         </>
     )
 }

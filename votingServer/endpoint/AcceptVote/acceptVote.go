@@ -27,7 +27,8 @@ type Body struct {
 func AcceptVote(c *gin.Context) {
 	var body Body
 	if err := c.ShouldBindJSON(&body); err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
 	}
 	rp := rpc.New("http://127.0.0.1:8899")
 
@@ -36,16 +37,19 @@ func AcceptVote(c *gin.Context) {
 		helper.ProgramID,
 	)
 	if err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": "cant find program"})
+		return
 	}
 
 	acc, err := rp.GetAccountInfo(context.Background(), pda)
 	if err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": "cant get account info"})
+		return
 	}
 	voteAnchorModel, err := helper.DecodeVoteAnchor(acc.Bytes())
 	if err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": "bad data on blockchain"})
+		return
 	}
 
 	fmt.Printf("acc voteAnchorModel := %v %v\n", string(voteAnchorModel.VoteCode[:]), string(voteAnchorModel.AuthCode[:]))
@@ -54,7 +58,8 @@ func AcceptVote(c *gin.Context) {
 	filter := bson.D{{"authCode.code", bin}}
 	var authPack golangShared.AuthPackage
 	if err := DB.GetDataBase("inz", DB.AuthCollection).FindOne(context.Background(), filter).Decode(&authPack); err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": "cant find auth package/check spelling"})
+		return
 	}
 
 	idFromBody, err := uuid.Parse(body.VoteSerial)
@@ -68,20 +73,17 @@ func AcceptVote(c *gin.Context) {
 		c.JSON(401, gin.H{
 			"error": err.Error(),
 		})
+		return
 	}
 
-	data, err := json.Marshal(
+	data, _ := json.Marshal(
 		DataToSign{
 			AuthCode: voteAnchorModel.AuthCode,
 			VoteCode: voteAnchorModel.VoteCode,
 			Stage:    voteAnchorModel.Stage,
 		})
-
-	if err != nil {
-		panic(err)
-	}
-
 	signature := helper.Sign(data)
+	fmt.Printf("signature := %v", signature)
 
 	_, err = helper.SendAcceptVote(
 		context.Background(),
@@ -90,10 +92,9 @@ func AcceptVote(c *gin.Context) {
 		votePack.VoteSerial.Data,
 		authPack.AckCode[:],
 		signature)
-
-	fmt.Printf("signature := %v", signature)
 	if err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
 	}
 	c.JSON(200, gin.H{
 		"code": 200,

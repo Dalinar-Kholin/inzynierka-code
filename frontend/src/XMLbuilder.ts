@@ -7,7 +7,7 @@ class Vote {
 
     public AuthCode: string;
 
-    public ServerSign: string;
+    public ServerSign: number[];
 
 
     constructor(
@@ -15,7 +15,7 @@ class Vote {
         VoteCode: string,
         AuthSerial: string,
         AuthCode: string,
-        ServerSign: string,
+        ServerSign: number[],
     ) {
         this.ServerSign = ServerSign;
         this.AuthCode = AuthCode;
@@ -48,7 +48,7 @@ export function serializeVoteToXML(vote: Vote): string {
     root.appendChild(voterEl);
 
     voterEl = doc.createElement("ServerSign");
-    voterEl.textContent = vote.ServerSign;
+    voterEl.textContent = vote.ServerSign.toString();
     root.appendChild(voterEl);
 
     const serializer = new XMLSerializer();

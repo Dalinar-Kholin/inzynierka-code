@@ -31,23 +31,25 @@ func GetVotingPack(c *gin.Context) {
 	var bodyData GetVotingPackBody
 
 	if err := c.ShouldBindBodyWithJSON(&bodyData); err != nil {
-		panic(err)
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
 	}
 
 	// todo: sprawdzneie sygnatury czy jest poprawna i czy koperta powinna zostać wydana
 
 	coll := DB.GetDataBase("inz", "votesCard")
 	votingPackage, err := popRandomDocumentTx[VotingPackage](context.Background(), coll)
-
 	if err != nil {
-		panic(err)
+		c.JSON(500, gin.H{"error": "server stupido"})
+		return
 	}
 
 	coll = DB.GetDataBase("inz", "authCard")
 	authPackage, err := popRandomDocumentTx[AuthPackage](context.Background(), coll)
 
 	if err != nil {
-		panic(err)
+		c.JSON(500, gin.H{"error": "server stupido"})
+		return
 	}
 
 	authSerial, _ := uuid.FromBytes(authPackage.AuthSerial.Data)

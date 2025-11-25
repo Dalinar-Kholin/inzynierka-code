@@ -1,35 +1,32 @@
-import {GetBallots} from "../getBallots.tsx";
-import BallotDataPirnt from "../BallotDataPirnt.tsx";
+import BallotDataPrint from "../BallotDataPrint.tsx";
 import GetVoteStatus from "../getVoteStatus.tsx";
-import UploadSignedDocument from "../UploadSignedDocument.tsx";
-import {useState} from "react";
-import {Alert} from "@mui/material"
-
-
+import {Alert, Button} from "@mui/material"
+import {useHelperDevice} from "../../hooks/useHelperDevice.ts";
 
 export default function HelperDeviceView(){
-    const [successMessage, setSuccessMessage] = useState<string>("")
-    const [errorMessage, setErrorMessage] = useState<string>("")
+    const {
+        authSerial,
+        voteSerial,
+        voteCodes,
+        successMessage,
+        errorMessage,
 
-    const setErrorWrapper = (m :string) => {
-        setErrorMessage(m)
-        setSuccessMessage("")
-    }
+        GetBallot,
+        showError,
+        showSuccess
+    } = useHelperDevice()
 
-    const setSuccessWrapper = (m :string) => {
-        setErrorMessage("")
-        setSuccessMessage(m)
-    }
 
     return(
         <>
-            <BallotDataPirnt />
+            <BallotDataPrint authSerial={authSerial} voteSerial={voteSerial} authCode={undefined}/>
+            {voteCodes?.map(c => <p>{c}</p>)}
             <p></p>
-            <GetBallots setErrorMessage={setErrorWrapper} setSuccessMessage={setSuccessWrapper}/>
-            <GetVoteStatus setErrorMessage={setErrorWrapper} setSuccessMessage={setSuccessWrapper}/>
-            <UploadSignedDocument />
-            {successMessage !== "" ? <Alert severity="success">{successMessage}</Alert> : <></>}
-            {errorMessage !== "" ? <Alert severity="error">{errorMessage}</Alert> : <></>}
+
+            <Button onClick={GetBallot} variant="contained">get ballot</Button>
+            <GetVoteStatus setErrorMessage={showError} setSuccessMessage={showSuccess}/>
+            {successMessage !== null ?  <Alert severity="success">{successMessage}</Alert> : <></>}
+            {errorMessage !== null ? <Alert severity="error">{errorMessage}</Alert> : <></>}
 
         </>
     )

@@ -11,7 +11,9 @@ func GetAuthCodeFinal(c *gin.Context) {
 	var body obliviousTransfer.UserResponse
 	err := c.ShouldBindBodyWithJSON(&body)
 	if err != nil {
-		panic(err)
+		c.JSON(401, gin.H{
+			"error": err.Error(),
+		})
 	}
 	response := obliviousTransfer.Encrypt(&body)
 

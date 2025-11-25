@@ -14,8 +14,10 @@ func GetAuthCodeInit(c *gin.Context) {
 	}
 
 	// jeśli ktoś ma auth code oznacza, że przeszedł walidacje więc nie musimy sprawdzać podpisu
-	output := obliviousTransfer.InitProtocol(&body)
-
+	output, err := obliviousTransfer.InitProtocol(&body)
+	if err != nil {
+		c.JSON(401, gin.H{"error": err.Error()})
+	}
 	// todo: tutaj fajnie by było zcommitować dane na BB
 
 	c.JSON(http.StatusOK, output)

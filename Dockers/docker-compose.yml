@@ -1,0 +1,29 @@
+services:
+  commiter:
+    build:
+      context: ../
+      dockerfile: Dockers/commiter.Docker
+    ports:
+      - "8080:8080"
+
+
+  signer:
+    build:
+      context: ../
+      dockerfile: Dockers/signer.Docker
+    ports:
+      - "8082:8082"
+
+  front:
+    build:
+      context: ../
+      dockerfile: Dockers/Frontend.Docker
+    ports:
+      - "80:80"
+
+  voting-service:
+    build:
+      context: ../
+      dockerfile: Dockers/votingServer.Docker
+    ports:
+      - "8081:8081"

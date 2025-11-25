@@ -1,0 +1,16 @@
+FROM golang:1.25 AS build
+LABEL authors="dalinarkholin"
+
+WORKDIR /build
+
+COPY go.mod go.sum go.work go.work.sum ./
+
+COPY golangShared/ ./golangShared/
+COPY votingServer/ ./votingServer/
+
+COPY . .
+
+WORKDIR /build/votingServer
+
+# RUN go build  -o signer
+ENTRYPOINT ["go", "run", "main.go"]

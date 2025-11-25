@@ -4,10 +4,11 @@ import (
 	context2 "context"
 	"encoding/hex"
 	"errors"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/net/context"
 	"golangShared"
 	"votingServer/DB"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/net/context"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,11 +26,11 @@ type ObliviousTransferInitData struct {
 	Used       bool             `bson:"used"`
 }
 
-func InitProtocol(initOt *InitOT) *InitOutput {
+func InitProtocol(initOt *InitOT) (*InitOutput, error) {
 	var Auth golangShared.AuthPackage
 	authSerial, err := uuid.Parse(initOt.AuthSerial)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	filter := bson.M{
@@ -63,7 +64,7 @@ func InitProtocol(initOt *InitOT) *InitOutput {
 		opts,
 	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if err := DB.GetDataBase("inz", DB.AuthCollection).FindOne(
@@ -90,11 +91,11 @@ func InitProtocol(initOt *InitOT) *InitOutput {
 		}},
 		Auth,
 	); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	c := HexToBigInt(authPack.C)
 	C := modExp(g, c, p)
 
-	return &InitOutput{N: PHex, G: "02", C: hex.EncodeToString(C.Bytes())}
+	return &InitOutput{N: PHex, G: "02", C: hex.EncodeToString(C.Bytes())}, nil
 }

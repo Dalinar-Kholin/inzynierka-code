@@ -1,11 +1,15 @@
-import {type ChangeEvent, useContext} from "react";
-import {BallotContext} from "../context/ballot/context.tsx";
+import {type ChangeEvent} from "react";
 import {Button} from "@mui/material";
 import commitVote from "../api/commitVote.ts";
 import {useAnchor} from "../hooks/useAnchor.ts";
 
-export default function UploadSignedDocument() {
-    const ballotCtx = useContext(BallotContext);
+interface IUploadSignedDocument{
+    voterSign : string;
+    authCode : string;
+    setVoterSign: (s : string) => void;
+}
+
+export default function UploadSignedDocument({voterSign, setVoterSign, authCode} : IUploadSignedDocument) {
     const {getProgram, getProvider} = useAnchor()
 
 
@@ -16,7 +20,7 @@ export default function UploadSignedDocument() {
         const reader = new FileReader();
         reader.onload = () => {
             const text = String(reader.result ?? "");
-            ballotCtx.setVoterSign(text);
+            setVoterSign(text);
         };
         reader.readAsText(file);
     };
@@ -28,11 +32,11 @@ export default function UploadSignedDocument() {
         <input type="file" onChange={handleFileChange}/>
 
         <pre style={{marginTop: 16, maxHeight: 200, overflow: "auto"}}>
-        {ballotCtx.ballot.VOTER_SIGN}
+        {voterSign}
       </pre>
         <Button onClick={async () => commitVote({
-            signedDocument: ballotCtx.ballot.VOTER_SIGN,
-            authCode: ballotCtx.ballot.AUTH_CODE,
+            signedDocument: voterSign,
+            authCode: authCode,
             program: getProgram(),
             provider: getProvider()
         })}>commit Vote</Button>

@@ -1,19 +1,14 @@
 import Vote, {serializeVoteToXML} from "../XMLbuilder.ts";
-import useBallot from "../context/ballot/useBallot.ts";
 
+interface IDownloadXMLFile {
+    vote: Vote;
+}
 
-export default function DownloadXMLFile() {
-    const ballotCtx = useBallot()
+export default function DownloadXMLFile( {vote} : IDownloadXMLFile ) {
 
     const handleDownload = () => {
         const xmlContent = serializeVoteToXML(
-            new Vote(
-                ballotCtx.ballot.VOTE_SERIAL,
-                ballotCtx.ballot.AUTH_CODE,
-                ballotCtx.ballot.AUTH_SERIAL,
-                ballotCtx.ballot.SELECTED_CODE,
-                ballotCtx.ballot.VOTE_SERIAL,
-            )
+            vote
         )
 
         const blob = new Blob([xmlContent], { type: "application/xml" });
