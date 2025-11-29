@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"context"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"votingServer/DB"
@@ -19,6 +20,13 @@ type GetVotingPackBody struct {
 	BasedSign string `json:"basedSign"`
 }
 
+type ballotRequest struct {
+	XMLName xml.Name `xml:"Gime"`   // root element
+	Ballot  string   `xml:"Ballot"` // <Name>...</Name>
+}
+
+var ServerPubKey string
+
 type VotingPack struct {
 	AuthSerial string   `json:"authSerial"`
 	VoteSerial string   `json:"voteSerial"`
@@ -35,7 +43,19 @@ func GetVotingPack(c *gin.Context) {
 		return
 	}
 
-	// todo: sprawdzneie sygnatury czy jest poprawna i czy koperta powinna zostać wydana
+	if err := VerifySign(bodyData.BasedSign); err != nil {
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
+	}
+
+	var p ballotRequest
+	if err := xml.Unmarshal([]byte(bodyData.BasedSign), &p); err != nil {
+		panic(err)
+	}
+	if p.Ballot != ServerPubKey {
+		c.JSON(401, gin.H{"error": fmt.Sprintf("requested pub key not matching")})
+		return
+	}
 
 	coll := DB.GetDataBase("inz", "votesCard")
 	votingPackage, err := popRandomDocumentTx[VotingPackage](context.Background(), coll)

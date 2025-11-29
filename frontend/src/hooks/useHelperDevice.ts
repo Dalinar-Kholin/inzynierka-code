@@ -1,24 +1,47 @@
-import {useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import getVotingPackage from "../api/getVotingPackage.ts";
 import {useStatusMessages} from "./useAlertMessage.ts";
+import {useAnchor} from "./useAnchor.ts";
+
+
+
+const createContent = (c : string) =>{
+    return `<?xml version="1.0" encoding="UTF-8"?><Gime><Ballot>${c}</Ballot></Gime>`
+}
+
+
 
 export function useHelperDevice() {
-    const [voteSerial, setVoteSerial] = useState<string | undefined>()
-    const [authSerial, setAuthSerial] = useState<string | undefined>()
-    const [voteCodes, setVoteCodes] = useState<string[] | undefined>()
+    const [voteSerial, setVoteSerial] = useState<string>("")
+    const [authSerial, setAuthSerial] = useState<string>("")
+    const [voteCodes, setVoteCodes] = useState<string[]>([])
 
-    const {successMessage, errorMessage, showError, showSuccess} = useStatusMessages()
+    const {successMessage, errorMessage, showError, showSuccess, clearMessages} = useStatusMessages()
+    const {getProgram} = useAnchor()
 
-    const GetBallot = async () => {
-        const data = await getVotingPackage({sign: "chuj"}).catch(e => showError(e.message))
-        if (data === undefined) {
-            return
+    const [content, setContent] = useState<string>("")
+
+    useEffect(() => { // load Key
+        const fetch = async () => {
+            setContent(
+                createContent((new TextDecoder("utf-8")).decode(new Uint8Array((await getProgram().account.signKey.all())[0].account.key)).replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").trim())
+            )
         }
+        fetch().then();
+    }, []);
 
-        setAuthSerial(data.authSerial)
-        setVoteSerial(data.voteSerial)
-        setVoteCodes(data.voteCodes)
-    }
+
+    const GetBallot =
+        useCallback(async (sign: string) => {const data = await getVotingPackage({sign: sign}).catch(e => showError(e.message))
+            if (data === undefined) {
+                return
+            }
+
+            setAuthSerial(data.authSerial)
+            setVoteSerial(data.voteSerial)
+            setVoteCodes(data.voteCodes)
+            clearMessages()
+        }, [content])
 
 
     return {
@@ -27,10 +50,9 @@ export function useHelperDevice() {
         voteCodes,
         successMessage,
         errorMessage,
-
-        // action
+        content,
         GetBallot,
 
-        showError,showSuccess,
+        showError,showSuccess
     }
 }

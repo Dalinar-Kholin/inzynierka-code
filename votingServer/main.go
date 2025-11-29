@@ -11,6 +11,7 @@ import (
 	"golangShared"
 	"io"
 	"os"
+	"strings"
 	"time"
 	"votingServer/commitment"
 	"votingServer/endpoint"
@@ -35,6 +36,13 @@ func main() {
 	if err := commitment.CommitSignKey(string(pemBytes)); err != nil {
 
 	}
+
+	stringed := string(pemBytes)
+	res := strings.Replace(stringed, "-----BEGIN PUBLIC KEY-----", "", -1)
+	res = strings.Replace(res, "-----END PUBLIC KEY-----", "", -1)
+	res = strings.TrimSpace(res)
+	endpoint.ServerPubKey = res
+	fmt.Printf("public key string := %s\n", res)
 
 	initElection.CreatePackages()
 	r.Use(cors.New(cors.Config{

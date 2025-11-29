@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Gime>
+    <Ballot>-----BEGIN PUBLIC KEY----- MCowBQYDK2VwAyEAajQX+3x9G0WIOTOK198l8mQPdFwi6q+u9stPsSq4pwg= -----END PUBLIC KEY----- </Ballot>
+</Gime>
+
+<!-- chemy uniknąć możliwości aby jeden raz podpisanym dokumentem mozemy zawsze pobrać głosy, stąd prosimy konretnie o kartę dla głosowania o kluczu publicznym servera XYZ -->

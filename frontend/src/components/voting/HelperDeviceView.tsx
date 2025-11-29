@@ -1,7 +1,10 @@
 import BallotDataPrint from "../BallotDataPrint.tsx";
 import GetVoteStatus from "../getVoteStatus.tsx";
-import {Alert, Button} from "@mui/material"
+import {Alert} from "@mui/material"
 import {useHelperDevice} from "../../hooks/useHelperDevice.ts";
+import DownloadXMLFile from "../downloadXMLFile.tsx";
+import {UploadSignedVoteRequest} from "../UploadSignedVote.tsx";
+
 
 export default function HelperDeviceView(){
     const {
@@ -10,6 +13,7 @@ export default function HelperDeviceView(){
         voteCodes,
         successMessage,
         errorMessage,
+        content,
 
         GetBallot,
         showError,
@@ -19,15 +23,14 @@ export default function HelperDeviceView(){
 
     return(
         <>
-            <BallotDataPrint authSerial={authSerial} voteSerial={voteSerial} authCode={undefined}/>
+            <BallotDataPrint authSerial={authSerial} voteSerial={voteSerial} authCode={""}/>
             {voteCodes?.map(c => <p>{c}</p>)}
             <p></p>
-
-            <Button onClick={GetBallot} variant="contained">get ballot</Button>
+            <DownloadXMLFile content={content} name={"Download XML Vote Request"}></DownloadXMLFile>
+            <UploadSignedVoteRequest GetBallot={GetBallot}></UploadSignedVoteRequest>
             <GetVoteStatus setErrorMessage={showError} setSuccessMessage={showSuccess}/>
             {successMessage !== null ?  <Alert severity="success">{successMessage}</Alert> : <></>}
             {errorMessage !== null ? <Alert severity="error">{errorMessage}</Alert> : <></>}
-
         </>
     )
 }

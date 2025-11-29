@@ -6,4 +6,5 @@ use (
 	./golangShared
 	./simpleSolanaSignerServer
 	./votingServer
+	SignerVeryfier
 )

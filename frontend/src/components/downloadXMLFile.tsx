@@ -1,17 +1,13 @@
-import Vote, {serializeVoteToXML} from "../XMLbuilder.ts";
-
 interface IDownloadXMLFile {
-    vote: Vote;
+    content: string;
+    name: string;
 }
 
-export default function DownloadXMLFile( {vote} : IDownloadXMLFile ) {
+export default function DownloadXMLFile( {content, name} : IDownloadXMLFile ) {
 
     const handleDownload = () => {
-        const xmlContent = serializeVoteToXML(
-            vote
-        )
 
-        const blob = new Blob([xmlContent], { type: "application/xml" });
+        const blob = new Blob([content], { type: "application/xml" });
         const url = URL.createObjectURL(blob);
 
         const link = document.createElement("a");
@@ -24,5 +20,5 @@ export default function DownloadXMLFile( {vote} : IDownloadXMLFile ) {
         URL.revokeObjectURL(url);
     };
 
-    return <button onClick={handleDownload}>Download generated XML</button>;
+    return <button onClick={handleDownload}>{name}</button>;
 }

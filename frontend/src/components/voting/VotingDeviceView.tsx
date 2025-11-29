@@ -1,10 +1,10 @@
 import {Alert, Button} from "@mui/material";
 import BallotDataPrint from "../BallotDataPrint.tsx";
 import DownloadXMLFile from "../downloadXMLFile.tsx";
-import UploadSignedDocument from "../UploadSignedDocument.tsx";
+import UploadSignedVote from "../UploadSignedVote.tsx";
 import ResponsiveDialog from "../obliviousTransferDialog.tsx";
 import useVoting from "../../hooks/useVoting.ts";
-import Vote from "../../XMLbuilder.ts";
+import Vote, {serializeVoteToXML} from "../../XMLbuilder.ts";
 
 export default function VotingDeviceView() {
     const {
@@ -48,7 +48,6 @@ export default function VotingDeviceView() {
                 </div>
             </form>
 
-
             <p></p>
             {voteCodes?.map(code =>
                 <p key={code}>
@@ -58,8 +57,6 @@ export default function VotingDeviceView() {
                 </p>
             )}
 
-            <p>
-            </p>
             <Button onClick={async () => {
                 await GetVoteCodes()
             }}>get vote codes</Button>
@@ -89,10 +86,12 @@ export default function VotingDeviceView() {
             <BallotDataPrint
                 voteSerial={voteSerial} authSerial={authSerial} authCode={authCode}/>
 
-            <DownloadXMLFile vote={new Vote(
-                voteSerial || "", selectedCode || "", authSerial || "", authCode || "", serverSign || [])}/>
+            <DownloadXMLFile content={serializeVoteToXML(
+                new Vote(
+                    voteSerial || "", selectedCode || "", authSerial || "", authCode || "", serverSign || [])
+            )} name={"DownloadXMLVoteFile"}/>
 
-            <UploadSignedDocument
+            <UploadSignedVote
                 setVoterSign={setVoterSign}
                 authCode={ authCode || ""}
                 voterSign={voterSign || ""}/>

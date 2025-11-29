@@ -19,5 +19,7 @@ const (
 	FinalCommitEndpoint   = "/finalCommit"
 	CommitSignKeyEndpoint = "/commitSignKey"
 
+	VerifySignKeyEndpoint = "/verifySignKey"
+
 	SignEndpoint = "/sign"
 )
