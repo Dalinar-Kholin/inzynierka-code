@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"golangShared/ServerResponse"
 	"votingServer/DB"
 
 	. "golangShared"
@@ -31,7 +32,6 @@ type VotingPack struct {
 	AuthSerial string   `json:"authSerial"`
 	VoteSerial string   `json:"voteSerial"`
 	VoteCodes  []string `json:"voteCodes"`
-	AckCode    string   `json:"ackCode"`
 	// AuthCode   nil      `json:"authCode"` // to będzie przekazywane oblivious transferem
 }
 
@@ -85,10 +85,10 @@ func GetVotingPack(c *gin.Context) {
 		AuthSerial: authSerial.String(),
 		VoteSerial: voteSerial.String(),
 		VoteCodes:  voteCodes,
-		AckCode:    string(authPackage.AckCode[:]),
 	}
 
-	c.JSON(200, result)
+	ServerResponse.ResponseWithSign(c, 200, result)
+	// c.JSON(200, result)
 }
 
 func popRandomDocumentTx[T any](ctx context.Context, coll *mongo.Collection) (*T, error) {

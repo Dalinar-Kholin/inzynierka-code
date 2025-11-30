@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"golangShared"
+	"golangShared/signer"
 	"votingServer/DB"
 	"votingServer/helper"
 
@@ -82,7 +83,7 @@ func AcceptVote(c *gin.Context) {
 			VoteCode: voteAnchorModel.VoteCode,
 			Stage:    voteAnchorModel.Stage,
 		})
-	signature := helper.Sign(data)
+	signature := signer.Sign(data)
 	fmt.Printf("signature := %v", signature)
 
 	_, err = helper.SendAcceptVote(
@@ -92,6 +93,7 @@ func AcceptVote(c *gin.Context) {
 		votePack.VoteSerial.Data,
 		authPack.AckCode[:],
 		signature)
+
 	if err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return

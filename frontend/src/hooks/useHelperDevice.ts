@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from "react";
 import getVotingPackage from "../api/getVotingPackage.ts";
 import {useStatusMessages} from "./useAlertMessage.ts";
-import {useAnchor} from "./useAnchor.ts";
+import useGetServerPubKey from "./useGetServerPubKey.ts";
 
 
 
@@ -17,22 +17,17 @@ export function useHelperDevice() {
     const [voteCodes, setVoteCodes] = useState<string[]>([])
 
     const {successMessage, errorMessage, showError, showSuccess, clearMessages} = useStatusMessages()
-    const {getProgram} = useAnchor()
+    const { pubKey } = useGetServerPubKey()
 
     const [content, setContent] = useState<string>("")
 
     useEffect(() => { // load Key
-        const fetch = async () => {
-            setContent(
-                createContent((new TextDecoder("utf-8")).decode(new Uint8Array((await getProgram().account.signKey.all())[0].account.key)).replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").trim())
-            )
-        }
-        fetch().then();
-    }, []);
+        setContent(createContent(pubKey))
+    }, [pubKey]);
 
 
     const GetBallot =
-        useCallback(async (sign: string) => {const data = await getVotingPackage({sign: sign}).catch(e => showError(e.message))
+        useCallback(async (sign: string) => {const data = await getVotingPackage({sign: sign, key: pubKey}).catch(e => showError(e.message))
             if (data === undefined) {
                 return
             }

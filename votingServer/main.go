@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/ed25519"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"golangShared"
+	"golangShared/signer"
 	"io"
 	"os"
 	"strings"
@@ -57,11 +55,11 @@ func main() {
 	payer := WalletFromPrivateKey(golangShared.LoadPrivateKeyFromJSON("../signer.json"))
 	helper.FeePayer = payer
 
-	pKey, err := loadEd25519PrivateKey("../ed25519_key.pem")
+	pKey, err := signer.LoadEd25519PrivateKey("../ed25519_key.pem")
 	if err != nil {
 		panic(err)
 	}
-	helper.SignKey = pKey
+	signer.SignKey = pKey
 
 	r.POST(golangShared.GetVotingPackEndpoint, endpoint.GetVotingPack)
 	r.POST(golangShared.GetVoteCodesEndpoint, endpoint.GetVoteCodes)
@@ -130,32 +128,4 @@ type Body struct {
 
 func WalletFromPrivateKey(pk *solana.PrivateKey) *solana.Wallet {
 	return &solana.Wallet{PrivateKey: *pk}
-}
-
-func loadEd25519PrivateKey(path string) (ed25519.PrivateKey, error) {
-	pemBytes, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read file: %w", err)
-	}
-
-	block, _ := pem.Decode(pemBytes)
-	if block == nil {
-		return nil, fmt.Errorf("no PEM block found")
-	}
-	if block.Type != "PRIVATE KEY" {
-		return nil, fmt.Errorf("unexpected PEM type: %s", block.Type)
-	}
-
-	// OpenSSL genpkey ED25519 → PKCS#8
-	parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("parse PKCS#8: %w", err)
-	}
-
-	priv, ok := parsedKey.(ed25519.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("not an Ed25519 private key")
-	}
-
-	return priv, nil
 }

@@ -6,6 +6,7 @@ import getAuthCode from "../api/getAuthCode.ts";
 import pingServerForAcceptVote from "../api/pingServerForAcceptVote.ts";
 import {useStatusMessages} from "./useAlertMessage.ts";
 import {stringify} from "uuid";
+import useGetServerPubKey from "./useGetServerPubKey.ts";
 
 function useVoting() {
     const [authCode, setAuthCode] = useState<string>("")
@@ -15,6 +16,7 @@ function useVoting() {
     const [selectedCode, setSelectedCode] = useState<string>("")
     const [voterSign, setVoterSign] = useState<string>("")
     const [serverSign, setServerSign] = useState<number[]>([])
+    const {pubKey} = useGetServerPubKey()
 
     const [bit, setBit] = useState<boolean | undefined>(undefined);
 
@@ -23,12 +25,20 @@ function useVoting() {
 
     const CastVote = useCallback(async (code: string) => {
         setSelectedCode(code)
-        await castVoteCode({
-            voteCode: code,
-            authCode: authCode || "",
-            program: getProgram(),
-            provider: getProvider()
-    })}, [authCode])
+        try {
+            await castVoteCode({
+                voteCode: code,
+                authCode: authCode || "",
+                program: getProgram(),
+                provider: getProvider(),
+                key: pubKey,
+            })
+            showSuccess("vote casted")
+        }catch(err: any) {
+            showError(err.message)
+        }
+
+        }, [authCode, pubKey])
 
     const GetVoteCodes = useCallback(async () => {
         setVoteCodes(await getVoteCode({voteSerial: voteSerial || ""}))
@@ -39,7 +49,7 @@ function useVoting() {
                 showError(`Invalid auth serial length := ${authSerial?.length}`)
                 return;
             }
-            setAuthCode((await getAuthCode({authSerial: authSerial || "", bit })).result)
+            setAuthCode((await getAuthCode({authSerial: authSerial || "", bit, key: pubKey })).result)
         }, [authSerial, bit])
 
     const PingForAccept = useCallback(async () => {

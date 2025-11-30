@@ -10,9 +10,10 @@ interface ICommitVote {
     authCode: string;
     program: Program<Counter>;
     provider: AnchorProvider;
+    key: string
 }
 
-export default async function commitVote({signedDocument, authCode, program, provider } : ICommitVote){
+export default async function commitVote({signedDocument, authCode, program, provider, key } : ICommitVote){
     const enc = new TextEncoder();
     const authU8 = enc.encode(authCode);
 
@@ -47,7 +48,7 @@ export default async function commitVote({signedDocument, authCode, program, pro
             .instruction();
         tx.add(ix)
         const unsignedBase64 = tx.serialize({ requireAllSignatures: false }).toString("base64");
-        const txPayerSigned = await SignTransaction(unsignedBase64);
+        const txPayerSigned = await SignTransaction({transaction: unsignedBase64, key});
         await provider.connection.sendRawTransaction(
             txPayerSigned.serialize({ requireAllSignatures: true }),
             { skipPreflight: false }

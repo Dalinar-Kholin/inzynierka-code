@@ -1,8 +1,10 @@
 import {consts} from "../const.ts";
+import fetchWithAuth, {IsBadSignError, IsServerError} from "../helpers/fetchWithVerify.ts";
 
 interface IGetAuthCode{
     authSerial: string,
     bit: boolean,
+    key : string,
 }
 
 interface IGetAuthCodeInitResponse{
@@ -24,22 +26,26 @@ interface IResponse{
     result : string
 }
 
-export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) : Promise<IResponse> {
+export default async function getAuthCode({ authSerial, bit, key }: IGetAuthCode) : Promise<IResponse> {
     if (authSerial === "") return {result: ""};
-    let response = await fetch(consts.API_URL + "/getAuthCodeInit", {
+
+
+    let response = await fetchWithAuth<IGetAuthCodeInitResponse>(consts.API_URL + "/getAuthCodeInit", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ authSerial: authSerial }),
-    })
-    let data = await response.json();
-    if (!response.ok) {
-        throw new Error(data.error)
-    }
-    const initRes : IGetAuthCodeInitResponse = data as IGetAuthCodeInitResponse;
+    }, key)
 
-    const pHex = initRes.n;
-    const gHex = initRes.g;
-    const CHex = initRes.c;
+    if (IsBadSignError(response)) {
+        throw new Error(`bad signed request, server is probably try to cheat`)
+    }
+    if (IsServerError(response)) {
+        throw new Error(response.error);
+    }
+
+    const pHex = response.n;
+    const gHex = response.g;
+    const CHex = response.c;
 
     const n = hexToBigInt(pHex);
     const g = hexToBigInt(gHex);
@@ -66,20 +72,23 @@ export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) : P
         AHex = bigIntToHex(A);
     }
 
-
-    response = await fetch(consts.API_URL + "/getAuthCode", {
+    console.log("all is OK?");
+    const secResponse = await fetchWithAuth<IGetAuthCodeResponse>(consts.API_URL + "/getAuthCode", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ a: AHex, b: BHex, authSerial: authSerial }),
-    })
-    data = await response.json();
-    if (!response.ok) {
-        throw new Error(data.error)
-    }
-    const encRes: IGetAuthCodeResponse = data as IGetAuthCodeResponse;
+    },key)
 
-    const X0Hex = encRes.x0;
-    const X1Hex = encRes.x1;
+    if (IsBadSignError(secResponse)) {
+        throw new Error(`bad signed request, server is probably try to cheat`)
+    }
+    if (IsServerError(secResponse)) {
+        throw new Error(secResponse.error);
+    }
+
+    console.log("OK");
+    const X0Hex = secResponse.x0;
+    const X1Hex = secResponse.x1;
     const X0 = BigInt('0x' + X0Hex);
     const X1 = BigInt('0x' + X1Hex);
 
@@ -100,10 +109,10 @@ export default async function getAuthCode({ authSerial, bit }: IGetAuthCode) : P
     const k0 = await hkdfSha256(Z0b, salt, infoBytes, 32);
     const k1 = await hkdfSha256(Z1b, salt, infoBytes, 32);
 
-    const n0 = hexToBytes(encRes.n0);
-    const n1 = hexToBytes(encRes.n1);
-    const c0 = hexToBytes(encRes.c0);
-    const c1 = hexToBytes(encRes.c1);
+    const n0 = hexToBytes(secResponse.n0);
+    const n1 = hexToBytes(secResponse.n1);
+    const c0 = hexToBytes(secResponse.c0);
+    const c1 = hexToBytes(secResponse.c1);
 
     const m0 = await decryptGCM(k0, n0, infoBytes, c0).catch(() => null);
     const m1 = await decryptGCM(k1, n1, infoBytes, c1).catch(() => null);

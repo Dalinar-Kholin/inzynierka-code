@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"golangShared/ServerResponse"
 	"net/http"
 	"votingServer/obliviousTransfer"
 
@@ -18,7 +19,6 @@ func GetAuthCodeInit(c *gin.Context) {
 	if err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 	}
-	// todo: tutaj fajnie by było zcommitować dane na BB
 
-	c.JSON(http.StatusOK, output)
+	ServerResponse.ResponseWithSign(c, http.StatusOK, output)
 }

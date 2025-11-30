@@ -76,7 +76,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
         <p>
             {authSerial.length <= 5 ? <></> : <></>}
         </p>
-        <p>
+        <div>
             {accountData.filter(ad => ad.AuthSerial.substring(0, authSerial.length) === authSerial).map(ad => (
                 <div key={ad.AuthSerial}>
                     <p>voting stage := {getStageName(ad.VotingStage)}</p>
@@ -98,7 +98,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
 
                 </div>
             ))}
-        </p>
+        </div>
     </>
 }
 
