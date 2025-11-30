@@ -10,7 +10,7 @@ public class PaillierPublicKey
     public BigInteger g { get; }
     public BigInteger n_squared { get; }
 
-    public PaillierPublicKey(string publicKeyPath = "../keys/paillier_keys_public.json")
+    public PaillierPublicKey(string publicKeyPath = "../paillierKeys/paillier_keys_public.json")
     {
         string publicKeyJson = File.ReadAllText(publicKeyPath);
         JObject publicKey = JObject.Parse(publicKeyJson);

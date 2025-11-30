@@ -11,6 +11,8 @@ Trzeba pamiętać, że odkrywanie commitmentów to nie odkrywanie wszystkich dan
 Jeden wiesz "i" zawiera dane 2 kart np, s' nie jest zwiazany
 
 Można pomyśleć ile chcemy mieć maksymalnie głosujących, bo można na spokojnie tworzyć permutacje 100mln liczb, ale już większej ilości robi się ciężka. Jedynie dało by się to zwiększyć batchami - wtedy też jest to raczej bezpieczne, ale powinny być dość spore. W sumie można protokół odpalić kilka razy i to tak samo bedzie działać, więc jest raczej szybkie do wdrożenia jak coś.
+
+
 ===========================================================================================
 Na podstawie danych dostarczonych przez EA:
 ===========================================================================================
@@ -52,10 +54,12 @@ Każdy serwer j:
 
 Każdy serwer u siebie zapisuje po 2 kombinacje do każdej permutacji (lub po dwa indeksy)
 
+Przed 3 etapem trzeba wrzucić peirwszy korzeń merkla na bc
 ===========================================================================================
 3. SummandsDraw - lokalnie (tzn. trzeba pobrać skądś tą wartość losową lub stworzyc wlasny serwer co bedzie to zwracać )
 ===========================================================================================
-jakoś
+pobranie wartości losowej z bb (jest ona dostarczana na bb tylko wtedy gdy każdy serwer zrobi etapy 1 i 2).
+Na podstawie tej losowej wartosci liczone sa c i b
 
 ===========================================================================================
 4. CodeSetting - lokalnie

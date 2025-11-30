@@ -59,13 +59,13 @@ public class LocalBallotData
                 second = RandomNumberGenerator.GetInt32(1, _a + 1);
             } while (second == first);
 
-            ballot.C0 = first.ToString();
-            var commitment = Comm(ballot.C0);
+            ballot.C0 = first;
+            var commitment = Comm(ballot.C0.ToString());
             ballot.CommC0 = commitment.Item1;
             ballot.R0 = commitment.Item2;
 
-            ballot.C1 = second.ToString();
-            commitment = Comm(ballot.C1);
+            ballot.C1 = second;
+            commitment = Comm(ballot.C1.ToString());
             ballot.CommC1 = commitment.Item1;
             ballot.R1 = commitment.Item2;
 
@@ -148,6 +148,7 @@ public class LocalBallotData
                 {
                     await _ballotLinkingService.SaveLinkingBatch(batchRecords, false);
                     batchRecords.Clear();
+                    Console.WriteLine("Links batch saved.");
                 }
             }
         }
@@ -174,6 +175,7 @@ public class LocalBallotData
             {
                 await _ballotLinkingService.SaveLinkingBatch(batchRecordsPrim, true);
                 batchRecordsPrim.Clear();
+                Console.WriteLine("LinksPrim batch saved.");
             }
         }
     }
@@ -189,7 +191,7 @@ public class LocalBallotData
         return serial.ToString();
     }
 
-    // poprawic
+    // zamienic na perfect hiding
     public (string commitment, long randomValue) Comm(string data)
     {
         // blinding factor
