@@ -1,19 +1,26 @@
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useConnection } from "@solana/wallet-adapter-react";
 
 import idl from "../counter.json";
 import type {Counter} from "../counter.ts";
+import {PublicKey} from "@solana/web3.js";
 
 export function useAnchor() {
     const { connection } = useConnection();
-    const wallet = useWallet();
+
+    // @ts-ignore
+    const dummyWallet: anchor.Wallet = {
+        publicKey: new PublicKey("11111111111111111111111111111111"), // any pk
+        signTransaction: async (tx) => tx,
+        signAllTransactions: async (txs) => txs
+    };
 
     const getProvider = () => {
-        if (!wallet || !wallet.publicKey || !wallet.signTransaction) {
+        if (!dummyWallet || !dummyWallet.publicKey || !dummyWallet.signTransaction) {
             throw new Error("Connect a wallet first.");
         }
-        return new AnchorProvider(connection, wallet as unknown as anchor.Wallet, {
+        return new AnchorProvider(connection, dummyWallet, {
             commitment: "confirmed",
             preflightCommitment: "confirmed",
         });
@@ -24,5 +31,5 @@ export function useAnchor() {
         return new Program(idl as Counter, provider);
     };
 
-    return { getProvider, getProgram, wallet };
+    return { getProvider, getProgram };
 }

@@ -18,7 +18,5 @@ func GetAuthCodeFinal(c *gin.Context) {
 	}
 	response := obliviousTransfer.Encrypt(&body)
 
-	// todo: tutaj fajnie by było zcommitować dane na BB
-
 	ServerResponse.ResponseWithSign(c, http.StatusOK, response)
 }
