@@ -13,8 +13,6 @@ const (
 	ACTUAL
 )
 
-type AckCode [ackCodeLength]byte
-
 const NumberOfCandidates = 4
 
 var Candidates = []CandidateCode{{'a', 'l', 'a'}, {'b', 'o', 'b'}, {'c', 'a', 't'}, {'d', 'e', 'f'}}
@@ -25,7 +23,6 @@ const NumberOfAuthCodes = 4
 const NumberOfPackagesToCreate = 100
 
 const AuthCodeLength = 64
-const ackCodeLength = 8
 
 type VotingPackage struct {
 	Codes      [NumberOfCandidates]CandidateCode `bson:"codes" json:"codes"`
@@ -36,12 +33,13 @@ type VotingPackage struct {
 type AuthPackage struct {
 	AuthSerial primitive.Binary                `bson:"authSerial" json:"authSerial"`
 	AuthCode   [NumberOfAuthCodes]AuthCodePack `bson:"authCode" json:"authCode"`
-	AckCode    AckCode                         `bson:"ackCode" json:"ackCode"`
-	Used       bool                            `bson:"used"`
+	Used       bool                            `bson:"used" json:"-"`
 }
 
 type AuthCodePack struct {
-	C      string              `bson:"c"`
-	Code   [2]primitive.Binary `bson:"code"`
-	Status Status              `bson:"status"`
+	C          string              `bson:"c"`
+	Code       [2]primitive.Binary `bson:"code"`
+	Status     Status              `bson:"status"`
+	AccessCode *primitive.Binary   `bson:"accessCode"` // for transaction signing reason
+	SignStatus Status              `bson:"SignStatus"` //
 }

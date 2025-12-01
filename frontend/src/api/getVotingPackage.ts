@@ -12,14 +12,19 @@ export interface VotingPack {
     voteCodes: string[];
 }
 
+interface IGetVotePackageRequest {
+    basedSign: string;
+}
+
 export default async function getVotingPackage({ sign, key } : IGetVotingPackage) : Promise<VotingPack>{
-    const response = await fetchWithAuth<VotingPack>(consts.API_URL + '/getVotingPack', {
+    const response = await fetchWithAuth<VotingPack, IGetVotePackageRequest>(consts.API_URL + '/getVotingPack', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ basedSign : sign }),
-    }, key)
+    },
+        key,
+        { basedSign : sign })
     if (IsBadSignError(response)) {
         throw new Error(`bad signed request, server is probably try to cheat`)
     }

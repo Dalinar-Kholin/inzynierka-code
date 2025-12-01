@@ -18,14 +18,14 @@ const ObliviousTransferInit = "obliviousTransferInit"
 func GetDataBase(name, collection string) *mongo.Collection {
 	if db == nil {
 		db = connectToDb(name)
-		_, err := db.Client().Database(name).Collection(AuthCollection).DeleteMany(context.Background(), bson.M{})
+		/*_, err := db.Client().Database(name).Collection(AuthCollection).DeleteMany(context.Background(), bson.M{})
 		if err != nil {
 			panic(err)
 		}
 		_, err = db.Client().Database(name).Collection(VoteCollection).DeleteMany(context.Background(), bson.M{})
 		if err != nil {
 			panic(err)
-		}
+		}*/
 	}
 	return db.Collection(collection)
 }

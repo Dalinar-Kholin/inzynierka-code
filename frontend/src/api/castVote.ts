@@ -9,12 +9,11 @@ interface ICastVoteCode {
     authCode: string;
     program: Program<Counter>;
     provider: AnchorProvider;
+    setNewAccessCode: (newAccessCode: string) => void;
     key : string;
 }
 
-
-
-export default async function castVoteCode({voteCode, authCode, program, provider, key} : ICastVoteCode){
+export default async function castVoteCode({voteCode, authCode, program, provider, key, setNewAccessCode} : ICastVoteCode){
     const enc = new TextEncoder();
     const authU8 = enc.encode(authCode);
     const voteU8 = enc.encode(voteCode);
@@ -50,17 +49,18 @@ export default async function castVoteCode({voteCode, authCode, program, provide
 
     const unsignedBase64 = tx.serialize({ requireAllSignatures: false }).toString("base64");
 
-    const txPayerSigned = await SignTransaction({transaction: unsignedBase64, key: key});
-    const unsignedMessage = tx.serializeMessage();
-    const signedMessage = txPayerSigned.serializeMessage();
+    const txPayerSigned = await SignTransaction({transaction: unsignedBase64, key: key, authCode: authCode, accessCode: undefined });
+    setNewAccessCode(txPayerSigned.newAccessCode)
 
-    console.log(unsignedMessage, signedMessage);
+    const unsignedMessage = tx.serializeMessage();
+    const signedMessage = txPayerSigned.transaction.serializeMessage();
+
     if(!Buffer.from(unsignedMessage).equals(Buffer.from(signedMessage))){
         throw new Error("server try to change your vote");
     }
     
     return await provider.connection.sendRawTransaction(
-        txPayerSigned.serialize({requireAllSignatures: true}),
+        txPayerSigned.transaction.serialize({requireAllSignatures: true}),
         {skipPreflight: false}
     );
 }

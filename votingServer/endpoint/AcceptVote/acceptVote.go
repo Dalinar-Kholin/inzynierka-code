@@ -91,7 +91,6 @@ func AcceptVote(c *gin.Context) {
 		[]byte(body.AuthCode),
 		authPack.AuthSerial.Data,
 		votePack.VoteSerial.Data,
-		authPack.AckCode[:],
 		signature)
 
 	if err != nil {

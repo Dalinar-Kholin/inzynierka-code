@@ -73,11 +73,8 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
                 setAuthSerial(e.target.value)
             }} value={authSerial}/>
         </p>
-        <p>
-            {authSerial.length <= 5 ? <></> : <></>}
-        </p>
         <div>
-            {accountData.filter(ad => ad.AuthSerial.substring(0, authSerial.length) === authSerial).map(ad => (
+            {authSerial.length > 5 ? accountData.filter(ad => ad.AuthSerial.substring(0, authSerial.length) === authSerial).map(ad => (
                 <div key={ad.AuthSerial}>
                     <p>voting stage := {getStageName(ad.VotingStage)}</p>
                     <p>auth Code := {ad.AuthCode}</p>
@@ -97,7 +94,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
                     </p>
 
                 </div>
-            ))}
+            )) : <></>}
         </div>
     </>
 }

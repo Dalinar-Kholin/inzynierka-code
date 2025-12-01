@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
 
 const VOTE_CODE_LENGTH: usize = 3;
-const AUTHCODE_CODE_LENGTH: usize = 64;
+const AUTH_CODE_CODE_LENGTH: usize = 64;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VotingStage {
@@ -45,9 +45,8 @@ mod counter {
         auth_code: Vec<u8>,
         auth_serial: Vec<u8>,
         vote_serial: Vec<u8>,
-        ack_code: Vec<u8>,
         server_sign: Vec<u8> // po co ack code skoro mamy podpis
-    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, AckCode, sig(servera)> na BB
+    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
         let cast = &mut ctx.accounts.vote;
         require!(cast.stage == VotingStage::Casted, ErrorCode::InvalidProgramId);
 
@@ -55,14 +54,11 @@ mod counter {
         auth_fixed.copy_from_slice(&auth_serial);
         let mut vote_fixed = [0u8; 16];
         vote_fixed.copy_from_slice(&vote_serial);
-        let mut ack_fixed = [0u8; 8];
-        ack_fixed.copy_from_slice(&ack_code);
         let mut server_fixed = [0u8; 64];
         server_fixed.copy_from_slice(&server_sign);
 
         cast.vote_serial = vote_fixed;
         cast.auth_serial = auth_fixed;
-        cast.ack_code = ack_fixed;
         cast.server_sign = server_fixed;
 
         cast.stage = VotingStage::Accepted;
@@ -74,7 +70,7 @@ mod counter {
         auth_code: Vec<u8>,
         offset: u32,
         user_sign: Vec<u8>
-    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, AckCode, sig(servera)> na BB
+    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
         let vote = &mut ctx.accounts.vote;
 
         let offset = offset as usize;
@@ -208,8 +204,7 @@ pub struct Vote {
     pub vote_serial: [u8; 16],
     pub vote_code: [u8; VOTE_CODE_LENGTH],
     pub auth_serial: [u8; 16],
-    pub auth_code: [u8; AUTHCODE_CODE_LENGTH],
-    pub ack_code: [u8; 8],
+    pub auth_code: [u8; AUTH_CODE_CODE_LENGTH],
     pub server_sign: [u8; 64],
     pub voter_sign: Vec<u8>,
     pub bump: u8,
@@ -223,7 +218,6 @@ const VOTE_ACCOUNT_SPACE: usize =
         + 3    // vote_code
         + 16   // auth_serial
         + 64   // auth_code
-        + 8    // ack_code
         + 64   // server_sign
         + 4    // voter_sign length prefix (u32)
         + MAX_VOTER_SIGN_LEN

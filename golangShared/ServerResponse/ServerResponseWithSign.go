@@ -1,6 +1,7 @@
 package ServerResponse
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"golangShared/signer"
@@ -8,21 +9,40 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Body struct {
+	UserRequest any `json:"userRequest"`
+	Content     any `json:"content"`
+}
+
 type ServerSignedResponse struct {
-	Body any    `json:"body"`
+	Body Body   `json:"body"`
 	Sign []byte `json:"sign"`
 }
 
-func ResponseWithSign(c *gin.Context, statusCode int, obj any) {
-	jsoned, err := json.Marshal(obj)
+func ToJSONNoEscape(v any) ([]byte, error) {
+	var buf bytes.Buffer
+
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+
+	if err := enc.Encode(v); err != nil {
+		return nil, err
+	}
+
+	out := bytes.TrimRight(buf.Bytes(), "\n")
+	return out, nil
+}
+
+func ResponseWithSign(c *gin.Context, statusCode int, userRequest any, obj any) {
+	content := Body{UserRequest: userRequest, Content: obj}
+	jsoned, err := ToJSONNoEscape(content)
 	if err != nil {
 		panic(err)
 	}
 	signature := signer.Sign(jsoned)
-	fmt.Printf("jsoned string := %s\nsign := _%v_\n", string(jsoned), string(signature))
-
+	fmt.Printf("data to signed := _%s_\n", jsoned)
 	c.JSON(statusCode, ServerSignedResponse{
-		Body: obj,
+		Body: content,
 		Sign: signature,
 	})
 }

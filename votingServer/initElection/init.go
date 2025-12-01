@@ -3,13 +3,11 @@ package initElection
 import (
 	"commiter/common"
 	"context"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	. "golangShared"
-	"math/big"
-	"unsafe"
+	"golangShared/helpers"
 	"votingServer/DB"
 	"votingServer/commitment"
 	"votingServer/obliviousTransfer"
@@ -30,7 +28,7 @@ func createVotingPackage() {
 	for range NumberOfPackagesToCreate {
 		var newCandidates [NumberOfCandidates]CandidateCode
 		copy(newCandidates[:], Candidates)
-		randomPerm(&newCandidates)
+		helpers.RandomPerm(&newCandidates)
 		serial := uuid.New()
 		newPackage := VotingPackage{
 			Codes: newCandidates,
@@ -64,8 +62,6 @@ func createAuthPackage() {
 			fmt.Printf("stworzono := %v\n", i)
 		}
 		guid := uuid.New()
-		ackCode := SecureRandomString()
-		newAckCode := *(*AckCode)(unsafe.Pointer(&ackCode))
 		newAuth := AuthPackage{
 			AuthSerial: primitive.Binary{
 				Subtype: 0x04,    // UUID (standard) – BSON subtype 4
@@ -74,7 +70,6 @@ func createAuthPackage() {
 			AuthCode: [NumberOfAuthCodes]AuthCodePack{
 				*generateAuthCodePack(), *generateAuthCodePack(), *generateAuthCodePack(), *generateAuthCodePack(),
 			},
-			AckCode: newAckCode,
 		}
 		_, err := conn.InsertOne(context.Background(), newAuth)
 		if err != nil {
@@ -94,30 +89,7 @@ func createAuthPackage() {
 	}
 }
 
-func cryptoRandInt(n int) int {
-	if n <= 0 {
-		return 0
-	}
-	max := big.NewInt(int64(n))
-	v, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		panic(err)
-	}
-	return int(v.Int64())
-}
-
-func randomPerm(s *[NumberOfCandidates]CandidateCode) {
-	n := len(s)
-	for i := n - 1; i > 0; i-- {
-		j := cryptoRandInt(i + 1)
-		s[i], s[j] = s[j], s[i]
-	}
-}
-
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
 func generateAuthCodePack() *AuthCodePack {
-
 	c := obliviousTransfer.RandZq()
 	size := 128
 	b := c.Bytes() // big-endian, bez wiodących zer
@@ -128,24 +100,17 @@ func generateAuthCodePack() *AuthCodePack {
 	}
 	cHex := hex.EncodeToString(b)
 
-	codeOne := SecureRandomString()
-	codeTwo := SecureRandomString()
+	codeOne := helpers.SecureRandomString()
+	codeTwo := helpers.SecureRandomString()
 	return &AuthCodePack{
 		Code: [2]primitive.Binary{
 			primitive.Binary{Subtype: 0x00, Data: codeOne[:]},
 			primitive.Binary{Subtype: 0x00, Data: codeTwo[:]},
 		},
-		C:      cHex,
-		Status: UNUSED,
+		C:          cHex,
+		Status:     UNUSED,
+		AccessCode: nil,
+		SignStatus: UNUSED,
 	}
 
-}
-
-func SecureRandomString() [AuthCodeLength]byte {
-	var out [AuthCodeLength]byte
-	for x := range out {
-		out[x] = charset[cryptoRandInt(len(charset))]
-	}
-
-	return out
 }

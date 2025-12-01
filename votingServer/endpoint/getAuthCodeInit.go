@@ -20,5 +20,5 @@ func GetAuthCodeInit(c *gin.Context) {
 		c.JSON(401, gin.H{"error": err.Error()})
 	}
 
-	ServerResponse.ResponseWithSign(c, http.StatusOK, output)
+	ServerResponse.ResponseWithSign(c, http.StatusOK, body, output)
 }

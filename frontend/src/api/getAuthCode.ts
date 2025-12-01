@@ -26,15 +26,24 @@ interface IResponse{
     result : string
 }
 
+interface IGetAuthCodeInitRequest{
+    authSerial: string,
+}
+
+interface IGetAuthCodeRequest{
+    a: string,
+    b: string,
+    authSerial: string
+}
+
 export default async function getAuthCode({ authSerial, bit, key }: IGetAuthCode) : Promise<IResponse> {
     if (authSerial === "") return {result: ""};
 
 
-    let response = await fetchWithAuth<IGetAuthCodeInitResponse>(consts.API_URL + "/getAuthCodeInit", {
+    let response = await fetchWithAuth<IGetAuthCodeInitResponse, IGetAuthCodeInitRequest>(consts.API_URL + "/getAuthCodeInit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ authSerial: authSerial }),
-    }, key)
+    }, key, { authSerial: authSerial })
 
     if (IsBadSignError(response)) {
         throw new Error(`bad signed request, server is probably try to cheat`)
@@ -73,11 +82,10 @@ export default async function getAuthCode({ authSerial, bit, key }: IGetAuthCode
     }
 
     console.log("all is OK?");
-    const secResponse = await fetchWithAuth<IGetAuthCodeResponse>(consts.API_URL + "/getAuthCode", {
+    const secResponse = await fetchWithAuth<IGetAuthCodeResponse, IGetAuthCodeRequest>(consts.API_URL + "/getAuthCode", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ a: AHex, b: BHex, authSerial: authSerial }),
-    },key)
+    },key, { a: AHex, b: BHex, authSerial: authSerial })
 
     if (IsBadSignError(secResponse)) {
         throw new Error(`bad signed request, server is probably try to cheat`)

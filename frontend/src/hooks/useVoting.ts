@@ -17,7 +17,7 @@ function useVoting() {
     const [voterSign, setVoterSign] = useState<string>("")
     const [serverSign, setServerSign] = useState<number[]>([])
     const {pubKey} = useGetServerPubKey()
-
+    const [accessCode, setAccessCode] = useState<string | undefined>()
     const [bit, setBit] = useState<boolean | undefined>(undefined);
 
     const {getProgram, getProvider} = useAnchor();
@@ -31,6 +31,7 @@ function useVoting() {
                 authCode: authCode || "",
                 program: getProgram(),
                 provider: getProvider(),
+                setNewAccessCode: setAccessCode,
                 key: pubKey,
             })
             showSuccess("vote casted")
@@ -105,13 +106,14 @@ function useVoting() {
         selectedCode,
         voterSign,
         serverSign,
+        accessCode,
         // funckcje
         setAuthSerial,
         setVoteSerial,
         setSelectedCode,
         setBit,
         setVoterSign,
-
+        setAccessCode,
 
         CastVote,
         GetVoteCodes,

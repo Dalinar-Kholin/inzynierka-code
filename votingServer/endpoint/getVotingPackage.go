@@ -87,7 +87,7 @@ func GetVotingPack(c *gin.Context) {
 		VoteCodes:  voteCodes,
 	}
 
-	ServerResponse.ResponseWithSign(c, 200, result)
+	ServerResponse.ResponseWithSign(c, 200, bodyData, result)
 	// c.JSON(200, result)
 }
 

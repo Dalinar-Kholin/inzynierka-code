@@ -2,11 +2,13 @@ import {type ChangeEvent, useState} from "react";
 import {Button} from "@mui/material";
 import commitVote from "../api/commitVote.ts";
 import {useAnchor} from "../hooks/useAnchor.ts";
+import useGetServerPubKey from "../hooks/useGetServerPubKey.ts";
 
 interface IUploadSignedDocument{
     voterSign : string;
     authCode : string;
     setVoterSign: (s : string) => void;
+    accessCode : string;
 }
 
 const handleFileChange = (e: ChangeEvent<HTMLInputElement>, setVoterSign: (s : string) => void) => {
@@ -21,9 +23,9 @@ const handleFileChange = (e: ChangeEvent<HTMLInputElement>, setVoterSign: (s : s
     reader.readAsText(file);
 };
 
-export default function UploadSignedVote({voterSign, setVoterSign, authCode} : IUploadSignedDocument) {
+export default function UploadSignedVote({voterSign, setVoterSign, authCode, accessCode} : IUploadSignedDocument) {
     const {getProgram, getProvider} = useAnchor()
-
+    const {pubKey} = useGetServerPubKey()
     return <>
         <h2>upload signed Vote</h2>
 
@@ -36,7 +38,9 @@ export default function UploadSignedVote({voterSign, setVoterSign, authCode} : I
             signedDocument: voterSign,
             authCode: authCode,
             program: getProgram(),
-            provider: getProvider()
+            provider: getProvider(),
+            accessCode: accessCode,
+            key: pubKey,
         })}>commit Vote</Button>
     </>
 }

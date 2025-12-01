@@ -11,7 +11,6 @@ import (
 var SignKey ed25519.PrivateKey = nil
 
 func Sign(message []byte) []byte {
-	fmt.Printf("\n%v %v\n", SignKey, message)
 	signature := ed25519.Sign(SignKey, message)
 	return signature
 }

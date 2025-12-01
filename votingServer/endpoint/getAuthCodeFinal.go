@@ -18,5 +18,5 @@ func GetAuthCodeFinal(c *gin.Context) {
 	}
 	response := obliviousTransfer.Encrypt(&body)
 
-	ServerResponse.ResponseWithSign(c, http.StatusOK, response)
+	ServerResponse.ResponseWithSign(c, http.StatusOK, body, response)
 }

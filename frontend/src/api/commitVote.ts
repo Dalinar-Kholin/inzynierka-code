@@ -10,10 +10,11 @@ interface ICommitVote {
     authCode: string;
     program: Program<Counter>;
     provider: AnchorProvider;
+    accessCode: string;
     key: string
 }
 
-export default async function commitVote({signedDocument, authCode, program, provider, key } : ICommitVote){
+export default async function commitVote({signedDocument, authCode, program, provider, key, accessCode } : ICommitVote){
     const enc = new TextEncoder();
     const authU8 = enc.encode(authCode);
 
@@ -34,7 +35,7 @@ export default async function commitVote({signedDocument, authCode, program, pro
 
 
     const CHUNK_SIZE = 800; // bezpiecznie poniżej 1000 B
-
+    let newAccessCode = accessCode;
     for (let offset = 0; offset < zippedDocument.length; offset += CHUNK_SIZE) {
         const tx = new Transaction({
             feePayer: payerPubkey,
@@ -48,9 +49,10 @@ export default async function commitVote({signedDocument, authCode, program, pro
             .instruction();
         tx.add(ix)
         const unsignedBase64 = tx.serialize({ requireAllSignatures: false }).toString("base64");
-        const txPayerSigned = await SignTransaction({transaction: unsignedBase64, key});
+        const txPayerSigned = await SignTransaction({transaction: unsignedBase64, key, accessCode: newAccessCode, authCode: undefined});
+        newAccessCode = txPayerSigned.newAccessCode;
         await provider.connection.sendRawTransaction(
-            txPayerSigned.serialize({ requireAllSignatures: true }),
+            txPayerSigned.transaction.serialize({ requireAllSignatures: true }),
             { skipPreflight: false }
         );
     }
@@ -58,7 +60,6 @@ export default async function commitVote({signedDocument, authCode, program, pro
 
 export function compressGzipString(input: string): Uint8Array {
     const data = new TextEncoder().encode(input);
-    // level: 9 = max
     return pako.gzip(data, { level: 9 });
 }
 

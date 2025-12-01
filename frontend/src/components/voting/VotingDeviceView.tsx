@@ -18,6 +18,7 @@ export default function VotingDeviceView() {
         selectedCode,
         voterSign,
         serverSign,
+        accessCode,
         setVoteSerial,
         setAuthSerial,
         setVoterSign,
@@ -94,7 +95,9 @@ export default function VotingDeviceView() {
             <UploadSignedVote
                 setVoterSign={setVoterSign}
                 authCode={ authCode || ""}
-                voterSign={voterSign || ""}/>
+                voterSign={voterSign || ""}
+                accessCode={ accessCode || ""}
+            />
             {successMessage !== null ? <Alert severity="success">{successMessage}</Alert> : <></>}
             {errorMessage !== null ? <Alert severity="error">{errorMessage}</Alert> : <></>}
         </>

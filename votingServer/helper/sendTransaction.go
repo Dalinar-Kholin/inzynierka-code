@@ -44,14 +44,13 @@ func SendAcceptVote(
 	authCode []byte, // 64 bytes
 	authSerial []byte, // 16
 	voteSerial []byte, // 16
-	ackCode []byte, // 8
 	serverSign []byte, // 64
 ) (string, error) {
 
 	// 1) Walidacja długości
-	if len(authCode) != 64 || len(authSerial) != 16 || len(voteSerial) != 16 || len(ackCode) != 8 {
-		return "", fmt.Errorf("invalid lengths: authCode=%d authSerial=%d voteSerial=%d ackCode=%d serverSign=%d",
-			len(authCode), len(authSerial), len(voteSerial), len(ackCode), len(serverSign))
+	if len(authCode) != 64 || len(authSerial) != 16 || len(voteSerial) != 16 {
+		return "", fmt.Errorf("invalid lengths: authCode=%d authSerial=%d voteSerial=%d serverSign=%d",
+			len(authCode), len(authSerial), len(voteSerial), len(serverSign))
 	}
 
 	// 2) Wylicz PDA konta vote z auth_code
@@ -66,7 +65,6 @@ func SendAcceptVote(
 	data = borshAppendVec(data, authCode)
 	data = borshAppendVec(data, authSerial)
 	data = borshAppendVec(data, voteSerial)
-	data = borshAppendVec(data, ackCode)
 	data = borshAppendVec(data, serverSign)
 
 	// 4) Instruction (tylko jedno konto: vote - writable, bez signera)
@@ -121,7 +119,6 @@ type Vote struct {
 	VoteCode   [3]byte
 	AuthSerial [16]byte
 	AuthCode   [64]byte
-	AckCode    [8]byte
 	ServerSign [64]byte
 	VoterSign  []byte
 	Bump       uint8
@@ -129,7 +126,7 @@ type Vote struct {
 
 func DecodeVoteAnchor(data []byte) (Vote, error) {
 
-	const total = 5185
+	const total = 5177
 	if len(data) != total {
 		return Vote{}, fmt.Errorf("unexpected length %d, want %d", len(data), total)
 	}
@@ -142,13 +139,11 @@ func DecodeVoteAnchor(data []byte) (Vote, error) {
 	copy(v.VoteCode[:], payload[17:17+3])
 	copy(v.AuthSerial[:], payload[20:20+16])
 	copy(v.AuthCode[:], payload[36:36+64])
-	copy(v.AckCode[:], payload[100:100+8])
-	copy(v.ServerSign[:], payload[108:108+64])
-	length, _ := ReadSolanaU32AsInt32(payload[172 : 172+4])
-	fmt.Printf("length: %v\n", payload[172:172+100])
+	copy(v.ServerSign[:], payload[100:100+64])
+	length, _ := ReadSolanaU32AsInt32(payload[164 : 164+4])
 	v.VoterSign = make([]byte, length)
-	copy(v.VoterSign[:], payload[176:176+length])
-	v.Bump = payload[176+length]
+	copy(v.VoterSign[:], payload[168:168+length])
+	v.Bump = payload[168+length]
 
 	fmt.Printf("%v\n", length)
 	return v, nil
