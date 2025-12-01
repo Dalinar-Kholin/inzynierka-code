@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"golangShared"
+	"golangShared/signer"
 	"log"
 	"os"
 	"simpleSolanaSignerServer/sign"
@@ -17,6 +18,12 @@ import (
 
 func main() {
 	r := gin.Default()
+
+	pKey, err := signer.LoadEd25519PrivateKey("../ed25519_key.pem")
+	if err != nil {
+		panic(err)
+	}
+	signer.SignKey = pKey
 
 	signEndpoint := sign.SignEndpoint{
 		PayerKey: loadPrivateKeyFromJSON("../signer.json"),
