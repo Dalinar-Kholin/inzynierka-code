@@ -30,4 +30,22 @@ public class BallotService
             .Find(b => b.BallotId == ballotId)
             .AnyAsync();
     }
+
+    // pobieranie wszystkich potrzebnych danych do CodeSetting (Protocol 5) w jednym batchu
+    public async Task<List<DataForCodeSetting>> GetProtocol5DataBatch(int skip, int take)
+    {
+        var projection = Builders<BallotData>.Projection
+            .Include(b => b.BallotId)
+            .Include(b => b.C0)
+            .Include(b => b.C1)
+            .Include(b => b.B);
+
+        return await _ballots
+            .Find(FilterDefinition<BallotData>.Empty)
+            .Project<DataForCodeSetting>(projection)
+            .Skip(skip)
+            .Limit(take)
+            .ToListAsync();
+    }
+
 }
