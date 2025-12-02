@@ -3,11 +3,13 @@ package sign
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"golangShared"
 	"golangShared/ServerResponse"
 	"golangShared/helpers"
+	"inz/Storer/StoreClient"
 	"net/http"
 	"votingServer/DB"
 
@@ -36,14 +38,10 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func isNullOrEmpty(s *string) bool {
-	return s == nil || *s == ""
-}
-
 var wantedProgram = solana.MustPublicKeyFromBase58("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af")
 
 func (s *SignEndpoint) Sign(c *gin.Context) {
-	var signRequestData SignRequestData
+	var signRequestData golangShared.SignedFrontendRequest[SignRequestData]
 	if err := c.ShouldBindJSON(&signRequestData); err != nil {
 		c.JSON(401, gin.H{
 			"error": "bad Request Body",
@@ -51,10 +49,10 @@ func (s *SignEndpoint) Sign(c *gin.Context) {
 		return
 	}
 
-	newAccessCode, err := Verify(c, &signRequestData)
+	/*newAccessCode, err := Verify(c, &signRequestData.Body)
 	if err != nil {
-		panic(err)
-	}
+		return
+	}*/
 
 	// chcemy sprawdzic czy podpis jest poprawny --> dane są podpisane elektoronicznie przez użytkownika
 
@@ -62,9 +60,9 @@ func (s *SignEndpoint) Sign(c *gin.Context) {
 
 	// chcemy sprawdzić czy sama transakcja jest poprawna - address konta, instrukcja itd
 
-	// symulowanie transakcji aby sprawdzić czy instrukcje sa 	poprawne aby nie podpisywać transakcji która i tak sie wysypie
+	// nie możemy symulować transakcji i na bazie wyniku odrzucić transakcji, jako ten server nie mamy prawa nie podpisać transakcji, która ma poprawny accessCode/authCode oraz parsuje się do poprawnej transakcji
 
-	tx, err := solana.TransactionFromBase64(signRequestData.Transaction)
+	tx, err := solana.TransactionFromBase64(signRequestData.Body.Transaction)
 	if err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
@@ -83,7 +81,7 @@ func (s *SignEndpoint) Sign(c *gin.Context) {
 	ServerResponse.ResponseWithSign(c, http.StatusOK, signRequestData,
 		SignResponse{
 			Transaction: base64.StdEncoding.EncodeToString(res),
-			AccessCode:  newAccessCode,
+			AccessCode:  nil, //newAccessCode,
 		})
 }
 
@@ -94,7 +92,7 @@ func Verify(c *gin.Context, signRequestData *SignRequestData) (*string, error) {
 	newAccessCode := &tmp
 	var filter bson.D
 	var bin primitive.Binary
-	if !isNullOrEmpty(signRequestData.AuthCode) {
+	if !golangShared.IsNullOrEmpty(signRequestData.AuthCode) {
 		bin = primitive.Binary{Subtype: 0x00, Data: []byte(*signRequestData.AuthCode)}
 		fmt.Printf("auth COde := %s\n", *signRequestData.AuthCode)
 		filter = bson.D{{"authCode.code", bin}}
@@ -104,8 +102,16 @@ func Verify(c *gin.Context, signRequestData *SignRequestData) (*string, error) {
 			})
 			return nil, err
 		}
-
-	} else if !isNullOrEmpty(signRequestData.AccessCode) {
+		jsoned, _ := json.Marshal(signRequestData) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+		err := StoreClient.Client(StoreClient.RequestBody{
+			AuthSerial: nil,
+			AuthCode:   signRequestData.AuthCode,
+			Data:       string(jsoned),
+		})
+		if err != nil {
+			panic(err)
+		}
+	} else if !golangShared.IsNullOrEmpty(signRequestData.AccessCode) {
 		bin = primitive.Binary{Subtype: 0x00, Data: []byte(*signRequestData.AccessCode)}
 		filter = bson.D{{"authCode.accessCode", bin}}
 
@@ -114,6 +120,15 @@ func Verify(c *gin.Context, signRequestData *SignRequestData) (*string, error) {
 				Error: "cant find auth package/check spelling",
 			})
 			return nil, err
+		}
+		jsoned, _ := json.Marshal(signRequestData) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+		err := StoreClient.Client(StoreClient.RequestBody{
+			AuthSerial: nil,
+			AuthCode:   signRequestData.AuthCode,
+			Data:       string(jsoned),
+		})
+		if err != nil {
+			panic(err)
 		}
 	} else {
 		c.JSON(401, gin.H{"error": "bad Request Body"})
