@@ -1,14 +1,14 @@
 import {web3} from "@coral-xyz/anchor";
 import {consts} from "../const.ts";
-import fetchWithAuth, {IsBadSignError, IsServerError} from "../helpers/fetchWithVerify.ts";
+import {type BadSignError, IsBadSignError, IsServerError, type ServerError} from "../helpers/fetchWithVerify.ts";
 import type {Transaction} from "@solana/web3.js";
+import useFetchWithVerify from "../helpers/fetchWithVerify.ts";
 
 
 export interface ISignTransaction {
     transaction: string;
     accessCode: string | undefined;
     authCode: string | undefined;
-    key: string;
 }
 
 interface IResponse {
@@ -16,7 +16,7 @@ interface IResponse {
     accessCode: string;
 }
 
-interface ISignTransactionResponse {
+export interface ISignTransactionResponse {
     transaction : Transaction;
     newAccessCode: string;
 }
@@ -33,11 +33,31 @@ interface ISignTransactionRequestWithAccess {
 
 type SignRequest = ISignTransactionRequestWithAuth | ISignTransactionRequestWithAccess;
 
-export default async function SignTransaction({transaction, key, accessCode, authCode}: ISignTransaction): Promise<ISignTransactionResponse> {
+export default function useSignTransaction(){
+    const {fetchWithAuth} = useFetchWithVerify()
+
+    async function sign({transaction, accessCode, authCode}: ISignTransaction): Promise<ISignTransactionResponse>{
+        return await SignTransaction({transaction, accessCode, authCode, fetchWithAuth})
+    }
+
+    return {
+        sign,
+    }
+}
+
+export interface ISignTransactionHelper {
+    transaction: string;
+    accessCode: string | undefined;
+    authCode: string | undefined;
+    fetchWithAuth: <T, E>(url: string, options: RequestInit, body: E) => Promise<ServerError | BadSignError | T>
+}
+
+async function SignTransaction({transaction, accessCode, authCode, fetchWithAuth}: ISignTransactionHelper): Promise<ISignTransactionResponse> {
+
     const response = await fetchWithAuth<IResponse, SignRequest>(consts.SIGNER_URL + "/sign", {
         method: "POST",
         headers: { "content-type": "application/json" },
-    }, key, authCode === undefined ? {
+    }, authCode === undefined ? {
         transaction: transaction,
         accessCode: accessCode} as ISignTransactionRequestWithAccess
         : {

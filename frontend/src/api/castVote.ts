@@ -1,8 +1,9 @@
 import {PublicKey, Transaction} from "@solana/web3.js";
 import type {AnchorProvider, Program} from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
-import SignTransaction from "./signTransaction.ts";
+import {type ISignTransaction, type ISignTransactionResponse} from "./signTransaction.ts";
 import type {Counter} from "../counter.ts";
+import useSignTransaction from "./signTransaction.ts";
 
 interface ICastVoteCode {
     voteCode: string;
@@ -10,10 +11,31 @@ interface ICastVoteCode {
     program: Program<Counter>;
     provider: AnchorProvider;
     setNewAccessCode: (newAccessCode: string) => void;
-    key : string;
 }
 
-export default async function castVoteCode({voteCode, authCode, program, provider, key, setNewAccessCode} : ICastVoteCode){
+export default function useCastVoteCode(){
+    const {sign} = useSignTransaction()
+
+    async function castVote({voteCode, authCode, program, provider, setNewAccessCode} : ICastVoteCode): Promise<string>{
+        return await castVoteCode({ voteCode, authCode, program, provider, setNewAccessCode, sign})
+    }
+
+    return {
+        castVote: castVote,
+    }
+}
+
+interface ICastVoteCodeHelper {
+    voteCode: string;
+    authCode: string;
+    program: Program<Counter>;
+    provider: AnchorProvider;
+    setNewAccessCode: (newAccessCode: string) => void;
+    sign: ({transaction, accessCode, authCode}: ISignTransaction) => Promise<ISignTransactionResponse>
+}
+
+
+async function castVoteCode({voteCode, authCode, program, provider, setNewAccessCode, sign} : ICastVoteCodeHelper){
     const enc = new TextEncoder();
     const authU8 = enc.encode(authCode);
     const voteU8 = enc.encode(voteCode);
@@ -49,7 +71,7 @@ export default async function castVoteCode({voteCode, authCode, program, provide
 
     const unsignedBase64 = tx.serialize({ requireAllSignatures: false }).toString("base64");
 
-    const txPayerSigned = await SignTransaction({transaction: unsignedBase64, key: key, authCode: authCode, accessCode: undefined });
+    const txPayerSigned = await sign({transaction: unsignedBase64, authCode: authCode, accessCode: undefined });
     setNewAccessCode(txPayerSigned.newAccessCode)
 
     const unsignedMessage = tx.serializeMessage();

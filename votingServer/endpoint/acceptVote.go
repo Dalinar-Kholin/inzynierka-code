@@ -1,13 +1,13 @@
-package AcceptVote
+package endpoint
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"golangShared"
+	"golangShared/ServerResponse"
 	"golangShared/signer"
+	"inz/Storer/StoreClient"
 	"votingServer/DB"
 	"votingServer/helper"
 
@@ -19,22 +19,37 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Body struct {
+type AcceptBody struct {
 	Sign       string `json:"sign"`
 	VoteSerial string `json:"voteSerial"`
 	AuthCode   string `json:"authCode"`
 } // server nie przechowuje <voteSerial, authSerial>
 
+type Response struct {
+	Code int `json:"code"`
+}
+
 func AcceptVote(c *gin.Context) {
-	var body Body
+	var body golangShared.SignedFrontendRequest[AcceptBody]
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
+
+	jsoned, _ := ServerResponse.ToJSONNoEscape(body) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+	err := StoreClient.Client(StoreClient.RequestBody{
+		AuthSerial: nil,
+		AuthCode:   &body.Body.AuthCode,
+		Data:       string(jsoned),
+	})
+	if err != nil {
+		panic(err) // to raczej nie powinno się wydarzyć chyba że server przestanie działać
+	}
+
 	rp := rpc.New("http://127.0.0.1:8899")
 
 	pda, _, err := solana.FindProgramAddress(
-		[][]byte{[]byte("commitVote"), []byte(body.AuthCode[:32]), []byte(body.AuthCode[32:])},
+		[][]byte{[]byte("commitVote"), []byte(body.Body.AuthCode[:32]), []byte(body.Body.AuthCode[32:])},
 		helper.ProgramID,
 	)
 	if err != nil {
@@ -55,7 +70,7 @@ func AcceptVote(c *gin.Context) {
 
 	fmt.Printf("acc voteAnchorModel := %v %v\n", string(voteAnchorModel.VoteCode[:]), string(voteAnchorModel.AuthCode[:]))
 
-	bin := primitive.Binary{Subtype: 0x00, Data: []byte(body.AuthCode)}
+	bin := primitive.Binary{Subtype: 0x00, Data: []byte(body.Body.AuthCode)}
 	filter := bson.D{{"authCode.code", bin}}
 	var authPack golangShared.AuthPackage
 	if err := DB.GetDataBase("inz", DB.AuthCollection).FindOne(context.Background(), filter).Decode(&authPack); err != nil {
@@ -63,7 +78,7 @@ func AcceptVote(c *gin.Context) {
 		return
 	}
 
-	idFromBody, err := uuid.Parse(body.VoteSerial)
+	idFromBody, err := uuid.Parse(body.Body.VoteSerial)
 	if err != nil {
 		panic(err)
 	}
@@ -88,7 +103,7 @@ func AcceptVote(c *gin.Context) {
 
 	_, err = helper.SendAcceptVote(
 		context.Background(),
-		[]byte(body.AuthCode),
+		[]byte(body.Body.AuthCode),
 		authPack.AuthSerial.Data,
 		votePack.VoteSerial.Data,
 		signature)
@@ -97,24 +112,11 @@ func AcceptVote(c *gin.Context) {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{
-		"code": 200,
-	})
+	ServerResponse.ResponseWithSign(c, 200, body, Response{Code: 200})
 }
 
 type DataToSign struct {
 	Stage    uint8
 	VoteCode [3]byte
 	AuthCode [64]byte
-}
-
-func disc(method string) []byte {
-	sum := sha256.Sum256([]byte("global:" + method))
-	return sum[:8]
-}
-
-func borshAppendU32LE(dst []byte, v uint32) []byte {
-	var buf [4]byte
-	binary.LittleEndian.PutUint32(buf[:], v)
-	return append(dst, buf[:]...)
 }

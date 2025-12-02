@@ -9,6 +9,12 @@ if (!(window as any).Buffer) {
     (window as any).Buffer = Buffer;
 }
 
+import * as ed from "@noble/ed25519";
+import { sha512 } from "@noble/hashes/sha2";
+
+(ed as any).hashes ??= {};
+(ed as any).hashes.sha512 = sha512;
+
 function App() {
     const navigate = useNavigate();
 

@@ -13,7 +13,6 @@ import (
 	"time"
 	"votingServer/commitment"
 	"votingServer/endpoint"
-	"votingServer/endpoint/AcceptVote"
 	"votingServer/helper"
 	"votingServer/initElection"
 
@@ -65,7 +64,7 @@ func main() {
 	r.POST(golangShared.GetVoteCodesEndpoint, endpoint.GetVoteCodes)
 	r.POST(golangShared.GetAuthCodeInitEndpoint, endpoint.GetAuthCodeInit)
 	r.POST(golangShared.GetAuthCodeEndpoint, endpoint.GetAuthCodeFinal)
-	r.POST(golangShared.AcceptVoteEndpoint, AcceptVote.AcceptVote)
+	r.POST(golangShared.AcceptVoteEndpoint, endpoint.AcceptVote)
 
 	r.POST("/test", func(c *gin.Context) {
 		var body Body
@@ -110,7 +109,9 @@ func DecompressGzipToString(input []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer r.Close()
+	defer func(r *gzip.Reader) {
+		_ = r.Close()
+	}(r)
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, r); err != nil {

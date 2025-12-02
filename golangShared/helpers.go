@@ -26,3 +26,12 @@ func LoadPrivateKeyFromJSON(path string) *solana.PrivateKey {
 	}
 	return &pk
 }
+
+type SignedFrontendRequest[T any] struct {
+	Body T      `json:"body"`
+	Sign string `json:"sign"`
+}
+
+func IsNullOrEmpty(s *string) bool {
+	return s == nil || *s == ""
+}

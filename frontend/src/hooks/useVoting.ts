@@ -1,12 +1,12 @@
 import {useCallback, useState} from "react";
-import castVoteCode from "../api/castVote.ts";
 import {useAnchor} from "./useAnchor.ts";
 import getVoteCode from "../api/getVoteCode.ts";
-import getAuthCode from "../api/getAuthCode.ts";
-import pingServerForAcceptVote from "../api/pingServerForAcceptVote.ts";
 import {useStatusMessages} from "./useAlertMessage.ts";
 import {stringify} from "uuid";
 import useGetServerPubKey from "./useGetServerPubKey.ts";
+import useGetAuthCode from "../api/getAuthCode.ts";
+import usePingServerForAcceptVote from "../api/pingServerForAcceptVote.ts";
+import useCastVoteCode from "../api/castVote.ts";
 
 function useVoting() {
     const [authCode, setAuthCode] = useState<string>("")
@@ -23,16 +23,19 @@ function useVoting() {
     const {getProgram, getProvider} = useAnchor();
     const {successMessage, errorMessage, showError, showSuccess} = useStatusMessages()
 
+    const {getCode} = useGetAuthCode()
+    const {ping} = usePingServerForAcceptVote()
+    const {castVote} = useCastVoteCode()
+
     const CastVote = useCallback(async (code: string) => {
         setSelectedCode(code)
         try {
-            await castVoteCode({
+            await castVote({
                 voteCode: code,
                 authCode: authCode || "",
                 program: getProgram(),
                 provider: getProvider(),
                 setNewAccessCode: setAccessCode,
-                key: pubKey,
             })
             showSuccess("vote casted")
         }catch(err: any) {
@@ -50,15 +53,15 @@ function useVoting() {
                 showError(`Invalid auth serial length := ${authSerial?.length}`)
                 return;
             }
-            setAuthCode((await getAuthCode({authSerial: authSerial || "", bit, key: pubKey })).result)
+            setAuthCode((await getCode({authSerial: authSerial || "", bit })).result)
         }, [authSerial, bit])
 
     const PingForAccept = useCallback(async () => {
             try {
-                const res =  await pingServerForAcceptVote({
+                const res =  await ping({
                     sign: "",
                     authCode: authCode || "",
-                    voteSerial: voteSerial || ""
+                    voteSerial: voteSerial || "",
                 })
                 if (res){
                     showSuccess("server accepted vote")

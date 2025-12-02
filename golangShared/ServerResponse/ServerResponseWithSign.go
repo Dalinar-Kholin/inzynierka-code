@@ -3,7 +3,6 @@ package ServerResponse
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"golangShared/signer"
 
 	"github.com/gin-gonic/gin"
@@ -40,7 +39,6 @@ func ResponseWithSign(c *gin.Context, statusCode int, userRequest any, obj any) 
 		panic(err)
 	}
 	signature := signer.Sign(jsoned)
-	fmt.Printf("data to signed := _%s_\n", jsoned)
 	c.JSON(statusCode, ServerSignedResponse{
 		Body: content,
 		Sign: signature,

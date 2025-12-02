@@ -11,12 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Body struct {
+type getVoteCodesBody struct {
 	VoteSerial string `json:"voteSerial"`
 }
 
 func GetVoteCodes(c *gin.Context) {
-	var body Body
+	var body getVoteCodesBody
 	if err := c.ShouldBindBodyWithJSON(&body); err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return

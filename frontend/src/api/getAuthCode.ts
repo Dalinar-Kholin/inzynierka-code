@@ -1,10 +1,10 @@
 import {consts} from "../const.ts";
-import fetchWithAuth, {IsBadSignError, IsServerError} from "../helpers/fetchWithVerify.ts";
+import {type BadSignError, IsBadSignError, IsServerError, type ServerError} from "../helpers/fetchWithVerify.ts";
+import useFetchWithVerify from "../helpers/fetchWithVerify.ts";
 
 interface IGetAuthCode{
     authSerial: string,
     bit: boolean,
-    key : string,
 }
 
 interface IGetAuthCodeInitResponse{
@@ -36,14 +36,32 @@ interface IGetAuthCodeRequest{
     authSerial: string
 }
 
-export default async function getAuthCode({ authSerial, bit, key }: IGetAuthCode) : Promise<IResponse> {
+export default function useGetAuthCode(){
+    const {fetchWithAuth} = useFetchWithVerify()
+
+    async function getCode({ authSerial, bit }: IGetAuthCode): Promise<IResponse>{
+        return await getAuthCode({authSerial, bit, fetchWithAuth})
+    }
+
+    return {
+        getCode,
+    }
+}
+
+interface IGetAuthCodeHelper{
+    authSerial: string,
+    bit: boolean,
+    fetchWithAuth: <T, E>(url: string, options: RequestInit, body: E) => Promise<ServerError | BadSignError | T>
+}
+
+async function getAuthCode({ authSerial, bit, fetchWithAuth } : IGetAuthCodeHelper) : Promise<IResponse> {
     if (authSerial === "") return {result: ""};
 
 
     let response = await fetchWithAuth<IGetAuthCodeInitResponse, IGetAuthCodeInitRequest>(consts.API_URL + "/getAuthCodeInit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-    }, key, { authSerial: authSerial })
+    }, { authSerial: authSerial })
 
     if (IsBadSignError(response)) {
         throw new Error(`bad signed request, server is probably try to cheat`)
@@ -85,7 +103,7 @@ export default async function getAuthCode({ authSerial, bit, key }: IGetAuthCode
     const secResponse = await fetchWithAuth<IGetAuthCodeResponse, IGetAuthCodeRequest>(consts.API_URL + "/getAuthCode", {
         method: "POST",
         headers: { "content-type": "application/json" },
-    },key, { a: AHex, b: BHex, authSerial: authSerial })
+    }, { a: AHex, b: BHex, authSerial: authSerial })
 
     if (IsBadSignError(secResponse)) {
         throw new Error(`bad signed request, server is probably try to cheat`)

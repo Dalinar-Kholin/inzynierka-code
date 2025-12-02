@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"golangShared/ServerResponse"
+	"inz/Storer/StoreClient"
 	"votingServer/DB"
 
 	. "golangShared"
@@ -24,6 +25,7 @@ type GetVotingPackBody struct {
 type ballotRequest struct {
 	XMLName xml.Name `xml:"Gime"`   // root element
 	Ballot  string   `xml:"Ballot"` // <Name>...</Name>
+	Key     string   `xml:"Key"`
 }
 
 var ServerPubKey string
@@ -32,24 +34,22 @@ type VotingPack struct {
 	AuthSerial string   `json:"authSerial"`
 	VoteSerial string   `json:"voteSerial"`
 	VoteCodes  []string `json:"voteCodes"`
-	// AuthCode   nil      `json:"authCode"` // to będzie przekazywane oblivious transferem
 }
 
 func GetVotingPack(c *gin.Context) {
-	var bodyData GetVotingPackBody
-
+	var bodyData SignedFrontendRequest[GetVotingPackBody]
 	if err := c.ShouldBindBodyWithJSON(&bodyData); err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := VerifySign(bodyData.BasedSign); err != nil {
+	if err := VerifySign(bodyData.Body.BasedSign); err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
 
 	var p ballotRequest
-	if err := xml.Unmarshal([]byte(bodyData.BasedSign), &p); err != nil {
+	if err := xml.Unmarshal([]byte(bodyData.Body.BasedSign), &p); err != nil {
 		panic(err)
 	}
 	if p.Ballot != ServerPubKey {
@@ -85,6 +85,16 @@ func GetVotingPack(c *gin.Context) {
 		AuthSerial: authSerial.String(),
 		VoteSerial: voteSerial.String(),
 		VoteCodes:  voteCodes,
+	}
+
+	jsoned, _ := ServerResponse.ToJSONNoEscape(bodyData) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+	err = StoreClient.Client(StoreClient.RequestBody{
+		AuthSerial: &result.AuthSerial,
+		AuthCode:   nil,
+		Data:       string(jsoned),
+	})
+	if err != nil {
+		panic(err) // to raczej nie powinno się wydarzyć chyba że server przestanie działać
 	}
 
 	ServerResponse.ResponseWithSign(c, 200, bodyData, result)

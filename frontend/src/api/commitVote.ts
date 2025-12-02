@@ -1,9 +1,10 @@
 import {PublicKey, Transaction} from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import SignTransaction from "./signTransaction.ts";
+import {type ISignTransaction, type ISignTransactionResponse} from "./signTransaction.ts";
 import type {Counter} from "../counter.ts";
 import type {AnchorProvider, Program} from "@coral-xyz/anchor";
 import pako from "pako";
+import useSignTransaction from "./signTransaction.ts";
 
 interface ICommitVote {
     signedDocument: string;
@@ -11,10 +12,32 @@ interface ICommitVote {
     program: Program<Counter>;
     provider: AnchorProvider;
     accessCode: string;
-    key: string
 }
 
-export default async function commitVote({signedDocument, authCode, program, provider, key, accessCode } : ICommitVote){
+
+export default function useCommitVote(){
+    const {sign} = useSignTransaction()
+
+    async function commit({signedDocument, authCode, program, provider, accessCode} : ICommitVote){
+        return await commitVote({ signedDocument, authCode, program, provider, accessCode, sign})
+    }
+
+    return {
+        commit: commit,
+    }
+}
+
+
+interface ICommitVoteHelper {
+    signedDocument: string;
+    authCode: string;
+    program: Program<Counter>;
+    provider: AnchorProvider;
+    accessCode: string;
+    sign: ({transaction, accessCode, authCode}: ISignTransaction) => Promise<ISignTransactionResponse>
+}
+
+async function commitVote({signedDocument, authCode, program, provider, accessCode, sign } : ICommitVoteHelper){
     const enc = new TextEncoder();
     const authU8 = enc.encode(authCode);
 
@@ -49,7 +72,7 @@ export default async function commitVote({signedDocument, authCode, program, pro
             .instruction();
         tx.add(ix)
         const unsignedBase64 = tx.serialize({ requireAllSignatures: false }).toString("base64");
-        const txPayerSigned = await SignTransaction({transaction: unsignedBase64, key, accessCode: newAccessCode, authCode: undefined});
+        const txPayerSigned = await sign({transaction: unsignedBase64, accessCode: newAccessCode, authCode: undefined});
         newAccessCode = txPayerSigned.newAccessCode;
         await provider.connection.sendRawTransaction(
             txPayerSigned.transaction.serialize({ requireAllSignatures: true }),

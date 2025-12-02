@@ -1,9 +1,9 @@
 import {consts} from "../const.ts";
-import fetchWithAuth, {IsBadSignError, IsServerError} from "../helpers/fetchWithVerify.ts";
+import {type BadSignError, IsBadSignError, IsServerError, type ServerError} from "../helpers/fetchWithVerify.ts";
+import useFetchWithVerify from "../helpers/fetchWithVerify.ts";
 
 interface IGetVotingPackage{
     sign : string
-    key : string
 }
 
 export interface VotingPack {
@@ -16,15 +16,32 @@ interface IGetVotePackageRequest {
     basedSign: string;
 }
 
-export default async function getVotingPackage({ sign, key } : IGetVotingPackage) : Promise<VotingPack>{
+
+export default function useGetVotingPackage(){
+    const {fetchWithAuth} = useFetchWithVerify()
+
+    async function getPackage({ sign } : IGetVotingPackage): Promise<VotingPack>{
+        return await getVotingPackage({sign, fetchWithAuth})
+    }
+
+    return {
+        getPackage,
+    }
+}
+
+interface IGetVotePackageHelper {
+    sign : string
+    fetchWithAuth: <T, E>(url: string, options: RequestInit, body: E) => Promise<ServerError | BadSignError | T>
+}
+
+async function getVotingPackage({ sign, fetchWithAuth } : IGetVotePackageHelper) : Promise<VotingPack>{
+
     const response = await fetchWithAuth<VotingPack, IGetVotePackageRequest>(consts.API_URL + '/getVotingPack', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-    },
-        key,
-        { basedSign : sign })
+    }, { basedSign : sign })
     if (IsBadSignError(response)) {
         throw new Error(`bad signed request, server is probably try to cheat`)
     }
