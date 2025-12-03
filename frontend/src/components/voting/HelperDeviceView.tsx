@@ -27,7 +27,7 @@ export default function HelperDeviceView(){
             <BallotDataPrint authSerial={authSerial} voteSerial={voteSerial} authCode={""}/>
             {voteCodes?.map(c => <p key={c}>{c}</p>)}
             <p></p>
-            <DownloadXMLFile content={content} name={"Download XML Vote Request"}></DownloadXMLFile>
+            <DownloadXMLFile content={content} filename={"voteRequest"} name={"Download XML Vote Request"}></DownloadXMLFile>
             <UploadSignedVoteRequest GetBallot={GetBallot}></UploadSignedVoteRequest>
             <GetVoteStatus setErrorMessage={showError} setSuccessMessage={showSuccess}/>
             <UploadContentToState setContent={setPublicKey} name={"set Public Key"}></UploadContentToState>

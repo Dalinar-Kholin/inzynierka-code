@@ -35,3 +35,7 @@ type SignedFrontendRequest[T any] struct {
 func IsNullOrEmpty(s *string) bool {
 	return s == nil || *s == ""
 }
+
+type ServerError struct {
+	Error string `json:"error"`
+}

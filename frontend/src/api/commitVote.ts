@@ -1,6 +1,8 @@
 import {PublicKey, Transaction} from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import {type ISignTransaction, type ISignTransactionResponse} from "./signTransaction.ts";
+import {
+    type useSignTransactionFnType
+} from "./signTransaction.ts";
 import type {Counter} from "../counter.ts";
 import type {AnchorProvider, Program} from "@coral-xyz/anchor";
 import pako from "pako";
@@ -16,7 +18,7 @@ interface ICommitVote {
 
 
 export default function useCommitVote(){
-    const {sign} = useSignTransaction()
+    const sign = useSignTransaction()
 
     async function commit({signedDocument, authCode, program, provider, accessCode} : ICommitVote){
         return await commitVote({ signedDocument, authCode, program, provider, accessCode, sign})
@@ -34,7 +36,7 @@ interface ICommitVoteHelper {
     program: Program<Counter>;
     provider: AnchorProvider;
     accessCode: string;
-    sign: ({transaction, accessCode, authCode}: ISignTransaction) => Promise<ISignTransactionResponse>
+    sign: useSignTransactionFnType
 }
 
 async function commitVote({signedDocument, authCode, program, provider, accessCode, sign } : ICommitVoteHelper){

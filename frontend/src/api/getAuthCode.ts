@@ -1,6 +1,10 @@
 import {consts} from "../const.ts";
-import {type BadSignError, IsBadSignError, IsServerError, type ServerError} from "../helpers/fetchWithVerify.ts";
-import useFetchWithVerify from "../helpers/fetchWithVerify.ts";
+import {
+    type FetchWithAuthFnType,
+    IsBadSignError,
+    IsServerError,
+} from "../hooks/useFetchWithVerify.ts";
+import useFetchWithVerify from "../hooks/useFetchWithVerify.ts";
 
 interface IGetAuthCode{
     authSerial: string,
@@ -37,7 +41,7 @@ interface IGetAuthCodeRequest{
 }
 
 export default function useGetAuthCode(){
-    const {fetchWithAuth} = useFetchWithVerify()
+    const fetchWithAuth = useFetchWithVerify()
 
     async function getCode({ authSerial, bit }: IGetAuthCode): Promise<IResponse>{
         return await getAuthCode({authSerial, bit, fetchWithAuth})
@@ -51,7 +55,7 @@ export default function useGetAuthCode(){
 interface IGetAuthCodeHelper{
     authSerial: string,
     bit: boolean,
-    fetchWithAuth: <T, E>(url: string, options: RequestInit, body: E) => Promise<ServerError | BadSignError | T>
+    fetchWithAuth: FetchWithAuthFnType
 }
 
 async function getAuthCode({ authSerial, bit, fetchWithAuth } : IGetAuthCodeHelper) : Promise<IResponse> {

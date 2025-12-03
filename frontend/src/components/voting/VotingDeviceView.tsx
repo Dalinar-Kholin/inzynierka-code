@@ -90,7 +90,7 @@ export default function VotingDeviceView() {
             <DownloadXMLFile content={serializeVoteToXML(
                 new Vote(
                     voteSerial || "", selectedCode || "", authSerial || "", authCode || "", serverSign || [])
-            )} name={"DownloadXMLVoteFile"}/>
+            )} filename={"vote"} name={"DownloadXMLVoteFile"}/>
 
             <UploadSignedVote
                 setVoterSign={setVoterSign}

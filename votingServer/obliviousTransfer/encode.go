@@ -32,10 +32,10 @@ type EncryptResponse struct {
 	C1 string `json:"c1"`
 }
 
-func Encrypt(userResponse *UserResponse) *EncryptResponse {
+func Encrypt(userResponse *UserResponse) (*EncryptResponse, error) {
 	authSerial, err := uuid.Parse(userResponse.AuthSerial)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	var Auth golangShared.AuthPackage
@@ -46,12 +46,12 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 			Data:    authSerial[:],
 		}},
 	).Decode(&Auth); errors.Is(err, mongo.ErrNoDocuments) {
-		panic(err)
+		return nil, err
 	}
 
 	authPack, err := FindActual(&Auth)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	c := HexToBigInt(authPack.C)
@@ -61,7 +61,7 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 
 	CValue := modExp(g, c, p)
 	if mulMod(A, B, p).Cmp(CValue) != 0 {
-		panic(fmt.Sprintf("invalid A * B != C\nC:= %v\nA:= %v\nB:= %v\n", c, A, B))
+		return nil, errors.New(fmt.Sprintf("invalid A * B != C\nC:= %v\nA:= %v\nB:= %v\n", c, A, B))
 	}
 
 	s0 := RandZq() // server secrets
@@ -80,11 +80,11 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 
 	b0, err := aes.NewCipher(k0)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	aead0, err := cipher.NewGCM(b0)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	n0 := make([]byte, aead0.NonceSize())
 	rand.Read(n0)
@@ -92,11 +92,11 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 
 	b1, err := aes.NewCipher(k1)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	aead1, err := cipher.NewGCM(b1)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	n1 := make([]byte, aead1.NonceSize())
 	rand.Read(n1)
@@ -108,5 +108,5 @@ func Encrypt(userResponse *UserResponse) *EncryptResponse {
 		hex.EncodeToString(n1),
 		hex.EncodeToString(c0),
 		hex.EncodeToString(c1),
-	}
+	}, nil
 }

@@ -2,11 +2,14 @@ package endpoint
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"golangShared/ServerResponse"
 	"inz/Storer/StoreClient"
+	"io"
+	"net/http"
 	"votingServer/DB"
 
 	. "golangShared"
@@ -37,30 +40,37 @@ type VotingPack struct {
 }
 
 func GetVotingPack(c *gin.Context) {
-	var bodyData SignedFrontendRequest[GetVotingPackBody]
-	if err := c.ShouldBindBodyWithJSON(&bodyData); err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+	var body SignedFrontendRequest[GetVotingPackBody]
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, bodyBytes, ServerError{Error: err.Error()})
 		return
 	}
 
-	if err := VerifySign(bodyData.Body.BasedSign); err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+	if err := json.Unmarshal(bodyBytes, &body); err != nil {
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, bodyBytes, ServerError{Error: err.Error()})
+		return
+	}
+
+	if err := VerifySign(body.Body.BasedSign); err != nil {
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, ServerError{Error: err.Error()})
 		return
 	}
 
 	var p ballotRequest
-	if err := xml.Unmarshal([]byte(bodyData.Body.BasedSign), &p); err != nil {
-		panic(err)
+	if err := xml.Unmarshal([]byte(body.Body.BasedSign), &p); err != nil {
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, ServerError{Error: err.Error()})
+		return
 	}
 	if p.Ballot != ServerPubKey {
-		c.JSON(401, gin.H{"error": fmt.Sprintf("requested pub key not matching")})
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, ServerError{Error: "podpis nie odnosi się do obecnego głosowania"})
 		return
 	}
 
 	coll := DB.GetDataBase("inz", "votesCard")
 	votingPackage, err := popRandomDocumentTx[VotingPackage](context.Background(), coll)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "server stupido"})
+		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, ServerError{Error: err.Error()})
 		return
 	}
 
@@ -68,7 +78,7 @@ func GetVotingPack(c *gin.Context) {
 	authPackage, err := popRandomDocumentTx[AuthPackage](context.Background(), coll)
 
 	if err != nil {
-		c.JSON(500, gin.H{"error": "server stupido"})
+		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, ServerError{Error: err.Error()})
 		return
 	}
 
@@ -87,17 +97,17 @@ func GetVotingPack(c *gin.Context) {
 		VoteCodes:  voteCodes,
 	}
 
-	jsoned, _ := ServerResponse.ToJSONNoEscape(bodyData) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+	jsoned, _ := ServerResponse.ToJSONNoEscape(body) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
 	err = StoreClient.Client(StoreClient.RequestBody{
 		AuthSerial: &result.AuthSerial,
 		AuthCode:   nil,
 		Data:       string(jsoned),
 	})
 	if err != nil {
-		panic(err) // to raczej nie powinno się wydarzyć chyba że server przestanie działać
+		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, ServerError{Error: err.Error()}) // to raczej nie powinno się wydarzyć chyba że server przestanie działać
+		return
 	}
-
-	ServerResponse.ResponseWithSign(c, 200, bodyData, result)
+	ServerResponse.ResponseWithSign(c, http.StatusOK, body, result)
 	// c.JSON(200, result)
 }
 

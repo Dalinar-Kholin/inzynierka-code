@@ -1,7 +1,9 @@
 import {PublicKey, Transaction} from "@solana/web3.js";
 import type {AnchorProvider, Program} from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
-import {type ISignTransaction, type ISignTransactionResponse} from "./signTransaction.ts";
+import {
+    type useSignTransactionFnType
+} from "./signTransaction.ts";
 import type {Counter} from "../counter.ts";
 import useSignTransaction from "./signTransaction.ts";
 
@@ -14,7 +16,7 @@ interface ICastVoteCode {
 }
 
 export default function useCastVoteCode(){
-    const {sign} = useSignTransaction()
+    const sign = useSignTransaction()
 
     async function castVote({voteCode, authCode, program, provider, setNewAccessCode} : ICastVoteCode): Promise<string>{
         return await castVoteCode({ voteCode, authCode, program, provider, setNewAccessCode, sign})
@@ -31,7 +33,7 @@ interface ICastVoteCodeHelper {
     program: Program<Counter>;
     provider: AnchorProvider;
     setNewAccessCode: (newAccessCode: string) => void;
-    sign: ({transaction, accessCode, authCode}: ISignTransaction) => Promise<ISignTransactionResponse>
+    sign: useSignTransactionFnType
 }
 
 

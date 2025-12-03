@@ -1,24 +1,13 @@
+import {useFileSystem} from "../hooks/useFileSystem.ts";
+
 interface IDownloadXMLFile {
     content: string;
     name: string;
+    filename: string;
 }
 
-export default function DownloadXMLFile( {content, name} : IDownloadXMLFile ) {
+export default function DownloadXMLFile( {content, filename, name} : IDownloadXMLFile ) {
+    const {handleDownload} = useFileSystem();
 
-    const handleDownload = () => {
-
-        const blob = new Blob([content], { type: "application/xml" });
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "vote.xml";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
-        URL.revokeObjectURL(url);
-    };
-
-    return <button onClick={handleDownload}>{name}</button>;
+    return <button onClick={ () => handleDownload(content, filename)}>{name}</button>;
 }

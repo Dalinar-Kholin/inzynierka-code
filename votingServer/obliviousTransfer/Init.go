@@ -76,12 +76,12 @@ func InitProtocol(initOt *InitOT) (*InitOutput, error) {
 			},
 		},
 	).Decode(&Auth); errors.Is(err, mongo.ErrNoDocuments) {
-		panic(err)
+		return nil, err
 	}
 
 	authPack, err := FindUnused(&Auth)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if _, err := DB.GetDataBase("inz", DB.AuthCollection).ReplaceOne(
 		context2.Background(),

@@ -1,6 +1,10 @@
 import {consts} from "../const.ts";
-import {type BadSignError, IsBadSignError, IsServerError, type ServerError} from "../helpers/fetchWithVerify.ts";
-import useFetchWithVerify from "../helpers/fetchWithVerify.ts";
+import {
+    type FetchWithAuthFnType,
+    IsBadSignError,
+    IsServerError,
+} from "../hooks/useFetchWithVerify.ts";
+import useFetchWithVerify from "../hooks/useFetchWithVerify.ts";
 
 interface IVotingPack {
     authCode: string;
@@ -19,7 +23,7 @@ interface Response{
 }
 
 export default function usePingServerForAcceptVote(){
-    const {fetchWithAuth} = useFetchWithVerify()
+    const fetchWithAuth = useFetchWithVerify()
 
     async function ping({ sign, authCode, voteSerial }: IVotingPack): Promise<boolean>{
         return await pingServerForAcceptVote({sign, authCode, voteSerial,fetchWithAuth })
@@ -34,7 +38,7 @@ interface IVotingPackHelper{
     authCode: string;
     voteSerial: string;
     sign: string;
-    fetchWithAuth: <T, E>(url: string, options: RequestInit, body: E) => Promise<ServerError | BadSignError | T>
+    fetchWithAuth: FetchWithAuthFnType
 }
 
 async function pingServerForAcceptVote({ sign, authCode, voteSerial, fetchWithAuth }: IVotingPackHelper): Promise<boolean> {

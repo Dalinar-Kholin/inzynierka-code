@@ -17,6 +17,7 @@ import (
 )
 
 type DataToStore struct {
+	Name []byte `json:"name"`
 	Path string `json:"path"`
 	Data string `json:"data"`
 }
@@ -24,10 +25,9 @@ type DataToStore struct {
 var messages = make(chan DataToStore, 64) // dostosować do pamięci kontenera
 
 func StoreData(store DataToStore) {
-	name := sha512.Sum512([]byte(store.Data))
 	cwd, _ := os.Getwd()
-	newFileFilepath := filepath.Join(cwd, store.Path, fmt.Sprintf("%s.json", hex.EncodeToString(name[:])))
-	err := os.WriteFile(newFileFilepath, []byte(store.Data), 0400)
+	newFileFilepath := filepath.Join(cwd, store.Path, fmt.Sprintf("%s.json", hex.EncodeToString(store.Name)))
+	err := os.WriteFile(newFileFilepath, []byte(store.Data), 0700)
 	if err != nil {
 		panic(err)
 	}
@@ -37,6 +37,17 @@ const (
 	AuthSerial = "AuthSerial"
 	AuthCode   = "AuthCode"
 )
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true // file exists
+	}
+	if os.IsNotExist(err) {
+		return false // file does not exist
+	}
+	return false // some other error (e.g. permission denied)
+}
 
 func main() {
 	r := gin.Default()
@@ -71,8 +82,16 @@ func main() {
 		if err := c.ShouldBindJSON(&body); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
+		name := sha512.Sum512([]byte(body.Data))
+		cwd, _ := os.Getwd()
 		if !golangShared.IsNullOrEmpty(body.AuthSerial) {
+			/*if fileExists(filepath.Join(cwd, AuthSerial, fmt.Sprintf("%s.json", hex.EncodeToString(name[:])))) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "file exists"})
+				return
+			}*/
+
 			messages <- DataToStore{
+				Name: name[:],
 				Path: AuthSerial,
 				Data: body.Data,
 			}
@@ -80,7 +99,13 @@ func main() {
 			return
 		}
 		if !golangShared.IsNullOrEmpty(body.AuthCode) {
+			if fileExists(filepath.Join(cwd, AuthCode, fmt.Sprintf("%s.json", hex.EncodeToString(name[:])))) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "file exists"})
+				return
+			}
+
 			messages <- DataToStore{
+				Name: name[:],
 				Path: AuthCode,
 				Data: body.Data,
 			}

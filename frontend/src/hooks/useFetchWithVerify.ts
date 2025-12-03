@@ -1,7 +1,7 @@
 import {verifyEd25519} from "../components/getVoteStatus.tsx";
 import * as ed from "@noble/ed25519";
-import useGetFrontendKey from "../hooks/useGetFrontendKey.ts";
-import useGetServerPubKey from "../hooks/useGetServerPubKey.ts";
+import useGetFrontendKey from "./useGetFrontendKey.ts";
+import useGetServerPubKey from "./useGetServerPubKey.ts";
 
 interface Body<T, E>{userRequest: E; content: T}
 
@@ -13,21 +13,23 @@ export interface BadSignError{badSign: string}
 
 interface ServerRequest<E>{body: E; sign: string}
 
-const StoreSuccess = []
-const StoreFailure = []
+/*const StoreSuccess = []
+const StoreFailure = []*/
 
 export default function useFetchWithVerify(){
     const {publicKey, privateKey} = useGetFrontendKey()
     const { pubKey } = useGetServerPubKey()
 
-    async function wrappedFetchWithVerify<T, E>(url: string, options: RequestInit, body: E): Promise<T | ServerError | BadSignError>{
+    return async <T, E>(
+        url: string,
+        options: RequestInit,
+        body: E
+    ): Promise<T | ServerError | BadSignError> => {
         return await fetchWithAuth(url, options, pubKey, body, publicKey, privateKey)
     }
-
-    return {
-        fetchWithAuth : wrappedFetchWithVerify
-    }
 }
+
+export type FetchWithAuthFnType = ReturnType<typeof useFetchWithVerify>;
 
 async function fetchWithAuth<T, E>(url: string, options: RequestInit, verifyKey: string, body: E, frontendPublicKey: string, frontendPrivateKey: string): Promise<T | ServerError | BadSignError> {
 
@@ -42,14 +44,10 @@ async function fetchWithAuth<T, E>(url: string, options: RequestInit, verifyKey:
 
     options.body = JSON.stringify(newBody)
     const res = await fetch(url, options);
-    const json: ServerResponse<T, ServerRequest<E>> | ServerError = await res.json()
-
-    if (!res.ok) {
-        return json as ServerError;
+    const serverResponse: ServerResponse<T, ServerRequest<E>> | ServerResponse<ServerError, ServerRequest<E>> = await res.json()
+    if (res.status >= 500) {
+        return {error: "internal server error"} as ServerError
     }
-
-    const serverResponse = json as ServerResponse<T, ServerRequest<E>>;
-
     if (!deepEqual(newBody, serverResponse.body.userRequest)) {
         console.log(newBody)
         console.log(serverResponse.body.userRequest)
@@ -57,18 +55,21 @@ async function fetchWithAuth<T, E>(url: string, options: RequestInit, verifyKey:
     } // sprawdzamy czy ciało jest takie samo
 
     if (!verifyMessageEd25519(jsonedBody, serverResponse.body.userRequest.sign, frontendPublicKey)) {
-        console.log("how da fuck")
         return {badSign: `server sign improper data`} as BadSignError
     } // sprawdzamy czy podpis się zgadza
 
+
+    console.log(`key := ${verifyKey}`)
     if (!await verifyEd25519(verifyKey, new TextEncoder().encode(JSON.stringify(serverResponse.body)), serverResponse.sign, "base64")){
-        console.log(JSON.stringify(serverResponse.body))
-        StoreFailure.push(serverResponse)
+
+        //StoreFailure.push(serverResponse)
         return {badSign: serverResponse.sign} as BadSignError
     }
-
-    StoreSuccess.push(serverResponse)
-    return serverResponse.body.content;
+    if (!res.ok) {
+        //StoreFailure.push(serverResponse)
+        return serverResponse.body.content as ServerError;
+    }
+    return serverResponse.body.content as T;
 }
 
 export function deepEqual(a: any, b: any): boolean {

@@ -1,15 +1,19 @@
 import {web3} from "@coral-xyz/anchor";
 import {consts} from "../const.ts";
-import {type BadSignError, IsBadSignError, IsServerError, type ServerError} from "../helpers/fetchWithVerify.ts";
+import {
+    type FetchWithAuthFnType,
+    IsBadSignError,
+    IsServerError,
+} from "../hooks/useFetchWithVerify.ts";
 import type {Transaction} from "@solana/web3.js";
-import useFetchWithVerify from "../helpers/fetchWithVerify.ts";
+import useFetchWithVerify from "../hooks/useFetchWithVerify.ts";
 
 
-export interface ISignTransaction {
-    transaction: string;
-    accessCode: string | undefined;
-    authCode: string | undefined;
-}
+
+
+export type ISignTransaction =
+    | { transaction: string; accessCode: string; authCode?: undefined }
+    | { transaction: string; authCode: string;  accessCode?: undefined }
 
 interface IResponse {
     transaction : string;
@@ -33,15 +37,13 @@ interface ISignTransactionRequestWithAccess {
 
 type SignRequest = ISignTransactionRequestWithAuth | ISignTransactionRequestWithAccess;
 
+export type useSignTransactionFnType = ReturnType<typeof useSignTransaction>;
+
 export default function useSignTransaction(){
-    const {fetchWithAuth} = useFetchWithVerify()
+    const fetchWithAuth = useFetchWithVerify()
 
-    async function sign({transaction, accessCode, authCode}: ISignTransaction): Promise<ISignTransactionResponse>{
+    return async function sign({transaction, accessCode, authCode}: ISignTransaction): Promise<ISignTransactionResponse>{
         return await SignTransaction({transaction, accessCode, authCode, fetchWithAuth})
-    }
-
-    return {
-        sign,
     }
 }
 
@@ -49,7 +51,7 @@ export interface ISignTransactionHelper {
     transaction: string;
     accessCode: string | undefined;
     authCode: string | undefined;
-    fetchWithAuth: <T, E>(url: string, options: RequestInit, body: E) => Promise<ServerError | BadSignError | T>
+    fetchWithAuth: FetchWithAuthFnType
 }
 
 async function SignTransaction({transaction, accessCode, authCode, fetchWithAuth}: ISignTransactionHelper): Promise<ISignTransactionResponse> {

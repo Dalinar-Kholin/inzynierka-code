@@ -29,15 +29,18 @@ export function useHelperDevice() {
 
 
     const GetBallot =
-        useCallback(async (sign: string) => {const data = await getPackage({sign: sign}).catch(e => showError(e.message))
-            if (data === undefined) {
-                return
+        useCallback(async (sign: string) => {
+            try {
+                const data = await getPackage({sign: sign})
+                setAuthSerial(data.authSerial)
+                setVoteSerial(data.voteSerial)
+                setVoteCodes(data.voteCodes)
+                clearMessages()
             }
-
-            setAuthSerial(data.authSerial)
-            setVoteSerial(data.voteSerial)
-            setVoteCodes(data.voteCodes)
-            clearMessages()
+            catch (error: any) {
+                console.log(error)
+                showError(error?.message)
+            }
         }, [content])
 
 

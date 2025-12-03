@@ -1,7 +1,8 @@
-import {type ChangeEvent, useState} from "react";
+import {useState} from "react";
 import {Button} from "@mui/material";
 import {useAnchor} from "../hooks/useAnchor.ts";
 import useCommitVote from "../api/commitVote.ts";
+import {useFileSystem} from "../hooks/useFileSystem.ts";
 
 interface IUploadSignedDocument{
     voterSign : string;
@@ -10,26 +11,20 @@ interface IUploadSignedDocument{
     accessCode : string;
 }
 
-const handleFileChange = (e: ChangeEvent<HTMLInputElement>, setVoterSign: (s : string) => void) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-        const text = String(reader.result ?? "");
-        setVoterSign(text);
-    };
-    reader.readAsText(file);
-};
 
 export default function UploadSignedVote({voterSign, setVoterSign, authCode, accessCode} : IUploadSignedDocument) {
     const {getProgram, getProvider} = useAnchor()
     const {commit} = useCommitVote()
+    const {handleFileChange} = useFileSystem()
 
     return <>
         <h2>upload signed Vote</h2>
 
-        <input type="file" onChange={e => handleFileChange(e ,setVoterSign)}/>
+        <input type="file" onChange={e =>
+            handleFileChange(
+                e.target.files?.[0],
+                setVoterSign)
+        }/>
 
         <pre style={{marginTop: 16, maxHeight: 200, overflow: "auto"}}>
         {voterSign}
@@ -50,11 +45,12 @@ interface IUploadSignedVote{
 
 export function UploadSignedVoteRequest({GetBallot}: IUploadSignedVote) {
     const [voterSign, setVoterSign] = useState<string>("")
+    const {handleFileChange} = useFileSystem()
 
     return <>
         <h2>upload signed Request</h2>
 
-        <input type="file" onChange={e => handleFileChange(e, setVoterSign)}/>
+        <input type="file" onChange={e => handleFileChange(e.target.files?.[0], setVoterSign)}/>
 
         <pre style={{marginTop: 16, maxHeight: 200, overflow: "auto"}}>
         {voterSign}
@@ -69,9 +65,10 @@ interface IUploadContentToState {
 }
 
 export function UploadContentToState({name, setContent}: IUploadContentToState) {
+    const {handleFileChange} = useFileSystem()
 
     return <>
         <h2>{name}</h2>
-        <input type="file" onChange={e => handleFileChange(e, setContent)}/>
+        <input type="file" onChange={e => handleFileChange(e.target.files?.[0], setContent)}/>
     </>
 }

@@ -3,11 +3,13 @@ package endpoint
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"golangShared"
 	"golangShared/ServerResponse"
 	"golangShared/signer"
 	"inz/Storer/StoreClient"
+	"io"
+	"net/http"
 	"votingServer/DB"
 	"votingServer/helper"
 
@@ -31,64 +33,49 @@ type Response struct {
 
 func AcceptVote(c *gin.Context) {
 	var body golangShared.SignedFrontendRequest[AcceptBody]
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, bodyBytes, golangShared.ServerError{Error: err.Error()})
+		return
+	}
+
+	if err := json.Unmarshal(bodyBytes, &body); err != nil {
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, bodyBytes, golangShared.ServerError{Error: err.Error()})
 		return
 	}
 
 	jsoned, _ := ServerResponse.ToJSONNoEscape(body) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
-	err := StoreClient.Client(StoreClient.RequestBody{
+	err = StoreClient.Client(StoreClient.RequestBody{
 		AuthSerial: nil,
 		AuthCode:   &body.Body.AuthCode,
 		Data:       string(jsoned),
 	})
 	if err != nil {
-		panic(err) // to raczej nie powinno się wydarzyć chyba że server przestanie działać
+		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, golangShared.ServerError{Error: err.Error()})
 	}
-
-	rp := rpc.New("http://127.0.0.1:8899")
-
-	pda, _, err := solana.FindProgramAddress(
-		[][]byte{[]byte("commitVote"), []byte(body.Body.AuthCode[:32]), []byte(body.Body.AuthCode[32:])},
-		helper.ProgramID,
-	)
-	if err != nil {
-		c.JSON(401, gin.H{"error": "cant find program"})
-		return
-	}
-
-	acc, err := rp.GetAccountInfo(context.Background(), pda)
-	if err != nil {
-		c.JSON(401, gin.H{"error": "cant get account info"})
-		return
-	}
-	voteAnchorModel, err := helper.DecodeVoteAnchor(acc.Bytes())
-	if err != nil {
-		c.JSON(401, gin.H{"error": "bad data on blockchain"})
-		return
-	}
-
-	fmt.Printf("acc voteAnchorModel := %v %v\n", string(voteAnchorModel.VoteCode[:]), string(voteAnchorModel.AuthCode[:]))
 
 	bin := primitive.Binary{Subtype: 0x00, Data: []byte(body.Body.AuthCode)}
 	filter := bson.D{{"authCode.code", bin}}
 	var authPack golangShared.AuthPackage
 	if err := DB.GetDataBase("inz", DB.AuthCollection).FindOne(context.Background(), filter).Decode(&authPack); err != nil {
-		c.JSON(401, gin.H{"error": "cant find auth package/check spelling"})
+		ServerResponse.ResponseWithSign(c, http.StatusUnauthorized, body, golangShared.ServerError{Error: "cant find auth package/check spelling"})
 		return
 	}
 
 	idFromBody, err := uuid.Parse(body.Body.VoteSerial)
 	if err != nil {
-		panic(err)
+		ServerResponse.ResponseWithSign(c, http.StatusUnauthorized, body, golangShared.ServerError{Error: "where vote serial"})
 	}
 	bin = primitive.Binary{Subtype: 0x04, Data: idFromBody[:]}
 	filter = bson.D{{"voteSerial", bin}}
 	var votePack golangShared.VotingPackage
 	if err := DB.GetDataBase("inz", DB.VoteCollection).FindOne(context.Background(), filter).Decode(&votePack); err != nil {
-		c.JSON(401, gin.H{
-			"error": err.Error(),
-		})
+		ServerResponse.ResponseWithSign(c, http.StatusUnauthorized, body, golangShared.ServerError{Error: "cant find auth package/check spelling"})
+		return
+	}
+	voteAnchorModel, err := getAnchorVoteModel(body.Body)
+	if err != nil {
+		ServerResponse.ResponseWithSign(c, http.StatusUnauthorized, body, golangShared.ServerError{Error: err.Error()})
 		return
 	}
 
@@ -98,9 +85,8 @@ func AcceptVote(c *gin.Context) {
 			VoteCode: voteAnchorModel.VoteCode,
 			Stage:    voteAnchorModel.Stage,
 		})
-	signature := signer.Sign(data)
-	fmt.Printf("signature := %v", signature)
 
+	signature := signer.Sign(data)
 	_, err = helper.SendAcceptVote(
 		context.Background(),
 		[]byte(body.Body.AuthCode),
@@ -109,7 +95,7 @@ func AcceptVote(c *gin.Context) {
 		signature)
 
 	if err != nil {
-		c.JSON(401, gin.H{"error": err.Error()})
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, golangShared.ServerError{Error: err.Error()})
 		return
 	}
 	ServerResponse.ResponseWithSign(c, 200, body, Response{Code: 200})
@@ -119,4 +105,26 @@ type DataToSign struct {
 	Stage    uint8
 	VoteCode [3]byte
 	AuthCode [64]byte
+}
+
+func getAnchorVoteModel(body AcceptBody) (*helper.Vote, error) {
+	rp := rpc.New("http://127.0.0.1:8899")
+
+	pda, _, err := solana.FindProgramAddress(
+		[][]byte{[]byte("commitVote"), []byte(body.AuthCode[:32]), []byte(body.AuthCode[32:])},
+		helper.ProgramID,
+	)
+	if err != nil {
+		return nil, errors.New("cant find program")
+	}
+
+	acc, err := rp.GetAccountInfo(context.Background(), pda)
+	if err != nil {
+		return nil, errors.New("cant get account info")
+	}
+	voteAnchorModel, err := helper.DecodeVoteAnchor(acc.Bytes())
+	if err != nil {
+		return nil, errors.New("bad data on blockchain")
+	}
+	return &voteAnchorModel, nil
 }

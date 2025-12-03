@@ -11,12 +11,18 @@ if (!(window as any).Buffer) {
 
 import * as ed from "@noble/ed25519";
 import { sha512 } from "@noble/hashes/sha2";
+import useGetServerPubKey from "./hooks/useGetServerPubKey.ts";
 
 (ed as any).hashes ??= {};
 (ed as any).hashes.sha512 = sha512;
 
 function App() {
     const navigate = useNavigate();
+    const {pubKey} = useGetServerPubKey()
+
+    if (pubKey === "") {
+        return <>loading</>;
+    }
 
     return (
         <>

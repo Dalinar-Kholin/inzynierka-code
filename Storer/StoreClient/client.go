@@ -24,8 +24,11 @@ func Client(body RequestBody) error {
 		fmt.Sprintf("http://127.0.0.1:%d%s", golangShared.StorerPort, golangShared.StorerEndpoint),
 		"application/json",
 		bytes.NewBuffer(jsoned))
-	if err != nil || post.StatusCode != 200 {
+	if err != nil {
 		return err
+	}
+	if post.StatusCode != 200 {
+		return fmt.Errorf("post status code: %d", post.StatusCode)
 	}
 
 	return nil
