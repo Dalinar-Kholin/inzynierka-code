@@ -3,7 +3,7 @@ syntax = "proto3";
 option csharp_namespace = "GrpcChain";
 
 service ChainService {
-  rpc PassMessage (MessageRequest) returns (MessageReply);
+  rpc StreamMessages (stream MessageRequest) returns (MessageReply);
 }
 
 message MessageRequest {
@@ -11,6 +11,5 @@ message MessageRequest {
 }
 
 message MessageReply {
-  int32 code = 1;
-  string response = 2;
+  string response = 1;
 }

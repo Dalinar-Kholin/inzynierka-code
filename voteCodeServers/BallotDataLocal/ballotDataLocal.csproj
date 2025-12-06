@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\dataInitLocal\dataInitLocal.csproj" />
     <ProjectReference Include="..\..\encryption\ElGamalLib\ElGamalLib.csproj" />
+    <ProjectReference Include="..\..\encryption\PaillierLib\PaillierLib.csproj" />
     <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
   </ItemGroup>
 

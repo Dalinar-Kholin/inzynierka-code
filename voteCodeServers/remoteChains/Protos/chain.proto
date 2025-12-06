@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package chain;
+
+option csharp_namespace = "GrpcChain";
+
+message ChainRequest {
+  string shadowSerial = 1; // może być pusty w pierwszej rundzie
+  bytes payload = 2;       // opcjonalne dane, mogą być puste
+  int32 hop = 3;           // numer serwera w łańcuchu
+}
+
+message ChainResponse {
+  string shadowSerial = 1;
+  bytes payload = 2;
+  int32 hop = 3;
+}
+
+service ChainService {
+  rpc Process (ChainRequest) returns (ChainResponse);
+}

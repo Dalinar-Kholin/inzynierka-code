@@ -16,7 +16,7 @@ public class ElGamalEncryption
     private readonly BigInteger _p;
     public record PublicKeyJson(string p, string g, string y);
     public record PrivateKeyJson(string p, string g, string x);
-    public ElGamalEncryption(string folderPath = "../elGamalKeys/")
+    public ElGamalEncryption(string folderPath = "../elGamalKeys")
     {
         _random = new SecureRandom();
 

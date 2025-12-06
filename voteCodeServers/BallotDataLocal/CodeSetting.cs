@@ -7,13 +7,14 @@ using Org.BouncyCastle.Math;
 
 public class CodeSetting
 {
-    private const int _batchSize = 1000;
+    private const int _batchSize = 10000;
     private readonly int _serverId;
     private readonly int _a; // alphabet size
     private readonly int _k; // number of candidates
     private readonly ElGamalEncryption _elGamal;
     private readonly CodeSettingService _codeSettingService;
     private readonly BallotService _ballotService;
+    private readonly PaillierPublicKey _paillierPublic;
 
     public CodeSetting(int serverId, int alphabetSize, int numberOfCandidates)
     {
@@ -23,6 +24,7 @@ public class CodeSetting
         _codeSettingService = new CodeSettingService(serverId);
         _ballotService = new BallotService(serverId);
         _elGamal = new ElGamalEncryption("../../encryption/elGamalKeys");
+        _paillierPublic = new PaillierPublicKey("../../encryption/paillierKeys");
     }
 
     public async Task Execute(string randomValue)
@@ -49,7 +51,12 @@ public class CodeSetting
 
             var codeSettingsBatch = new List<CodeSettingData>();
 
-            foreach (var ballotData in ballotDataBatch)
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Environment.ProcessorCount - 2
+            };
+
+            Parallel.ForEach(ballotDataBatch, parallelOptions, ballotData =>
             {
                 try
                 {
@@ -93,8 +100,8 @@ public class CodeSetting
                         CommC1c2 = commitments.CommC1c2,
                         Z0 = commitments.Z0,
                         Z1 = commitments.Z1,
-                        BindingC0 = "dorobic",
-                        BindingC1 = "dorobic",
+                        BindingC0 = "nie wiadomo jeszcze co",
+                        BindingC1 = "nie wiadomo jeszcze co",
                         V = commitments.V,
                         R0 = commitments.Randomness,
                     };
@@ -105,7 +112,8 @@ public class CodeSetting
                 {
                     Console.WriteLine($"Error i: {ballotData.BallotId}: {ex.Message}");
                 }
-            }
+            });
+
 
             if (codeSettingsBatch.Count > 0)
             {
@@ -145,10 +153,10 @@ public class CodeSetting
         for (int m = 0; m < _k; m++)
         {
             // Z0 = ⟨Enc_EA(1-b_1), ..., Enc_EA(1-b_k)⟩
-            commitments.Z0[m] = EncryptEA((1 - b_m_values[m]).ToString());
+            commitments.Z0[m] = Dummy((1 - b_m_values[m]).ToString());
 
             // Z1 = ⟨Enc_EA(b_1), ..., Enc_EA(b_k)⟩
-            commitments.Z1[m] = EncryptEA(b_m_values[m].ToString());
+            commitments.Z1[m] = Dummy(b_m_values[m].ToString());
 
             // V = ⟨Enc_EA(H(b_1||r)), ..., Enc_EA(H(b_k||r))⟩
             using var sha256 = SHA256.Create();
@@ -158,7 +166,7 @@ public class CodeSetting
             byte[] hash = sha256.ComputeHash(input);
 
             string hashedValue = Convert.ToHexString(hash).ToLower();
-            commitments.V[m] = EncryptEA(hashedValue);
+            commitments.V[m] = EncryptEA(hashedValue).ToString();
         }
 
         return commitments;
@@ -169,8 +177,13 @@ public class CodeSetting
         return _elGamal.Encrypt(message);
     }
 
-    private string EncryptEA(string message)
+    private BigInteger EncryptEA(string message)
     {
-        return "zaimplementowac";
+        return _paillierPublic.EncryptHash(message);
+    }
+
+    private string Dummy(string a)
+    {
+        return "nie wiadomo jeszcze co";
     }
 }

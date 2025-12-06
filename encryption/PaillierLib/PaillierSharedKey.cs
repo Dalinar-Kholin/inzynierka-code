@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Math;
 
 public class PaillierSharedKey
 {
@@ -36,12 +36,12 @@ public class PaillierSharedKey
         }
 
         this.player_id = int.Parse(serverKey["player_id"]!.ToString());
-        this.n = BigInteger.Parse(serverKey["n"]!.ToString());
-        this.n_squared = BigInteger.Parse(serverKey["n_squared"]!.ToString());
-        this.theta_inv = BigInteger.Parse(serverKey["theta_inv"]!.ToString());
+        this.n = new BigInteger(serverKey["n"]!.ToString());
+        this.n_squared = new BigInteger(serverKey["n_squared"]!.ToString());
+        this.theta_inv = new BigInteger(serverKey["theta_inv"]!.ToString());
         this.degree = int.Parse(serverKey["degree"]!.ToString());
         this.fac_of_parties = int.Parse(serverKey["fac_of_parties"]!.ToString());
-        this.share = BigInteger.Parse(serverKey["share"]!.ToString());
+        this.share = new BigInteger(serverKey["share"]!.ToString());
     }
 
     public PaillierSharedKey(BigInteger n, BigInteger n_squared, int player_id, BigInteger theta_inv, int degree, BigInteger share, int fac_of_parties)
@@ -75,14 +75,18 @@ public class PaillierSharedKey
         }
         BigInteger lagrange_interpol_denominator = mult_list(denominators);
 
-        BigInteger exp = (this.fac_of_parties * lagrange_interpol_enumerator * this.share) / lagrange_interpol_denominator;
+        // (fac_of_parties * lagrange_interpol_enumerator * share) / lagrange_interpol_denominator
+        BigInteger exp = new BigInteger(fac_of_parties.ToString())
+            .Multiply(lagrange_interpol_enumerator)
+            .Multiply(share)
+            .Divide(lagrange_interpol_denominator);
 
-        if (exp < 0)
+        if (exp.CompareTo(BigInteger.Zero) < 0)  // exp < 0
         {
             ciphertext_value = mod_inv(ciphertext_value, this.n_squared);
-            exp = -exp;
+            exp = exp.Negate();
         }
-        BigInteger partial_decryption = BigInteger.ModPow(ciphertext_value, exp, this.n_squared);
+        BigInteger partial_decryption = ciphertext_value.ModPow(exp, this.n_squared);
         return partial_decryption;
     }
 
@@ -99,9 +103,11 @@ public class PaillierSharedKey
             throw new ArgumentException("Not enough shares.");
         }
 
-        BigInteger combined_decryption = mult_list(partial_decryptions.Take(this.degree + 1).ToList()) % this.n_squared;
+        BigInteger combined_decryption = mult_list(partial_decryptions.Take(this.degree + 1).ToList())
+            .Mod(this.n_squared);
 
-        if ((combined_decryption - 1) % this.n != 0)
+        BigInteger temp1 = combined_decryption.Subtract(BigInteger.One);
+        if (!temp1.Mod(this.n).Equals(BigInteger.Zero))
         {
             throw new ArgumentException(
                 "Combined decryption minus one is not divisible by N. This might be caused by the " +
@@ -109,13 +115,17 @@ public class PaillierSharedKey
             );
         }
 
-        BigInteger message = (((combined_decryption - 1) / this.n) * this.theta_inv) % this.n;
+        BigInteger temp2 = temp1.Divide(this.n);
+        BigInteger temp3 = temp2.Multiply(this.theta_inv);
+        BigInteger message = temp3.Mod(this.n);
 
         return message;
     }
 
-    // gdzieś przenieść lub zobaczy sie (wszystkie parametry są ogolno dostepne)
-    public static BigInteger decrypt(Dictionary<int, BigInteger> partial_dict, BigInteger theta_inv, int n, int n_squared, int degree)
+    // przenieść gdzieś bo to będzie używane tylko przez EA oraz przez głosujących
+    public static BigInteger decrypt(Dictionary<int, BigInteger> partial_dict,
+                                     BigInteger theta_inv, BigInteger n,
+                                     BigInteger n_squared, int degree)
     {
         var partial_decryptions = new List<BigInteger>();
         for (int i = 0; i <= degree; i++)
@@ -128,9 +138,11 @@ public class PaillierSharedKey
             throw new ArgumentException("Not enough shares.");
         }
 
-        BigInteger combined_decryption = mult_list(partial_decryptions.Take(degree + 1).ToList()) % n_squared;
+        BigInteger combined_decryption = mult_list(partial_decryptions.Take(degree + 1).ToList())
+            .Mod(n_squared);
 
-        if ((combined_decryption - 1) % n != 0)
+        BigInteger temp1 = combined_decryption.Subtract(BigInteger.One);
+        if (!temp1.Mod(n).Equals(BigInteger.Zero))
         {
             throw new ArgumentException(
                 "Combined decryption minus one is not divisible by N. This might be caused by the " +
@@ -138,71 +150,65 @@ public class PaillierSharedKey
             );
         }
 
-        BigInteger message = (((combined_decryption - 1) / n) * theta_inv) % n;
+        BigInteger temp2 = temp1.Divide(n);
+        BigInteger temp3 = temp2.Multiply(theta_inv);
+        BigInteger message = temp3.Mod(n);
 
         return message;
     }
 
-
-    private static BigInteger mult_list(List<BigInteger> list_, BigInteger? modulus = null)
+    private static BigInteger mult_list(List<BigInteger> list_, BigInteger modulus = null)
     {
-        BigInteger @out = 1;
-        if (modulus == null)
+        BigInteger result = BigInteger.One;
+
+        foreach (var element in list_)
         {
-            foreach (var element in list_)
-            {
-                @out = @out * element;
-            }
+            result = result.Multiply(element);
         }
-        else
+
+        if (modulus != null && !modulus.Equals(BigInteger.Zero))
         {
-            foreach (var element in list_)
-            {
-                @out = (@out * element) % modulus.Value;
-            }
+            result = result.Mod(modulus);
         }
-        return @out;
+
+        return result;
     }
 
-    private static BigInteger mult_list(List<int> list_, BigInteger? modulus = null)
+    private static BigInteger mult_list(List<int> list_, BigInteger modulus = null)
     {
-        BigInteger @out = 1;
-        if (modulus == null)
+        BigInteger result = BigInteger.One;
+
+        foreach (var element in list_)
         {
-            foreach (var element in list_)
-            {
-                @out = @out * element;
-            }
+            result = result.Multiply(new BigInteger(element.ToString()));
         }
-        else
+
+        if (modulus != null && !modulus.Equals(BigInteger.Zero))
         {
-            foreach (var element in list_)
-            {
-                @out = (@out * element) % modulus.Value;
-            }
+            result = result.Mod(modulus);
         }
-        return @out;
+
+        return result;
     }
 
     private (BigInteger gcd, BigInteger x, BigInteger y) ExtendedEuclidean(BigInteger num_a, BigInteger num_b)
     {
-        // a*x + b*y = gcd
-        BigInteger x_old = 0, x_cur = 1;
-        BigInteger y_old = 1, y_cur = 0;
+        BigInteger x_old = BigInteger.Zero, x_cur = BigInteger.One;
+        BigInteger y_old = BigInteger.One, y_cur = BigInteger.Zero;
 
-        while (num_a != 0)
+        while (!num_a.Equals(BigInteger.Zero))
         {
-            BigInteger quotient = num_b / num_a;
+            BigInteger quotient = num_b.Divide(num_a);
             BigInteger temp = num_a;
-            num_a = num_b % num_a;
+            num_a = num_b.Mod(num_a);
             num_b = temp;
 
             temp = y_cur;
-            y_cur = y_old - quotient * y_cur;
+            y_cur = y_old.Subtract(quotient.Multiply(y_cur));
             y_old = temp;
 
             temp = x_cur;
-            x_cur = x_old - quotient * x_cur;
+            x_cur = x_old.Subtract(quotient.Multiply(x_cur));
             x_old = temp;
         }
 
@@ -211,11 +217,11 @@ public class PaillierSharedKey
 
     private BigInteger mod_inv(BigInteger value, BigInteger modulus)
     {
-        value = value % modulus;
+        value = value.Mod(modulus);
 
         var (gcd, inverse, _) = ExtendedEuclidean(value, modulus);
 
-        if (gcd != 1)
+        if (!gcd.Equals(BigInteger.One))
             throw new DivideByZeroException($"Inverse of {value} mod {modulus} does not exist.");
 
         return inverse;

@@ -1,0 +1,8 @@
+Komunikacja miedzy serwerami:
+Serwer otrzymuje dane, robi obliczenia na nich (np. re-enc, tasowanie, dodanie danych) i wysyła do kolejnego serwera.
+Żeby wszystko było weryfikowalne, dla każdych otrzymanych danych musi zrobić commitment do nich oraz do danych, który mu wyszły w obliczeniach (potem podczas audytu sprawdza się całą taką ścieżkę danych).
+Tzn. serwer wysyła kolejnemu serwerowi dane + shadowSerial, nastepny serwer sprawdza jakie jest "i" dla danego shadowSeriala i robi commitment do tego "i" z danymi otrzymanymi oraz zmodyfikowanymi.
+
+Dodatkowo wysłane dane do kolejnego serwera musza być podpisywane. Eliminuje nam to wtedy nie znajomość serwera złośliwego. Mogło być tak że serwer daje poprawne commitmenty ale kolejnemu serwerowi wysyła złe dane. Bez podpisu nie dało by się sprawdzić czy serwer wysyłający oszukał czy odbierający (mógł sobie powiedzieć, że dostał takie dane, a w rzeczywistosci dostał prawidłowe). Więc teraz podczas audytu gdy zobaczy się, że dane sie nie zgadzają tzn. serwer wysyłający ma w commitmentach coś innego niż serwer odbierający to serwer odbierający musi podać podpisane dane, które otrzymał. Z tego wiadomo już kto oszukał, bez podpisów mieliśmy 2 możliwości (do pominiecia narazie chyba).
+
+Żeby było to dość szybkie to najlepiej cały batch danych podpisać odrazu. Wtedy w razie błędy serwer odbierający musi jakoś znaleźć ten podpisany batch danych i go udostępnić.

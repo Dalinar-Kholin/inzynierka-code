@@ -42,10 +42,10 @@ def save_keys_to_files(distributed_paillier_schemes, filename_prefix="paillier_k
             "share": str(list(secret_key.share.shares.values())[0]),
         }
     
-    with open(f"../keys/{filename_prefix}_public.json", "w") as f:
+    with open(f"../paillierKeys/{filename_prefix}_public.json", "w") as f:
         json.dump(public_key_data, f, indent=2)
     
-    with open(f"../keys/{filename_prefix}_private.json", "w") as f:
+    with open(f"../paillierKeys/{filename_prefix}_private.json", "w") as f:
         json.dump(private_keys_data, f, indent=2)
     
     return public_key_data, private_keys_data
