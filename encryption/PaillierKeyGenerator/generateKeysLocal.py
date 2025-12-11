@@ -6,13 +6,13 @@ from math import factorial
 from tno.mpc.communication import Pool
 from tno.mpc.protocols.distributed_keygen import DistributedPaillier
 
-corruption_threshold = 2
-key_length = 1024
+corruption_threshold = 4
+key_length = 512
 prime_thresh = 2000
 correct_param_biprime = 40
 stat_sec_shamir = 40
 
-PARTIES = 5
+PARTIES = 10
 
 def save_keys_to_files(distributed_paillier_schemes, filename_prefix="paillier_keys"):
     """

@@ -43,4 +43,20 @@ public class BallotLinkingService
         await collection.InsertOneAsync(newData);
 
     }
+
+    public async Task<List<int>> GetPermutationListAsync(bool isPrim)
+    {
+        var collection = isPrim ? _ballotLinkingPrim : _ballotLinking;
+        var allRecords = await collection.Find(FilterDefinition<BallotLinking>.Empty)
+            .Sort(Builders<BallotLinking>.Sort.Ascending(b => b.BallotId))
+            .ToListAsync();
+
+        var permutationList = new List<int>();
+        foreach (var record in allRecords)
+        {
+            permutationList.Add(record.PrevBallot);
+        }
+
+        return permutationList;
+    }
 }

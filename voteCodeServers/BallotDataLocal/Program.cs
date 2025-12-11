@@ -3,10 +3,10 @@ using System.Text;
 
 // Dane wejściowe - pobrane z bb
 string alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
-int numberOfCandidates = 3;
-int numberOfVoters = 100000;
-int safetyParameter = 20;
-int numberOfServers = 5;
+int numberOfCandidates = 5;
+int numberOfVoters = 10000;
+int safetyParameter = 200;
+int numberOfServers = 10;
 
 int serverId = int.Parse(args[0]);
 

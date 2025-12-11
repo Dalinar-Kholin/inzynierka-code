@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Linq;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using Org.BouncyCastle.Math;
@@ -49,17 +50,20 @@ public class CodeSetting
 
             Console.WriteLine($"Batch {currentBatch + 1}");
 
-            var codeSettingsBatch = new List<CodeSettingData>();
+            // Utrzymaj równoległość bez blokad i zachowaj kolejność przez wypełnianie tabeli indeksowanej
+            // chyab wsm nie musi byc w kolejnosci - trzeba zobaczyc
+            var codeSettingsArray = new CodeSettingData[ballotDataBatch.Count];
 
             var parallelOptions = new ParallelOptions
             {
                 MaxDegreeOfParallelism = Environment.ProcessorCount - 2
             };
 
-            Parallel.ForEach(ballotDataBatch, parallelOptions, ballotData =>
+            Parallel.For(0, ballotDataBatch.Count, parallelOptions, idx =>
             {
                 try
                 {
+                    var ballotData = ballotDataBatch[idx];
                     int i = ballotData.BallotId;
                     int j = _serverId;
 
@@ -106,15 +110,16 @@ public class CodeSetting
                         R0 = commitments.Randomness,
                     };
 
-                    codeSettingsBatch.Add(codeSetting);
+                    codeSettingsArray[idx] = codeSetting;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error i: {ballotData.BallotId}: {ex.Message}");
+                    Console.WriteLine($"Error i: {ballotDataBatch[idx].BallotId}: {ex.Message}");
                 }
             });
 
 
+            var codeSettingsBatch = codeSettingsArray.ToList();
             if (codeSettingsBatch.Count > 0)
             {
                 await _codeSettingService.SaveCodeSettingsBatch(codeSettingsBatch);

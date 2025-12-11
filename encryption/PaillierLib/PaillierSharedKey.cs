@@ -86,6 +86,7 @@ public class PaillierSharedKey
             ciphertext_value = mod_inv(ciphertext_value, this.n_squared);
             exp = exp.Negate();
         }
+
         BigInteger partial_decryption = ciphertext_value.ModPow(exp, this.n_squared);
         return partial_decryption;
     }

@@ -1,17 +1,8 @@
 voteCodesGenerator - uruchamiany przed glosowanie do generowania ciphertextu karty z voteCodami. Każdy wygenerowany ciphertext gdzieś zapisujemy (chyba trzeba na bb zeby byla pewnosc ze nic nie zostalo zmienione - ale trzeba domyśleć bo to za dużo bedzie zajmować). 
 Każdy głosujący powinien dostać przynajmniej 2 karty. Jedna to faktycznego głosowania, a druga do audytu.
 
-tallyingServer - uruchamiany podczas głosowania do sprawdzania czy dany voteCode z bb jest poprawny oraz wykonujemy wstępne zliczenie (zamiana na wektor homomorficzny - osobne klucze pailliera trzeba wygenerować tylko do tego celu - podzielenie klucza prywatnego na jakieś zaufane strony).
-Może to też w tym samym czasie obsługiwać deszyfracje ciphertextu karty do głosowania (chyba, że zakładamy, że głosujący przed rozpoczęciem głosowania może już dostać swoje vc). Każdy serwer wtedy musi mieć "kontakt" z głosującym by wysłać mu części potrzebne do odszyfrowania (jakbyśmy to robili przez jakiś 1 serwer to wtedy ten serwer by wszystko poznał - zaprzecza to całemu protokołowi printegrity). Na froncie będziemy potrzebowali funkcji do łączenia cześci kart.
-
-voteCodesGenerator generuje map, a tallyingServer z niej korzysta.
-
-
 Trzeba pamiętać, że odkrywanie commitmentów to nie odkrywanie wszystkich danych z "i".
 Jeden wiesz "i" zawiera dane 2 kart np, s' nie jest zwiazany
-
-Można pomyśleć ile chcemy mieć maksymalnie głosujących, bo można na spokojnie tworzyć permutacje 100mln liczb, ale już większej ilości robi się ciężka. Jedynie dało by się to zwiększyć batchami - wtedy też jest to raczej bezpieczne, ale powinny być dość spore. W sumie można protokół odpalić kilka razy i to tak samo bedzie działać, więc jest raczej szybkie do wdrożenia jak coś.
-
 
 ===========================================================================================
 Na podstawie danych dostarczonych przez EA:

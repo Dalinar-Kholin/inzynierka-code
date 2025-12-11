@@ -52,4 +52,23 @@ public class VoteSerialsService
         }
     }
 
+    public async Task<Dictionary<int, string>> GetVoteSerialsBatch(List<int> ballotIds)
+    {
+        if (ballotIds == null || ballotIds.Count == 0)
+        {
+            return new Dictionary<int, string>();
+        }
+
+        var filter = Builders<VoteSerialData>.Filter.In(x => x.BallotId, ballotIds);
+        var projection = Builders<VoteSerialData>.Projection
+            .Include(x => x.BallotId)
+            .Include(x => x.VoteSerial);
+
+        var results = await _voteSerials
+            .Find(filter)
+            .Project<VoteSerialData>(projection)
+            .ToListAsync();
+
+        return results.ToDictionary(r => r.BallotId, r => r.VoteSerial);
+    }
 }

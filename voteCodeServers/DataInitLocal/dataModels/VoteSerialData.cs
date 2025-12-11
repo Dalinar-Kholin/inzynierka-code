@@ -9,4 +9,6 @@ public class VoteSerialData
     public string VoteSerial { get; set; }
     public string CommVoteSerial { get; set; }
     public long R0 { get; set; }
+    public bool AreVoteCodesCorrect { get; set; } = true; // zmieniane przez EA po pre-print audit
+    // podczas drukowania dopiero ostatni serwer moze stwierdzic czy dodać karte do głosowanie do puli kart
 }
