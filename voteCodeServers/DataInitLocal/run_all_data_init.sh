@@ -21,3 +21,6 @@ for i in $(seq 1 $TOTAL); do
 done
 
 echo "Wystartowano $TOTAL instancji. PIDy: ${pids[*]}"
+
+wait "${pids[@]}"
+echo "done"

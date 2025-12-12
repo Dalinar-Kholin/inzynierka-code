@@ -62,13 +62,13 @@ public class ChainServiceImpl : ChainService.ChainServiceBase
 
         Console.WriteLine($"Starting on port {_myPort}...");
 
-        if (_isLastServer) Task.Run(MonitorAuditTimeout);
         Task.Run(MonitorTimeout);
         Task.Run(ConnectToNextNode);
         Task.Run(PrintStatsLoop);
+        if (_isLastServer) Task.Run(MonitorAuditTimeout);
     }
 
-    // stream od poprzedniego węzła
+    // streaming RPC
     public override async Task<MessageReply> StreamMessages(IAsyncStreamReader<MessageRequest> requestStream, ServerCallContext context)
     {
         Console.WriteLine($"[{_myPort}] Stream connected from {context.Peer}");
@@ -115,43 +115,6 @@ public class ChainServiceImpl : ChainService.ChainServiceBase
 
         // wyjebac odpowiedzi chyba
         return new MessageReply { Response = "All messages received" };
-    }
-
-    private void CheckAndStartProcessing()
-    {
-        lock (_processingLock)
-        {
-            bool q2HasEnoughRecords = _queue2.Count >= _batchSize;
-            bool q1HasEnoughRecords = _queue1.Count >= _batchSize;
-
-            bool TimeoutExpired = DateTime.Now.Subtract(_lastProcessingTime).TotalSeconds >= _timeoutSeconds;
-
-            // Queue 2 has priority
-            if (q2HasEnoughRecords && !_isProcessing)
-            {
-                _isProcessing = true;
-                Task.Run(() => ProcessQueue(2));
-            }
-            else if (q1HasEnoughRecords && !_isProcessing)
-            {
-                _isProcessing = true;
-                Task.Run(() => ProcessQueue(1));
-            }
-
-            else if (TimeoutExpired && !_isProcessing)
-            {
-                if (_queue2.Count >= _queue1.Count && _queue2.Count > 0)
-                {
-                    _isProcessing = true;
-                    Task.Run(() => ProcessQueue(2));
-                }
-                else if (_queue1.Count > 0)
-                {
-                    _isProcessing = true;
-                    Task.Run(() => ProcessQueue(1));
-                }
-            }
-        }
     }
 
     private void MonitorAuditTimeout()
@@ -255,7 +218,7 @@ public class ChainServiceImpl : ChainService.ChainServiceBase
                 var q1Pending = _queue1.Count;
                 var q2Pending = _queue2.Count;
 
-                // update tmux pane title (requires allow-rename on)
+                // update tmux pane
                 var title = $"S{_serverId} Q1={q1}({q1Pending}) Q2={q2}({q2Pending})";
                 Console.Write($"\u001b]2;{title}\u0007");
             }
@@ -266,32 +229,39 @@ public class ChainServiceImpl : ChainService.ChainServiceBase
         }
     }
 
-    // testowa metoda - potem wyrzucic mozna
-    public async Task SendMessage(string message)
+    private void CheckAndStartProcessing()
     {
-        int ballotId = 0;
-        int.TryParse(message, out ballotId);
-        _queue1.Add(new DataRecord { BallotId = ballotId });
-        Console.WriteLine($"Added to Queue 1: {ballotId}");
-
-        CheckAndStartProcessing();
-    }
-
-    // do wyrzucenia raczej
-    public async Task FinishAndGetResponse()
-    {
-        if (_nextStream != null)
+        lock (_processingLock)
         {
-            try
-            {
-                await _nextStream.RequestStream.CompleteAsync();
+            bool q2HasEnoughRecords = _queue2.Count >= _batchSize;
+            bool q1HasEnoughRecords = _queue1.Count >= _batchSize;
 
-                var response = await _nextStream.ResponseAsync;
-                Console.WriteLine($"Final response from next: {response.Response}");
-            }
-            catch (Exception ex)
+            bool TimeoutExpired = DateTime.Now.Subtract(_lastProcessingTime).TotalSeconds >= _timeoutSeconds;
+
+            // Queue 2 has priority
+            if (q2HasEnoughRecords && !_isProcessing)
             {
-                Console.WriteLine($"Error getting response: {ex.Message}");
+                _isProcessing = true;
+                Task.Run(() => ProcessQueue(2));
+            }
+            else if (q1HasEnoughRecords && !_isProcessing)
+            {
+                _isProcessing = true;
+                Task.Run(() => ProcessQueue(1));
+            }
+
+            else if (TimeoutExpired && !_isProcessing)
+            {
+                if (_queue2.Count >= _queue1.Count && _queue2.Count > 0)
+                {
+                    _isProcessing = true;
+                    Task.Run(() => ProcessQueue(2));
+                }
+                else if (_queue1.Count > 0)
+                {
+                    _isProcessing = true;
+                    Task.Run(() => ProcessQueue(1));
+                }
             }
         }
     }

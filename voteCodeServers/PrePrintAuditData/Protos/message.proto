@@ -9,7 +9,7 @@ service ChainService {
 
 message MessageRequest {
   string text = 1;
-  bool is_second_pass = 2;  // true = dane już raz przeszły przez wszystkie serwery
+  bool is_second_pass = 2;
 }
 
 message MessageReply {
