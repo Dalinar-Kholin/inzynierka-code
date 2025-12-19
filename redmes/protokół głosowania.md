@@ -92,6 +92,9 @@ V przeprowadza OT(tutaj link do rozdziału o OT) aby pobrać od EA authCode pozw
 V tworzy transakcje Solany która umieszcza na BB krotkę\
 jeśli V chce aby ten głos był jego ostatecznym głosem który będzie zliczony\
 (voteSerial, voteCode, authCode, enc(lockCode)) -- tutaj do szyfrowania będzie użyty kolejny klucz tresholdowy ale to później się wyklaruje\
+// TODO: user nie może sprawdzić co znajduje się pod enc(lockCode) -- komputer może unieważnić głos a my nie mamy jak tego sprawdzić
+// więc wirus robiący tylko i wyłącznie zmieniający lockCode w przypadku podania poprawnego pozwoli unieważnić głos bez wiedzy V i zostanie to ujawnione dopier po wyborach 
+
 jeśli V chce sprawdzić uczciwość Trustee
 (voteSerial, voteCode, authCode, enc("nie wierzę w uczciwość")) -- zaenkodowana wiadomość musi mieć 1 własność, musi nie być lockCodem a poza tym to może być cokolwiek\
 
@@ -124,10 +127,3 @@ jeśli 2 głosy mają ten sam lockCode obydwa głosy są ignorowane\
 EA odkrywa wszystkie swoje commitmenty od razu, ponieważ nie ma niczego co po wyborach byłoby do ukrycia
 
 wszyscy mogą teraz zweryfikować czy głosowanie odbyło się poprawnie oraz czy nie ma żadnych nieprawidłowości w commitmentach
-
-
-
-
-
-
-
