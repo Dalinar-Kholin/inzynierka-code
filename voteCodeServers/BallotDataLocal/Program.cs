@@ -2,11 +2,12 @@
 using System.Text;
 
 // Dane wejściowe - pobrane z bb
-string alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
-int numberOfCandidates = 5;
-int numberOfVoters = 10000;
-int safetyParameter = 200;
-int numberOfServers = 10;
+var cfg = VoteCodeServers.Helpers.Config.Load();
+string alphabet = cfg.Alphabet;
+int numberOfCandidates = cfg.NumberOfCandidates;
+int numberOfVoters = cfg.NumberOfVoters;
+int safetyParameter = cfg.SafetyParameter;
+int numberOfServers = cfg.NumberOfServers;
 
 int serverId = int.Parse(args[0]);
 

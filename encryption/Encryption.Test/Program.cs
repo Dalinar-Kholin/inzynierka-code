@@ -4,12 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Security.Cryptography;
 using Org.BouncyCastle.Math;
+using VoteCodeServers.Helpers;
 
 
 class Program
 {
     static void Main(string[] args)
     {
+        string _alphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
+        int _baseValue = _alphabet.Length;
+
         var publicKey = new PaillierPublicKey();
         BigInteger n = publicKey.n;
         BigInteger n_squared = publicKey.n_squared;
@@ -126,11 +130,37 @@ class Program
 
         Console.WriteLine($"Odszyfrowane4: {decryptKey.decrypt(partialDecryptions)}");
 
-        BigInteger c5 = new BigInteger("232417989064014910256072822339409270407342028623025414100672402371587152305797668748373568570947187951581453727909522459554254674112002036998398212228596460460181048620783172845761375499865831232925254248330144444622360608540297184261818148405916888025901031076494002617509459905274405496837931573004284336761584");
+        BigInteger c5 = new BigInteger("220541230180179971789871911967062687028819799544688881988574372592526425256355744231429867385815578685227030283589904191007856121681185968770680761356106782271646027467984731961068541734693139711172068834619819072626981283987793402717237889072739264910537384725228719268693453103533456928694821221852999422978281");
 
         partialDecryptions = BuildPartialDecryptions(c5);
 
-        Console.WriteLine($"Odszyfrowane5: {decryptKey.decrypt(partialDecryptions)}");
+        var decrypted5 = decryptKey.decrypt(partialDecryptions);
+        var decrypted = Decode(new BigInteger(decrypted5.ToString()));
+
+        Console.WriteLine($"Odszyfrowane5: {decrypted}");
+
+        string Decode(BigInteger encoded)
+        {
+            if (encoded.Equals(BigInteger.Zero))
+            {
+                var a0 = _alphabet[0];
+                return a0.ToString();
+            }
+
+            int baseValue = _baseValue;
+            var baseValueBig = new BigInteger(baseValue.ToString());
+            var result = new StringBuilder();
+
+            while (encoded.CompareTo(BigInteger.Zero) > 0)
+            {
+                BigInteger remainder = encoded.Mod(baseValueBig);
+                int index = int.Parse(remainder.ToString());
+                result.Insert(0, _alphabet[index]);
+                encoded = encoded.Divide(baseValueBig);
+            }
+
+            return result.ToString();
+        }
 
         // using var sha256 = SHA256.Create();
 

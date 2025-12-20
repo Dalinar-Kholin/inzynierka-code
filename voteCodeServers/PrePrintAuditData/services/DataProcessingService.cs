@@ -34,7 +34,6 @@ public class DataProcessingService
     public async Task<Dictionary<int, (int?, string[])>> ProcessBatchFirstPassAsync(List<int> ids)
     {
         Dictionary<int, int?> shadowBatch = await _ballotService.GetShadowBatch(ids, false);
-
         Dictionary<int, string[]> vBatch = await _codeSettingService.GetVBatch(ids);
 
         var batchData = new Dictionary<int, (int? shadowSerial, string[] v)>();

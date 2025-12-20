@@ -7,11 +7,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
+    <Protobuf Include="Protos\message.proto" GrpcServices="Both" />
+    <PackageReference Include="Google.Protobuf" Version="3.33.0" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.71.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.76.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+    <ProjectReference Include="../CommonHelpers/CommonHelpers.csproj" />
+    <ProjectReference Include="../DataInitLocal/dataInitLocal.csproj" />
+    <ProjectReference Include="../BallotDataLocal/ballotDataLocal.csproj" />
+    <ProjectReference Include="../../encryption/PaillierLib/PaillierLib.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
-  </ItemGroup>
 
 </Project>

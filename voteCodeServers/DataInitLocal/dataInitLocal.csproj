@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
+    <ProjectReference Include="..\CommonHelpers\CommonHelpers.csproj" />
   </ItemGroup>
 
 </Project>

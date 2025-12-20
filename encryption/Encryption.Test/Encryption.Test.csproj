@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PaillierLib\PaillierLib.csproj" />
     <ProjectReference Include="..\ElGamalLib\ElGamalLib.csproj" />
+    <ProjectReference Include="..\..\voteCodeServers\CommonHelpers\CommonHelpers.csproj" />
   </ItemGroup>
 
 </Project>

@@ -41,4 +41,23 @@ public class CodeSettingService
             b => b.V
         );
     }
+
+    public async Task<Dictionary<int, (int, int, string)>> GetFinalEncryptionBatch(List<int> ballotIds)
+    {
+        var filter = Builders<CodeSettingData>.Filter.In(b => b.BallotId, ballotIds);
+        var projection = Builders<CodeSettingData>.Projection
+            .Include(b => b.BallotId)
+            .Include(b => b.FinalC0)
+            .Include(b => b.FinalC1)
+            .Include(b => b.FinalB);
+
+        var results = await _codeSettingsCollection
+            .Find(filter)
+            .Project<CodeSettingData>(projection)
+            .ToListAsync();
+        return results.ToDictionary(
+            b => b.BallotId,
+            b => (b.FinalC0, b.FinalC1, b.FinalB)
+        );
+    }
 }

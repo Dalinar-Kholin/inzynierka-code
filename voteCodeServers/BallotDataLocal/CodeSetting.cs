@@ -8,7 +8,7 @@ using Org.BouncyCastle.Math;
 
 public class CodeSetting
 {
-    private const int _batchSize = 10000;
+    private const int _batchSize = 1000;
     private readonly int _serverId;
     private readonly int _a; // alphabet size
     private readonly int _k; // number of candidates
