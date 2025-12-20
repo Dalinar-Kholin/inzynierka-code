@@ -69,13 +69,6 @@ while (true)
             Environment.Exit(0);
             break;
 
-        case "send":
-            if (parts.Length > 1)
-            {
-                await service.SendMessage(parts[1]);
-            }
-            break;
-
         case "init":
             if (serverId == 1)
             {
