@@ -7,8 +7,7 @@ using System.Security.Cryptography;
 using Microsoft.VisualBasic;
 using VoteCodeServers.Helpers;
 
-
-public class DataProcessingService
+public class RecordProcessor : IRecordProcessor<DataRecord, (int?, int, int, string)>
 {
     private readonly int _serverId;
     private readonly int _totalServers;
@@ -22,19 +21,21 @@ public class DataProcessingService
     private readonly PaillierPublicKey _paillierPublic;
     private AlphabetEncoder E = AlphabetEncoder.Instance;
 
-    public DataProcessingService(int serverId, int totalServers, int numberOfCandidates)
+    public RecordProcessor(int serverId, int totalServers, int numberOfCandidates)
     {
         _serverId = serverId;
         _totalServers = totalServers;
         _isLastServer = _serverId == _totalServers;
         _numberOfCandidates = numberOfCandidates;
 
-        _ballotService = new BallotService(serverId);
+        _ballotService = new BallotService(serverId, totalServers);
         _ballotLinkingService = new BallotLinkingService(serverId);
         _voteSerialsService = new VoteSerialsService(serverId);
         _codeSettingService = new CodeSettingService(serverId);
         _paillierPublic = new PaillierPublicKey("../../encryption/paillierKeys");
     }
+
+
 
     public async Task<Dictionary<int, (int?, int, int, string)>> ProcessBatchFirstPassAsync(List<int> ids)
     {

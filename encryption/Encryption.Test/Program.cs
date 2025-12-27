@@ -62,8 +62,8 @@ class Program
         // Użyj konstruktora BouncyCastle zamiast Parse
         BigInteger code1 = new BigInteger("1");
         BigInteger code2 = new BigInteger("1");
-        BigInteger code3 = new BigInteger("5000");
-        BigInteger code4 = new BigInteger("5000");
+        BigInteger code3 = new BigInteger("1");
+        BigInteger code4 = new BigInteger("1");
 
         var swTotal = System.Diagnostics.Stopwatch.StartNew();
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -78,9 +78,27 @@ class Program
         Console.WriteLine($"czas = {time}\n");
 
         // HOMOMORFICZNE DODAWANIE: mnożenie szyfrogramów
-        var ciphertext_sum = ciphertext1.Multiply(ciphertext2).Mod(n_squared);
-        ciphertext_sum = ciphertext_sum.Multiply(ciphertext3).Mod(n_squared);
-        ciphertext_sum = ciphertext_sum.Multiply(ciphertext4).Mod(n_squared);
+        ciphertext1 = ciphertext1.ModPow(BigInteger.One, n_squared);
+        var partialDecryptions1 = BuildPartialDecryptions(ciphertext1);
+        ciphertext2 = ciphertext2.ModPow(BigInteger.One, n_squared);
+        var partialDecryptions2 = BuildPartialDecryptions(ciphertext2);
+        ciphertext3 = ciphertext3.ModPow(BigInteger.One, n_squared);
+        var partialDecryptions3 = BuildPartialDecryptions(ciphertext3);
+        ciphertext4 = publicKey.Encrypt(BigInteger.Zero);
+        var partialDecryptions4 = BuildPartialDecryptions(ciphertext4);
+
+        Console.WriteLine($"c1: {ciphertext1}");
+        Console.WriteLine($"Odszyfrowane c1: {decryptKey.decrypt(partialDecryptions1)}");
+        Console.WriteLine($"c2: {ciphertext2}");
+        Console.WriteLine($"Odszyfrowane c2: {decryptKey.decrypt(partialDecryptions2)}");
+        Console.WriteLine($"c3: {ciphertext3}");
+        Console.WriteLine($"Odszyfrowane c3: {decryptKey.decrypt(partialDecryptions3)}");
+        Console.WriteLine($"c4: {ciphertext4}");
+        Console.WriteLine($"Odszyfrowane c4: {decryptKey.decrypt(partialDecryptions4)}");
+
+        BigInteger ciphertext_sum = ciphertext1.Multiply(ciphertext2).Mod(n_squared)
+            .Multiply(ciphertext3).Mod(n_squared)
+            .Multiply(ciphertext4).Mod(n_squared);
 
         // Oczekiwana suma - używaj metod BouncyCastle
         BigInteger expectedSum = code1.Add(code2).Add(code3).Add(code4);
@@ -130,8 +148,8 @@ class Program
 
         Console.WriteLine($"Odszyfrowane4: {decryptKey.decrypt(partialDecryptions)}");
 
-        BigInteger c5 = new BigInteger("220541230180179971789871911967062687028819799544688881988574372592526425256355744231429867385815578685227030283589904191007856121681185968770680761356106782271646027467984731961068541734693139711172068834619819072626981283987793402717237889072739264910537384725228719268693453103533456928694821221852999422978281");
-
+        BigInteger c5 = new BigInteger("141437058141936194855669637738337457638334355984463969486865994284586679280491469589428409378992652318362987452733338226090467915690747703632405186827906320268385097332945395108528945586497824512120466678701542497458383366520275463636739544983276533715939614081149880806587987860677291294853448125597840290428017");
+        //JuzDclEsZwSSxSSXPXPPAMMMAYUYYYhiiihyyyEEwkwwkYJYYJ11K1KTlllT
         partialDecryptions = BuildPartialDecryptions(c5);
 
         var decrypted5 = decryptKey.decrypt(partialDecryptions);

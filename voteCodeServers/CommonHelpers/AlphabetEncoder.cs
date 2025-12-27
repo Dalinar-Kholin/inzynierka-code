@@ -54,7 +54,6 @@ namespace VoteCodeServers.Helpers
 
             var baseValueBig = new BigInteger(_baseValue.ToString());
             var shift = baseValueBig.Pow(positions);
-            Console.WriteLine($"Shift value: {shift}");
             return value.Multiply(shift);
         }
 

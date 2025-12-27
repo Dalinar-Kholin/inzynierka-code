@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcChain";
+
+service ChainService {
+  rpc StreamMessages (stream MessageRequest) returns (MessageReply);
+  rpc StreamReturningMessages (stream MessageRequest) returns (MessageReply);
+  rpc Ping (PingRequest) returns (PingReply);
+}
+
+message MessageRequest {
+  string text = 1;
+  bool is_second_pass = 2;
+}
+
+message MessageReply {
+  string response = 1;
+}
+
+message PingRequest {
+  string message = 1;
+}
+
+message PingReply {
+  string message = 1;
+}

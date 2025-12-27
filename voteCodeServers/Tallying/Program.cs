@@ -23,7 +23,10 @@ int myPort = 5000 + serverId;
 
 int nextServerId = (serverId % totalServers) + 1;
 int nextPort = 5000 + nextServerId;
+int prevServerId = ((serverId - 2 + totalServers) % totalServers) + 1;
+int prevPort = 5000 + prevServerId;
 string nextServer = $"http://localhost:{nextPort}";
+string prevServer = $"http://localhost:{prevPort}";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,9 +42,9 @@ builder.Services.AddGrpc();
 
 var processor = new RecordProcessor(serverId, totalServers, numberOfCandidates);
 var engine = new ChainEngine(serverId, totalServers, myPort, processor);
-var service = new ChainServiceImpl(nextServer, myPort, engine);
+var service = new ChainServiceImpl(nextServer, prevServer, myPort, engine);
 
-engine.SetTransport(service);
+engine.SetTransport(service); // jeśli ChainServiceImpl implementuje ITransport
 
 builder.Services.AddSingleton(service);
 
@@ -65,8 +68,10 @@ while (true)
 
     if (string.IsNullOrEmpty(input)) continue;
 
-    var parts = input.Split(' ', 2);
+    var parts = input.Split(' ', 3);
     var command = parts[0].ToLower();
+    var message1 = parts.Length > 1 ? parts[1] : null;
+    var message2 = parts.Length > 2 ? parts[2] : null;
 
     switch (command)
     {
@@ -75,14 +80,15 @@ while (true)
             Environment.Exit(0);
             break;
 
-        case "init":
-            if (serverId == 1)
+        case "send":
+            if (serverId == totalServers)
             {
-                await engine.InitializeData(ballotNumber);
+                service.SendData(message1, message2);
+                Console.WriteLine("Data sent.");
             }
             else
             {
-                Console.WriteLine("'init' only available on Server 1");
+                Console.WriteLine("'send' only available on the last server.");
             }
             break;
     }

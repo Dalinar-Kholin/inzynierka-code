@@ -10,6 +10,7 @@ public class CodeSetting
 {
     private const int _batchSize = 1000;
     private readonly int _serverId;
+    private readonly int _numberOfServers;
     private readonly int _a; // alphabet size
     private readonly int _k; // number of candidates
     private readonly ElGamalEncryption _elGamal;
@@ -17,13 +18,14 @@ public class CodeSetting
     private readonly BallotService _ballotService;
     private readonly PaillierPublicKey _paillierPublic;
 
-    public CodeSetting(int serverId, int alphabetSize, int numberOfCandidates)
+    public CodeSetting(int serverId, int numberOfServers, int alphabetSize, int numberOfCandidates)
     {
         _serverId = serverId;
+        _numberOfServers = numberOfServers;
         _a = alphabetSize;
         _k = numberOfCandidates;
         _codeSettingService = new CodeSettingService(serverId);
-        _ballotService = new BallotService(serverId);
+        _ballotService = new BallotService(serverId, numberOfServers);
         _elGamal = new ElGamalEncryption("../../encryption/elGamalKeys");
         _paillierPublic = new PaillierPublicKey("../../encryption/paillierKeys");
     }

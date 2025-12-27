@@ -29,7 +29,7 @@ public class LocalBallotData
         _n = n;
         _numberOfServers = numberOfServers;
         _numberOfCandidates = numberOfCandidates;
-        _ballotService = new BallotService(serverId);
+        _ballotService = new BallotService(serverId, numberOfServers);
         _voteSerialService = new VoteSerialsService(serverId);
         _ballotLinkingService = new BallotLinkingService(serverId);
     }

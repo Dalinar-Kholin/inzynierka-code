@@ -59,4 +59,20 @@ public class BallotLinkingService
 
         return permutationList;
     }
+
+    public async Task<List<int>> GetReversedPermutationListAsync(bool isPrim)
+    {
+        var collection = isPrim ? _ballotLinkingPrim : _ballotLinking;
+        var allRecords = await collection.Find(FilterDefinition<BallotLinking>.Empty)
+            .Sort(Builders<BallotLinking>.Sort.Ascending(b => b.PrevBallot))
+            .ToListAsync();
+
+        var reversedPermutationList = new List<int>();
+        foreach (var record in allRecords)
+        {
+            reversedPermutationList.Add(record.BallotId);
+        }
+
+        return reversedPermutationList;
+    }
 }

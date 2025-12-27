@@ -6,14 +6,27 @@ public class BallotService
     private readonly IMongoCollection<BallotData> _ballots;
 
 
-    public BallotService(int serverId)
+    public BallotService(int serverId, int totalServers)
     {
         var client = new MongoClient("mongodb://localhost:27017");
         var database = client.GetDatabase($"server_{serverId}");
         _ballots = database.GetCollection<BallotData>("BallotData");
 
-        var indexKeys = Builders<BallotData>.IndexKeys.Ascending(b => b.BallotId);
-        _ballots.Indexes.CreateOne(new CreateIndexModel<BallotData>(indexKeys, new CreateIndexOptions { Unique = true }));
+        _ballots.Indexes.CreateOne(new CreateIndexModel<BallotData>(
+            Builders<BallotData>.IndexKeys.Ascending(b => b.BallotId),
+            new CreateIndexOptions { Unique = true }));
+
+        _ballots.Indexes.CreateOne(new CreateIndexModel<BallotData>(
+            Builders<BallotData>.IndexKeys.Ascending(b => b.Shadow),
+            new CreateIndexOptions { Unique = true }));
+
+        // ShadowPrim is null on the last server
+        if (serverId != totalServers)
+        {
+            _ballots.Indexes.CreateOne(new CreateIndexModel<BallotData>(
+                Builders<BallotData>.IndexKeys.Ascending(b => b.ShadowPrim),
+                new CreateIndexOptions { Unique = true }));
+        }
     }
 
     public async Task CreateBallotsBatch(List<BallotData> ballots)
