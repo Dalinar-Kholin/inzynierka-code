@@ -38,60 +38,49 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
     {
         lock (_processingLock)
         {
-            bool q2HasEnoughRecords = _queue2.Count >= _batchSize;
-            bool q1HasEnoughRecords = _queue1.Count >= _batchSize;
-            bool returningQ2HasEnoughRecords = _returningQueue2.Count >= _batchSize;
-            bool returningQ1HasEnoughRecords = _returningQueue1.Count >= _batchSize;
+            if (_isProcessing)
+                return;
 
-            bool TimeoutExpired = DateTime.Now.Subtract(_lastProcessingTime).TotalSeconds >= _timeoutSeconds;
-
-            // Queue 2 has priority
-            if (q2HasEnoughRecords && !_isProcessing)
+            if (_queue2.Count >= _batchSize)
             {
-                _isProcessing = true;
-                Task.Run(() => ProcessQueue(2));
-            }
-            else if (q1HasEnoughRecords && !_isProcessing)
-            {
-                _isProcessing = true;
-                Task.Run(() => ProcessQueue(1));
+                Start(() => ProcessQueue(2));
+                return;
             }
 
-            else if (returningQ2HasEnoughRecords && !_isProcessing)
+            if (_queue1.Count >= _batchSize)
             {
-                _isProcessing = true;
-                Task.Run(() => ProcessReturningQueue(2));
-            }
-            else if (returningQ1HasEnoughRecords && !_isProcessing)
-            {
-                _isProcessing = true;
-                Task.Run(() => ProcessReturningQueue(1));
+                Start(() => ProcessQueue(1));
+                return;
             }
 
-            else if (TimeoutExpired && !_isProcessing)
+            if (_returningQueue2.Count >= _batchSize)
             {
-                if (_queue2.Count >= _queue1.Count && _queue2.Count > 0)
-                {
-                    _isProcessing = true;
-                    Task.Run(() => ProcessQueue(2));
-                }
-                else if (_queue1.Count >= _returningQueue2.Count && _queue1.Count > 0)
-                {
-                    _isProcessing = true;
-                    Task.Run(() => ProcessQueue(1));
-                }
-                else if (_returningQueue2.Count >= _returningQueue1.Count && _returningQueue2.Count > 0)
-                {
-                    _isProcessing = true;
-                    Task.Run(() => ProcessReturningQueue(2));
-                }
-                else if (_returningQueue1.Count > 0)
-                {
-                    _isProcessing = true;
-                    Task.Run(() => ProcessReturningQueue(1));
-                }
+                Start(() => ProcessReturningQueue(2));
+                return;
             }
+
+            if (_returningQueue1.Count >= _batchSize)
+            {
+                Start(() => ProcessReturningQueue(1));
+                return;
+            }
+
+            if (!IsTimeoutExpired())
+                return;
+            StartTimeoutFallback();
         }
+    }
+
+    private void StartTimeoutFallback()
+    {
+        if (_queue2.Count > 0 && _queue2.Count >= _queue1.Count)
+            Start(() => ProcessQueue(2));
+        else if (_queue1.Count > 0 && _queue1.Count >= _returningQueue2.Count)
+            Start(() => ProcessQueue(1));
+        else if (_returningQueue2.Count > 0 && _returningQueue2.Count >= _returningQueue1.Count)
+            Start(() => ProcessReturningQueue(2));
+        else if (_returningQueue1.Count > 0)
+            Start(() => ProcessReturningQueue(1));
     }
 
     private async Task ProcessReturningQueue(int queueNumber)
@@ -137,9 +126,8 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
             ids.Add(record.BallotId);
         }
 
-        // pobrac dane na podstawie ids (shadowSerialPrim) tutaj to bedzie poprostu ballotId
-
-        // var firstPass = await _processor.ProcessBatchFirstPassAsync(ids);
+        // get BallotId from ShadowSerialPrim
+        var firstPass = await _processor.ProcessReturningBatchFirstPassAsync(ids);
 
         // processing per-record in parallel
         var tasks = new List<Task>();
@@ -152,12 +140,10 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
                 {
                     var record = batch[index];
 
-                    // to powinno zmodyfikowac rekord tak ze zamienia ballotId na shadowSerialPrim z firstPass a potem bierze permutacje
-                    // wiec chyba nie warto odwolywac sie do _processor
+                    var processedRecord = _processor.ProcessReturningSingleFirstPass(record, firstPass[record.BallotId]);
 
-                    // var processedRecord = _processor.ProcessSingleFirstPass(record, firstPass[record.BallotId]);
+                    processedRecord.BallotId = _reversedShadowPrimPermutation[processedRecord.BallotId - 1];
 
-                    var processedRecord = record; // placeholder
                     Interlocked.Increment(ref _processedQ1);
 
                     var payload = SerializeRecord(processedRecord);
@@ -183,11 +169,23 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
             ids.Add(record.BallotId);
         }
 
-        // pobranie BallotId na podstawie ids (shadowSerial)
+        // get BallotId from ShadowSerial
+        var secondPass = await _processor.ProcessReturningBatchSecondPassAsync(ids);
 
-        // pobranie danych z codeSetting na podstawie BallotId
+        // get codeSetting data based on BallotId
+        var codeSettingData = await _processor.ProcessReturningBatchSecondPassCodeSettingAsync(secondPass.Values.ToList());
 
-        // processing per-record in parallel (mirrors first pass)
+        if (_isFirstServer)
+        {
+            // build reversed second pass mapping
+            var reversedSecondPass = new Dictionary<int, int>();
+            foreach (var kvp in secondPass)
+            {
+                reversedSecondPass[kvp.Value] = kvp.Key;
+            }
+        }
+
+        // processing per-record in parallel
         var tasks = new List<Task>();
         for (int i = 0; i < batch.Count; i++)
         {
@@ -198,21 +196,19 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
                 {
                     var record = batch[index];
 
-                    // dostaje dane codeSetting dla danego ballotu i zwraca 
-                    // record z usunieta litera swoja oraz ze zaktualizowanym wektorem glosu
-                    // var processedRecord = _processor.ProcessSingleSecondPass();
+                    record.BallotId = secondPass[record.BallotId];
 
-                    var processedRecord = record; // placeholder
+                    var processedRecord = _processor.ProcessReturningSingleSecondPass(record, codeSettingData[record.BallotId]);
 
                     Interlocked.Increment(ref _processedQ2);
 
                     // bounce to next server instead of the previous one
                     if (_isFirstServer)
                     {
-                        // zamienic potem zeby _processor to robil
+                        // VoteCodeRecord to VoteRecord conversion and old BallotId restoration
                         var newProcessedRecord = new VoteRecord
                         {
-                            BallotId = processedRecord.BallotId,
+                            BallotId = reversedSecondPass[processedRecord.BallotId],
                             VoteVector = processedRecord.VoteVector,
                         };
 
@@ -222,6 +218,8 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
 
                     else
                     {
+                        processedRecord.BallotId = _reversedShadowPermutation[processedRecord.BallotId - 1];
+
                         var payload = SerializeRecord(processedRecord);
                         await _transport.SendReturningRecordAsync(payload, isSecondPass: true);
                     }

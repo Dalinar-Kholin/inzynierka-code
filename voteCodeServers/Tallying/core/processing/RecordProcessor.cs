@@ -35,6 +35,42 @@ public class RecordProcessor : IExtendedRecordProcessor<VoteRecord, (int?, int, 
         _paillierPublic = new PaillierPublicKey("../../encryption/paillierKeys");
     }
 
+
+    public async Task<Dictionary<int, int>> ProcessReturningBatchFirstPassAsync(List<int> ids)
+    {
+        return await _ballotService.GetBallotIdBatch(ids, true);
+    }
+
+
+    public VoteRecord ProcessReturningSingleFirstPass(VoteCodeRecord record, int firstPass)
+    {
+        // re-encrypcja EncryptedVoteCode oraz VoteVector
+
+
+        // zamiana BallotId na ShadowSerial/Prim
+        record.BallotId = firstPass;
+
+        return record;
+    }
+
+    public async Task<Dictionary<int, int>> ProcessReturningBatchSecondPassAsync(List<int> ids)
+    {
+        return await _ballotService.GetBallotIdBatch(ids, false);
+    }
+
+    public async Task<Dictionary<int, CodeSetting>> ProcessReturningBatchSecondPassCodeSettingAsync(List<int> ids)
+    {
+        return await _codeSettingService.GetFinalEncryptionBatch(ids);
+    }
+
+    public VoteCodeRecord ProcessReturningSingleSecondPass(VoteCodeRecord record, CodeSetting codeSetting)
+    {
+        // usuniecie swojej litery z EncryptedVoteCode oraz aktualizacja VoteVector
+
+        return record;
+    }
+
+
     public async Task<Dictionary<int, (int?, int, int, string)>> ProcessBatchFirstPassAsync(List<int> ids)
     {
         // narazie tylko zeby zwracalo cokolwiek dla testowania

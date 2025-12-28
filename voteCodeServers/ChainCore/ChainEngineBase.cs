@@ -108,7 +108,6 @@ namespace ChainCore
             {
                 if (_serverId != 1)
                     record.BallotId = _shadowPermutation[record.BallotId - 1];
-                Console.WriteLine($"==============={record.BallotId}");
                 ids.Add(record.BallotId);
             }
 

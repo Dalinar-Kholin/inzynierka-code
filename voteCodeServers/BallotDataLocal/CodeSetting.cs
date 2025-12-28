@@ -8,25 +8,23 @@ using Org.BouncyCastle.Math;
 
 public class CodeSetting
 {
-    private const int _batchSize = 1000;
     private readonly int _serverId;
     private readonly int _numberOfServers;
-    private readonly int _a; // alphabet size
-    private readonly int _k; // number of candidates
-    private readonly ElGamalEncryption _elGamal;
+    private readonly int _alphabetSize;
+    private readonly int _numberOfCandidates;
     private readonly CodeSettingService _codeSettingService;
     private readonly BallotService _ballotService;
     private readonly PaillierPublicKey _paillierPublic;
+    private const int _batchSize = 1000;
 
     public CodeSetting(int serverId, int numberOfServers, int alphabetSize, int numberOfCandidates)
     {
         _serverId = serverId;
         _numberOfServers = numberOfServers;
-        _a = alphabetSize;
-        _k = numberOfCandidates;
+        _alphabetSize = alphabetSize;
+        _numberOfCandidates = numberOfCandidates;
         _codeSettingService = new CodeSettingService(serverId);
         _ballotService = new BallotService(serverId, numberOfServers);
-        _elGamal = new ElGamalEncryption("../../encryption/elGamalKeys");
         _paillierPublic = new PaillierPublicKey("../../encryption/paillierKeys");
     }
 
@@ -52,8 +50,6 @@ public class CodeSetting
 
             Console.WriteLine($"Batch {currentBatch + 1}");
 
-            // Utrzymaj równoległość bez blokad i zachowaj kolejność przez wypełnianie tabeli indeksowanej
-            // chyab wsm nie musi byc w kolejnosci - trzeba zobaczyc
             var codeSettingsArray = new CodeSettingData[ballotDataBatch.Count];
 
             var parallelOptions = new ParallelOptions
@@ -74,14 +70,14 @@ public class CodeSetting
                     int c_j_i_0_p = ballotData.C0;
                     int c_j_i_1_p = ballotData.C1;
 
-                    int c0 = (int)((c_j_i_r + (long)c_j_i_0_p) % _a);
-                    int c1 = (int)((c_j_i_r + (long)c_j_i_1_p) % _a);
+                    int c0 = (int)((c_j_i_r + (long)c_j_i_0_p) % _alphabetSize);
+                    int c1 = (int)((c_j_i_r + (long)c_j_i_1_p) % _alphabetSize);
 
-                    var b_m_values = new int[_k];
+                    var b_m_values = new int[_numberOfCandidates];
 
                     var b_p_values = ballotData.B.Select(bit => bit == '1' ? 1 : 0).ToArray();
 
-                    for (int m = 0; m < _k; m++)
+                    for (int m = 0; m < _numberOfCandidates; m++)
                     {
                         bool b_j_i_m_r_bool = SummandDraw.GenerateRandomBit(r_x, j, i, m + 1);
                         int b_j_i_m_r = b_j_i_m_r_bool ? 1 : 0;
@@ -98,18 +94,15 @@ public class CodeSetting
                         Id = ObjectId.GenerateNewId(),
                         BallotId = ballotData.BallotId,
                         FinalB = string.Join("", b_m_values),
+                        CommB = commitments.CommB,
+                        R0 = commitments.R0,
                         FinalC0 = c0,
-                        CommC0c1 = commitments.CommC0c1,
-                        CommC0c2 = commitments.CommC0c2,
+                        CommC0 = commitments.CommC0,
+                        R1 = commitments.R1,
                         FinalC1 = c1,
-                        CommC1c1 = commitments.CommC1c1,
-                        CommC1c2 = commitments.CommC1c2,
-                        Z0 = commitments.Z0,
-                        Z1 = commitments.Z1,
-                        BindingC0 = "nie wiadomo jeszcze co",
-                        BindingC1 = "nie wiadomo jeszcze co",
+                        CommC1 = commitments.CommC1,
+                        R2 = commitments.R2,
                         V = commitments.V,
-                        R0 = commitments.Randomness,
                     };
 
                     codeSettingsArray[idx] = codeSetting;
@@ -138,36 +131,50 @@ public class CodeSetting
     private Commitments GenerateCommitments(int c0, int c1, int[] b_m_values)
     {
         var commitments = new Commitments();
+        using var sha256 = SHA256.Create();
 
-        var encryptedC0 = EncryptTj(c0);
-        var encryptedC1 = EncryptTj(c1);
+        byte[] randomBytesB = new byte[8];
+        RandomNumberGenerator.Fill(randomBytesB);
+        long r0 = BitConverter.ToInt64(randomBytesB) & long.MaxValue;
 
-        commitments.CommC0c1 = encryptedC0.c1.ToString();
-        commitments.CommC0c2 = encryptedC0.c2.ToString();
-        commitments.CommC1c1 = encryptedC1.c1.ToString();
-        commitments.CommC1c2 = encryptedC1.c2.ToString();
+        var inputB = Encoding.UTF8.GetBytes($"{string.Join("", b_m_values)}{r0}");
+        byte[] hashB = sha256.ComputeHash(inputB);
+        string hashedValueB = Convert.ToHexString(hashB).ToLower();
 
-        commitments.Z0 = new string[_k];
-        commitments.Z1 = new string[_k];
-        commitments.V = new string[_k];
+        commitments.CommB = hashedValueB;
+        commitments.R0 = r0;
+
+        byte[] randomBytesC0 = new byte[8];
+        RandomNumberGenerator.Fill(randomBytesC0);
+        long r1 = BitConverter.ToInt64(randomBytesC0) & long.MaxValue;
+
+        var inputC0 = Encoding.UTF8.GetBytes($"{c0}{r1}");
+        byte[] hashC0 = sha256.ComputeHash(inputC0);
+        string hashedValueC0 = Convert.ToHexString(hashC0).ToLower();
+
+        commitments.CommC0 = hashedValueC0;
+        commitments.R1 = r1;
+
+        byte[] randomBytesC1 = new byte[8];
+        RandomNumberGenerator.Fill(randomBytesC1);
+        long r2 = BitConverter.ToInt64(randomBytesC1) & long.MaxValue;
+
+        var inputC1 = Encoding.UTF8.GetBytes($"{c1}{r2}");
+        byte[] hashC1 = sha256.ComputeHash(inputC1);
+        string hashedValueC1 = Convert.ToHexString(hashC1).ToLower();
+
+        commitments.CommC1 = hashedValueC1;
+        commitments.R2 = r2;
+
+        commitments.V = new string[_numberOfCandidates];
 
         byte[] randomBytes = new byte[8];
         RandomNumberGenerator.Fill(randomBytes);
         long randomness = BitConverter.ToInt64(randomBytes) & long.MaxValue;
 
-        commitments.Randomness = randomness;
-
-        for (int m = 0; m < _k; m++)
+        for (int m = 0; m < _numberOfCandidates; m++)
         {
-            // Z0 = ⟨Enc_EA(1-b_1), ..., Enc_EA(1-b_k)⟩
-            commitments.Z0[m] = Dummy((1 - b_m_values[m]).ToString());
-
-            // Z1 = ⟨Enc_EA(b_1), ..., Enc_EA(b_k)⟩
-            commitments.Z1[m] = Dummy(b_m_values[m].ToString());
-
             // V = ⟨Enc_EA(H(b_1||r)), ..., Enc_EA(H(b_k||r))⟩
-            using var sha256 = SHA256.Create();
-
             // hash(data || randomValue)
             var input = Encoding.UTF8.GetBytes($"{b_m_values[m]}{randomness}");
             byte[] hash = sha256.ComputeHash(input);
@@ -179,18 +186,8 @@ public class CodeSetting
         return commitments;
     }
 
-    private (BigInteger c1, BigInteger c2) EncryptTj(int message)
-    {
-        return _elGamal.Encrypt(message);
-    }
-
     private BigInteger EncryptEA(string message)
     {
         return _paillierPublic.EncryptHash(message);
-    }
-
-    private string Dummy(string a)
-    {
-        return "nie wiadomo jeszcze co";
     }
 }
