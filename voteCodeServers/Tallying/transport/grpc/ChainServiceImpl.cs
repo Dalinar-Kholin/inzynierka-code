@@ -38,7 +38,7 @@ public class ChainServiceImpl : ChainService.ChainServiceBase, IExtendedTranspor
         Task.Run(ConnectToPrevNode);
     }
 
-    // streaming RPC - odbiera od poprzedniego
+    // streaming RPC - receives from previous
     public override async Task<MessageReply> StreamMessages(IAsyncStreamReader<MessageRequest> requestStream, ServerCallContext context)
     {
         Console.WriteLine($"[{_myPort}] Forward stream connected from {context.Peer}");
@@ -71,7 +71,7 @@ public class ChainServiceImpl : ChainService.ChainServiceBase, IExtendedTranspor
         return new MessageReply { Response = "All messages received" };
     }
 
-    // streaming RPC - odbiera od nastepnego
+    // streaming RPC - receives from next
     public override async Task<MessageReply> StreamReturningMessages(IAsyncStreamReader<MessageRequest> requestStream, ServerCallContext context)
     {
         Console.WriteLine($"[{_myPort}] Returning stream connected from {context.Peer}");
@@ -138,7 +138,7 @@ public class ChainServiceImpl : ChainService.ChainServiceBase, IExtendedTranspor
                 Console.WriteLine($"Successfully connected to {_nextServerAddress}");
                 return;
             }
-            catch (Exception ex)
+            catch
             {
                 _nextChannel?.Dispose();
                 _nextChannel = null;
@@ -260,15 +260,7 @@ public class ChainServiceImpl : ChainService.ChainServiceBase, IExtendedTranspor
 
     public void SendData(string voteSerial, string voteCode)
     {
-        // narazie tak potem trzeba z bazy wziac odpowiednie
-        var record = new VoteCodeRecord
-        {
-            BallotId = 1,
-            EncryptedVoteCode = voteCode.Select(c => c.ToString()).ToList(),
-            VoteVector = new List<string> { "1", "0", "1", "0", "1" } // placeholder
-        };
-
-        _chainEngine.OnReturningRecordReceived(record, isSecondPass: false);
+        _chainEngine.OnNewVoteReceived(voteSerial, voteCode);
     }
 
     private static VoteCodeRecord DeserializeVoteRecord(string text)

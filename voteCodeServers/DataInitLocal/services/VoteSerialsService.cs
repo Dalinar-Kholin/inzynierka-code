@@ -71,4 +71,18 @@ public class VoteSerialsService
 
         return results.ToDictionary(r => r.BallotId, r => r.VoteSerial);
     }
+
+    public async Task<Dictionary<string, int>> GetBallotIdsBatch(List<string> voteSerials)
+    {
+        var filter = Builders<VoteSerialData>.Filter.In(x => x.VoteSerial, voteSerials);
+        var projection = Builders<VoteSerialData>.Projection
+            .Include(x => x.BallotId)
+            .Include(x => x.VoteSerial);
+
+        var results = await _voteSerials
+            .Find(filter)
+            .Project<VoteSerialData>(projection)
+            .ToListAsync();
+        return results.ToDictionary(r => r.VoteSerial, r => r.BallotId);
+    }
 }

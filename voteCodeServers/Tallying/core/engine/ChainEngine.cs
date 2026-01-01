@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Threading;
 using ChainCore;
 
-public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string), RecordProcessor, IExtendedTransport>
+public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IExtendedTransport>
 {
     private readonly bool _isFirstServer;
 
@@ -16,6 +17,14 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
     private long _processedReturningQ1 = 0;
     private long _processedReturningQ2 = 0;
 
+    private readonly BlockingCollection<(string, string)> _newVotesQueue = new();
+
+    /////////////////////////////////////////////////
+    // dodac losowe kolejki - teraz dla testow
+    /////////////////////////////////////////////////
+
+    private const int _newVotesBatchSize = 1;
+    private const int _newVotesTriggerSize = 1; // > _newVotesBatchSize
 
     public ChainEngine(int serverId, int totalServers, int myPort, RecordProcessor processor)
         : base(serverId, totalServers, myPort, processor)
@@ -32,10 +41,27 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
         // when transport is set start monitoring tasks
         Task.Run(MonitorTimeout);
         Task.Run(PrintStatsLoop);
+        Task.Run(MonitorInitialQueue);
+    }
+
+    public void OnNewVoteReceived(string voteSerial, string voteCode)
+    {
+        _newVotesQueue.Add((voteSerial, voteCode));
+    }
+
+    public void OnReturningRecordReceived(VoteCodeRecord record, bool isSecondPass)
+    {
+        if (isSecondPass)
+            _returningQueue2.Add(record);
+        else
+            _returningQueue1.Add(record);
     }
 
     protected override void CheckAndStartProcessing()
     {
+        var elapsed = DateTime.Now - _lastProcessingTime;
+        var isTimeoutExpired = elapsed.TotalSeconds >= _timeoutSeconds;
+
         lock (_processingLock)
         {
             if (_isProcessing)
@@ -43,30 +69,31 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
 
             if (_queue2.Count >= _batchSize)
             {
-                Start(() => ProcessQueue(2));
+                Task.Run(() => ProcessQueue(2));
                 return;
             }
 
             if (_queue1.Count >= _batchSize)
             {
-                Start(() => ProcessQueue(1));
+                Task.Run(() => ProcessQueue(1));
                 return;
             }
 
             if (_returningQueue2.Count >= _batchSize)
             {
-                Start(() => ProcessReturningQueue(2));
+                Task.Run(() => ProcessReturningQueue(2));
                 return;
             }
 
             if (_returningQueue1.Count >= _batchSize)
             {
-                Start(() => ProcessReturningQueue(1));
+                Task.Run(() => ProcessReturningQueue(1));
                 return;
             }
 
-            if (!IsTimeoutExpired())
+            if (!isTimeoutExpired)
                 return;
+
             StartTimeoutFallback();
         }
     }
@@ -74,13 +101,13 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
     private void StartTimeoutFallback()
     {
         if (_queue2.Count > 0 && _queue2.Count >= _queue1.Count)
-            Start(() => ProcessQueue(2));
+            Task.Run(() => ProcessQueue(2));
         else if (_queue1.Count > 0 && _queue1.Count >= _returningQueue2.Count)
-            Start(() => ProcessQueue(1));
+            Task.Run(() => ProcessQueue(1));
         else if (_returningQueue2.Count > 0 && _returningQueue2.Count >= _returningQueue1.Count)
-            Start(() => ProcessReturningQueue(2));
+            Task.Run(() => ProcessReturningQueue(2));
         else if (_returningQueue1.Count > 0)
-            Start(() => ProcessReturningQueue(1));
+            Task.Run(() => ProcessReturningQueue(1));
     }
 
     private async Task ProcessReturningQueue(int queueNumber)
@@ -120,50 +147,43 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
     private async Task ProcessReturningQueueFirstPass(List<VoteCodeRecord> batch)
     {
         var ids = new List<int>(batch.Count);
-
         foreach (var record in batch)
-        {
             ids.Add(record.BallotId);
-        }
 
         // get BallotId from ShadowSerialPrim
         var firstPass = await _processor.ProcessReturningBatchFirstPassAsync(ids);
 
-        // processing per-record in parallel
-        var tasks = new List<Task>();
-        for (int i = 0; i < batch.Count; i++)
-        {
-            var index = i;
-            var task = Task.Run(async () =>
-            {
-                try
-                {
-                    var record = batch[index];
-
-                    var processedRecord = _processor.ProcessReturningSingleFirstPass(record, firstPass[record.BallotId]);
-
-                    processedRecord.BallotId = _reversedShadowPrimPermutation[processedRecord.BallotId - 1];
-
-                    Interlocked.Increment(ref _processedQ1);
-
-                    var payload = SerializeRecord(processedRecord);
-                    await _transport.SendReturningRecordAsync(payload, isSecondPass: _isFirstServer);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[{_myPort}] [RQ1] Processing error: {ex.Message}");
-                }
-            });
-            tasks.Add(task);
-        }
-
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(batch.Select(record => ProcessReturningSingleFirstPass(record, firstPass)));
     }
+
+    private async Task ProcessReturningSingleFirstPass(
+        VoteCodeRecord record,
+        Dictionary<int, int> firstPass)
+    {
+        try
+        {
+            if (!firstPass.TryGetValue(record.BallotId, out var firstPassData))
+                throw new InvalidOperationException($"Missing first-pass data for ballot {record.BallotId}");
+
+            var processedRecord = _processor.ProcessReturningSingleFirstPass(record, firstPassData);
+
+            processedRecord.BallotId = _reversedShadowPrimPermutation[processedRecord.BallotId - 1];
+
+            Interlocked.Increment(ref _processedQ1);
+
+            var payload = SerializeRecord(processedRecord);
+            await _transport.SendReturningRecordAsync(payload, isSecondPass: _isFirstServer);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[{_myPort}] [RQ1] Processing error: {ex.Message}");
+        }
+    }
+
 
     private async Task ProcessReturningQueueSecondPass(List<VoteCodeRecord> batch)
     {
         var ids = new List<int>(batch.Count);
-
         foreach (var record in batch)
         {
             ids.Add(record.BallotId);
@@ -173,92 +193,169 @@ public class ChainEngine : ChainEngineBase<VoteRecord, (int?, int, int, string),
         var secondPass = await _processor.ProcessReturningBatchSecondPassAsync(ids);
 
         // get codeSetting data based on BallotId
-        var codeSettingData = await _processor.ProcessReturningBatchSecondPassCodeSettingAsync(secondPass.Values.ToList());
+        var codeSettingData =
+            await _processor.ProcessReturningBatchSecondPassCodeSettingAsync(
+                secondPass.Values.ToList()
+            );
 
+        Dictionary<int, int>? reversedSecondPass = null;
         if (_isFirstServer)
         {
-            // build reversed second pass mapping
-            var reversedSecondPass = new Dictionary<int, int>();
+            reversedSecondPass = new Dictionary<int, int>(secondPass.Count);
             foreach (var kvp in secondPass)
             {
                 reversedSecondPass[kvp.Value] = kvp.Key;
             }
         }
 
-        // processing per-record in parallel
-        var tasks = new List<Task>();
-        for (int i = 0; i < batch.Count; i++)
+        await Task.WhenAll(
+            batch.Select(record =>
+                ProcessReturningSingleSecondPass(
+                    record,
+                    secondPass,
+                    codeSettingData,
+                    reversedSecondPass
+                )
+            )
+        );
+    }
+
+    private async Task ProcessReturningSingleSecondPass(
+        VoteCodeRecord record,
+        Dictionary<int, int> secondPass,
+        Dictionary<int, (int, int, string)> codeSettingData,
+        Dictionary<int, int>? reversedSecondPass)
+    {
+        try
         {
-            var index = i;
-            var task = Task.Run(async () =>
+            if (!secondPass.TryGetValue(record.BallotId, out var newBallotId))
+                throw new InvalidOperationException($"Missing second-pass mapping for ballot {record.BallotId}");
+
+            record.BallotId = newBallotId;
+
+            if (!codeSettingData.TryGetValue(record.BallotId, out var codeSetting))
+                throw new InvalidOperationException($"Missing code-setting data for ballot {record.BallotId}");
+
+            var processedRecord =
+                _processor.ProcessReturningSingleSecondPass(record, codeSetting);
+
+            Interlocked.Increment(ref _processedQ2);
+
+            // bounce to next server instead of the previous one
+            if (_isFirstServer)
             {
-                try
+                if (reversedSecondPass == null || !reversedSecondPass.TryGetValue(processedRecord.BallotId, out var originalBallotId))
+                    throw new InvalidOperationException($"Missing reversed second-pass mapping for ballot {processedRecord.BallotId}");
+
+                // VoteCodeRecord -> VoteRecord + old BallotId restoration
+                var newProcessedRecord = new VoteRecord
                 {
-                    var record = batch[index];
+                    BallotId = originalBallotId,
+                    VoteVector = processedRecord.VoteVector,
+                };
 
-                    record.BallotId = secondPass[record.BallotId];
+                var payload = SerializeRecord(newProcessedRecord);
+                await _transport.SendRecordAsync(payload, isSecondPass: false);
+            }
+            else
+            {
+                processedRecord.BallotId =
+                    _reversedShadowPermutation[processedRecord.BallotId - 1];
 
-                    var processedRecord = _processor.ProcessReturningSingleSecondPass(record, codeSettingData[record.BallotId]);
-
-                    Interlocked.Increment(ref _processedQ2);
-
-                    // bounce to next server instead of the previous one
-                    if (_isFirstServer)
-                    {
-                        // VoteCodeRecord to VoteRecord conversion and old BallotId restoration
-                        var newProcessedRecord = new VoteRecord
-                        {
-                            BallotId = reversedSecondPass[processedRecord.BallotId],
-                            VoteVector = processedRecord.VoteVector,
-                        };
-
-                        var payload = SerializeRecord(newProcessedRecord);
-                        await _transport.SendRecordAsync(payload, isSecondPass: false);
-                    }
-
-                    else
-                    {
-                        processedRecord.BallotId = _reversedShadowPermutation[processedRecord.BallotId - 1];
-
-                        var payload = SerializeRecord(processedRecord);
-                        await _transport.SendReturningRecordAsync(payload, isSecondPass: true);
-                    }
-
-                    // saving commitments - chyba
-                    // await _processor.PersistRecordAsync(processedRecord);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[{_myPort}] [RQ2] Processing error: {ex.Message}");
-                }
-            });
-            tasks.Add(task);
+                var payload = SerializeRecord(processedRecord);
+                await _transport.SendReturningRecordAsync(payload, isSecondPass: true);
+            }
         }
-
-        await Task.WhenAll(tasks);
-    }
-
-    protected override void OnDataCompleted(VoteRecord data, string voteSerial)
-    {
-        Console.Write("Vote Vector: ");
-        foreach (var vote in data.VoteVector)
+        catch (Exception ex)
         {
-            Console.Write(vote + " ");
+            Console.WriteLine($"[{_myPort}] [RQ2] Processing error: {ex.Message}");
         }
-        Console.Write("\n");
     }
 
-    public void OnReturningRecordReceived(VoteCodeRecord record, bool isSecondPass)
+    protected override void OnDataCompleted(VoteRecord data, string? voteSerial)
     {
-        if (isSecondPass)
-            _returningQueue2.Add(record);
-        else
-            _returningQueue1.Add(record);
+        ////////////////////////////////////////////////////////////
+        // zapisywanie wyniku do pliku czyli vote oraz voteSerial - test tylko - potem usunac
+        // powinno byc wysylanie wyniku na bb
+        ////////////////////////////////////////////////////////////
+
+        var filename = $"tallied_votes_server{_serverId}.txt";
+        using (var writer = new StreamWriter(filename, append: true))
+        {
+            writer.WriteLine(voteSerial);
+            foreach (var vote in data.VoteVector)
+            {
+                writer.WriteLine(vote);
+            }
+            writer.WriteLine();
+        }
+
+    }
+
+    // create VoteCodeRecord from new votes batch and send to previous server
+    private async Task ProcessNewVotesBatch(List<(string, string)> batch)
+    {
+        Dictionary<string, int> ballotIds = await _processor.ProccesNewVotesBatch(batch);
+
+        foreach (var vote in batch)
+        {
+            var encryptedVoteCodes = _processor.InitVoteCodeEncryption(vote.Item2);
+            var voteVector = _processor.InitVoteVector();
+
+            var record = new VoteCodeRecord
+            {
+                BallotId = _reversedShadowPrimPermutation[ballotIds[vote.Item1] - 1],
+                EncryptedVoteCodeC1 = encryptedVoteCodes.Item1,
+                EncryptedVoteCodeC2 = encryptedVoteCodes.Item2,
+                VoteVector = voteVector
+            };
+
+            var payload = SerializeRecord(record);
+
+            await _transport.SendReturningRecordAsync(payload, isSecondPass: false);
+        }
     }
 
     private static string SerializeRecord(VoteCodeRecord record)
     {
         return JsonSerializer.Serialize(record);
+    }
+
+    private void MonitorInitialQueue()
+    {
+        while (true)
+        {
+            try
+            {
+                Task.Delay(1000).Wait();
+
+                lock (_processingLock)
+                {
+                    if (_newVotesQueue.Count >= _newVotesTriggerSize)
+                    {
+                        var batch = new List<(string, string)>();
+
+                        //////////////////////////////////////////////
+                        // dodac losowe wybieranie glosow z kolejki //
+                        //////////////////////////////////////////////
+
+                        for (int i = 0; i < _newVotesBatchSize && _newVotesQueue.Count > 0; i++)
+                        {
+                            if (_newVotesQueue.TryTake(out var vote, 100))
+                            {
+                                batch.Add(vote);
+                            }
+                        }
+
+                        ProcessNewVotesBatch(batch);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{_myPort}] Monitor initial queue error: {ex.Message}");
+            }
+        }
     }
 
     private void MonitorTimeout()

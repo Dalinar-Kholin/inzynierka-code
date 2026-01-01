@@ -15,9 +15,7 @@ class Program
         int _baseValue = _alphabet.Length;
 
         var publicKey = new PaillierPublicKey();
-        BigInteger n = publicKey.n;
         BigInteger n_squared = publicKey.n_squared;
-        BigInteger g = publicKey.g;
 
         var sharedKeys = new List<PaillierSharedKey>
         {
@@ -121,35 +119,37 @@ class Program
 
         Console.WriteLine("====================");
 
+        // Om6tX0ZJir 0000c ROROO 6x6xx 20022 iPiPi vvvav QBBBQ ZZ22Z HH444 pOpOO
+        // 0R62ivQZHp
+
         // Zamienić potem żeby decrypt był statyczny
         Console.WriteLine($"Odszyfrowane: {decryptKey.decrypt(partialDecryptions)}");
 
-        BigInteger c1 = new BigInteger("88265803092502272316242682631820277998280193432857734804739992979536648668121716894095065051005043296850665133724313635534482165382931777731658752185049110567644859719790816005546529135461674896444372562929032262638114798140409008062766786755300118313494867361457458434935066704471722863400905675831615013122583");
+        BigInteger c1 = new BigInteger("440075574264028484998834063708480863771918521428078426954966538795772539586469840180017462517143828099652281098232090225483136048537317995658114748527663531852406872436482192485313764406497363242065067147090785843731356921197316566264927542475509744292475274254803952862700490527197837216594189541345519053182320");
 
         partialDecryptions = BuildPartialDecryptions(c1);
 
         Console.WriteLine($"Odszyfrowane1: {decryptKey.decrypt(partialDecryptions)}");
 
-        BigInteger c2 = new BigInteger("269820656837430012966876552738441354728057807232462144974085782319099165931942174778381542887842066851651660875584221112992253953780944924148284084382874466935778003627786505769735567725747129860282431227094021159043213346723261199728713660043130720578765421406271680102516128856069392337409052496494510402273461");
+        BigInteger c2 = new BigInteger("151222323663197096567572726776225969752656604321533843952494212002802725388554814925476690288426859989021391607254949125008681791893437084618742549516959799498221802549415206721507489745114992816939243687741835664667742988230057134879038765065081092473365005978645594833389114572525144856742467229010031981920134");
 
         partialDecryptions = BuildPartialDecryptions(c2);
 
         Console.WriteLine($"Odszyfrowane2: {decryptKey.decrypt(partialDecryptions)}");
 
-        BigInteger c3 = new BigInteger("357556615350698804250629668294293373095592029577077308021633757280814223478419623314327878831071532669556061783005730720848074587041771750393537440943372978553935021191174062589954607376322789271285428001102265770100976244161763134305639768985936197741096750694462876789624678108908535220085812440005618618918361");
+        BigInteger c3 = new BigInteger("462604156213138511416411829204751403421925606795452489810243966312678409761961299316950917751154915520365278655340048962053337381129618987212904035256912535515400760684364967538252473269394880509309118177494987783378262696831896639440458784194395383330445252452962901232058438294249414116169710729440385397129099");
 
         partialDecryptions = BuildPartialDecryptions(c3);
 
         Console.WriteLine($"Odszyfrowane3: {decryptKey.decrypt(partialDecryptions)}");
 
-        BigInteger c4 = new BigInteger("219687982057007707488705358705331841057491745949487440876171418758984968509093500613837391496471293437057958238023279389276621486856096575470172602839291590102482995206556763676360872116318475164601870960178702390567306229090958820379396732294844072912591696934923459240622917469824249272911871974223206876872777");
+        BigInteger c4 = new BigInteger("440677361578013499652263874671936368698552529407776131370396875003238414010105113909854934366174575862112011052910644484885573002645339780948829971193067267342156043432414922612002592098252917042305322445479543178847580275216792470063437840910921376876673587892102337547405081414154426889100012626149325689937036");
 
         partialDecryptions = BuildPartialDecryptions(c4);
 
         Console.WriteLine($"Odszyfrowane4: {decryptKey.decrypt(partialDecryptions)}");
 
-        BigInteger c5 = new BigInteger("141437058141936194855669637738337457638334355984463969486865994284586679280491469589428409378992652318362987452733338226090467915690747703632405186827906320268385097332945395108528945586497824512120466678701542497458383366520275463636739544983276533715939614081149880806587987860677291294853448125597840290428017");
-        //JuzDclEsZwSSxSSXPXPPAMMMAYUYYYhiiihyyyEEwkwwkYJYYJ11K1KTlllT
+        BigInteger c5 = new BigInteger("347710853462785125735189641340304479067088364798453427178468081685212465390728576093006956208193391150908429402552903768604545284829906931890848773873462554611291217112528534951040174790064869873596077080539605224298198214142355927366551546469490076785300944789726932387827435842675223386041397210369566521386229");
         partialDecryptions = BuildPartialDecryptions(c5);
 
         var decrypted5 = decryptKey.decrypt(partialDecryptions);
@@ -202,33 +202,70 @@ class Program
         // Console.WriteLine($"Odszyfrowany hash: {publicKey.BigIntegerToHash(decrypted)}");
 
 
-        // Console.WriteLine("=== ELGAMAL ===");
-        // // ElGamalEncryption.GenerateKeyPair();
 
-        // var elGamal = new ElGamalEncryption();
+        // Console.WriteLine("=== ELGAMAL - MULTI SERVER TEST ===\n");
 
-        // long number1 = 42;
-        // long number2 = 42;
+        // // Ścieżka do foldera z kluczami
+        // string keyFolder = "../elGamalKeys";
 
-        // Console.WriteLine($"\nSzyfrowanie liczby: {number1}");
-        // var (c1, c2) = elGamal.Encrypt(number1);
-        // Console.WriteLine($"Ciphertext c1: {c1}");
-        // Console.WriteLine($"Ciphertext c2: {c2}");
+        // // 1. Wygeneruj klucze dla 3 serwerów (tylko dla testu)
+        // Console.WriteLine("1. Generowanie kluczy dla 10 serwerów...");
+        // ElGamalEncryption.GenerateAndSaveServerKeys(numberOfServers: 10, folderPath: keyFolder, strength: 512);
+        // Console.WriteLine();
 
-        // var decrypted = elGamal.Decrypt(c1, c2);
-        // Console.WriteLine($"Odszyfrowane: {decrypted}");
+        // // 2. Każdy serwer załaduje swoje klucze
+        // Console.WriteLine("2. Ładowanie kluczy przez każdy serwer...");
+        // var server1 = new ElGamalEncryption(serverId: 1, folderPath: keyFolder);
+        // var server2 = new ElGamalEncryption(serverId: 2, folderPath: keyFolder);
+        // var server3 = new ElGamalEncryption(serverId: 3, folderPath: keyFolder);
+        // Console.WriteLine();
 
-        // var (c1_2, c2_2) = elGamal.Encrypt(number2);
-        // var (c1_mult, c2_mult) = elGamal.Multiply((c1, c2), (c1_2, c2_2));
-        // var (c1_div, c2_div) = elGamal.Divide((c1, c2), (c1_2, c2_2));
+        // // 3. Serwer 1 szyfruje wiadomość dla serwera 2
+        // Console.WriteLine("3. Serwer 1 szyfruje wiadomość dla serwera 2...");
+        // long testMessage = 42;
+        // var (c1_s1_to_s2, c2_s1_to_s2) = server1.Encrypt(testMessage, targetServerId: 2);
+        // Console.WriteLine($"   Wiadomość: {testMessage}");
+        // Console.WriteLine($"   Ciphertext c1: {c1_s1_to_s2}");
+        // Console.WriteLine($"   Ciphertext c2: {c2_s1_to_s2}");
+        // Console.WriteLine();
 
-        // var decryptedMult = elGamal.Decrypt(c1_mult, c2_mult);
-        // var decryptedDiv = elGamal.Decrypt(c1_div, c2_div);
-        // Console.WriteLine($"Mnozenie: {decryptedMult} (oczekiwane: {number1 * number2})");
-        // Console.WriteLine($"Dzielenie: {decryptedDiv} (oczekiwane: {number1 / number2})");
+        // // 4. Serwer 2 re-randomizuje i deszyfruje wiadomość
+        // Console.WriteLine("4. Serwer 2 re-randomizuje i deszyfruje wiadomość...");
+        // var (c1_s1_to_s2_r, c2_s1_to_s2_r) = server2.ReEncrypt((c1_s1_to_s2, c2_s1_to_s2));
+        // var decrypted_s2 = server2.Decrypt((c1_s1_to_s2_r, c2_s1_to_s2_r));
+        // Console.WriteLine($"   Odszyfrowano: {decrypted_s2}");
+        // Console.WriteLine($"   Poprawnie: {decrypted_s2.Equals(new BigInteger(testMessage.ToString()))}\n");
 
-        // Console.WriteLine(elGamal.Decrypt(new BigInteger("4640514876916297044899328957381608956615077629818535728280616252427695042395251932258482539303457149034574175648635808347257079857077099943644720367578912"), new BigInteger("7209860587698876778523417001664661979838947644730032041253113599053586259248296048815083090086518962928739526857698563322959706294177326066988110176318443")));
-        // // 8
+        // // 5. Testuj operacje homomorficzne między serwerami
+        // Console.WriteLine("5. Operacje homomorficzne (Serwer 1)...");
+        // long msg1 = 10;
+        // long msg2 = 5;
+        // var (c1_msg1, c2_msg1) = server1.Encrypt(msg1, targetServerId: 3);
+        // var (c1_msg2, c2_msg2) = server1.Encrypt(msg2, targetServerId: 3);
+
+        // // Mnożenie szyfrogramów = mnożenie tekstu jawnego
+        // var (c1_mult, c2_mult) = server1.Multiply((c1_msg1, c2_msg1), (c1_msg2, c2_msg2));
+        // var (c1_mult_r, c2_mult_r) = server3.ReEncrypt((c1_mult, c2_mult));
+        // var decrypted_mult = server3.Decrypt((c1_mult_r, c2_mult_r));
+        // Console.WriteLine($"   {msg1} * {msg2} = {decrypted_mult} (oczekiwane: {msg1 * msg2})");
+
+        // // Dzielenie szyfrogramów = dzielenie tekstu jawnego
+        // var (c1_div, c2_div) = server1.Divide((c1_msg1, c2_msg1), (c1_msg2, c2_msg2));
+        // var (c1_div_r, c2_div_r) = server3.ReEncrypt((c1_div, c2_div));
+        // var decrypted_div = server3.Decrypt((c1_div_r, c2_div_r));
+        // Console.WriteLine($"   {msg1} / {msg2} = {decrypted_div} (oczekiwane: {msg1 / msg2})\n");
+
+        // // 6. Serwer 3 szyfruje dla serwera 1
+        // Console.WriteLine("6. Serwer 3 szyfruje wiadomość dla serwera 1...");
+        // long testMessage3 = 99;
+        // var (c1_s3_to_s1, c2_s3_to_s1) = server3.Encrypt(testMessage3, targetServerId: 1);
+        // var (c1_s3_to_s1_r, c2_s3_to_s1_r) = server1.ReEncrypt((c1_s3_to_s1, c2_s3_to_s1));
+        // var decrypted_s1 = server1.Decrypt((c1_s3_to_s1_r, c2_s3_to_s1_r));
+        // Console.WriteLine($"   Wiadomość: {testMessage3}");
+        // Console.WriteLine($"   Odszyfrowano przez Serwer 1: {decrypted_s1}");
+        // Console.WriteLine($"   Poprawnie: {decrypted_s1.Equals(new BigInteger(testMessage3.ToString()))}\n");
+
+        // Console.WriteLine("=== TESTY ZAKONCZONE ===");
 
         // Wydajność ===============================
         // var publicKey = new PaillierPublicKey();

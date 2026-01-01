@@ -1,6 +1,6 @@
 using ChainCore;
 
-public class ChainEngine : ChainEngineBase<DataRecord, (int?, int, int, string), RecordProcessor, ITransport>
+public class ChainEngine : ChainEngineBase<DataRecord, (int, int, int, string), RecordProcessor, ITransport>
 {
     // additional structures for VoteCodes processing
     private readonly object _voteCodesListLock = new();

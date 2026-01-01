@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using Microsoft.VisualBasic;
 using VoteCodeServers.Helpers;
 
-public class RecordProcessor : IRecordProcessor<DataRecord, (int?, int, int, string)>
+public class RecordProcessor : IRecordProcessor<DataRecord, (int, int, int, string)>
 {
     private readonly int _serverId;
     private readonly int _totalServers;
@@ -37,12 +37,12 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int?, int, int, str
 
 
 
-    public async Task<Dictionary<int, (int?, int, int, string)>> ProcessBatchFirstPassAsync(List<int> ids)
+    public async Task<Dictionary<int, (int, int, int, string)>> ProcessBatchFirstPassAsync(List<int> ids)
     {
-        Dictionary<int, int?> shadowBatch = await _ballotService.GetShadowBatch(ids, false);
+        Dictionary<int, int> shadowBatch = await _ballotService.GetShadowBatch(ids, false);
         Dictionary<int, (int, int, string)> codeSettingBatch = await _codeSettingService.GetFinalEncryptionBatch(ids);
 
-        var batchData = new Dictionary<int, (int?, int, int, string)>();
+        var batchData = new Dictionary<int, (int, int, int, string)>();
         foreach (var ballotId in ids)
         {
             shadowBatch.TryGetValue(ballotId, out var shadow);
@@ -53,20 +53,18 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int?, int, int, str
         return batchData;
     }
 
-    public async Task<Dictionary<int, int?>> ProcessBatchSecondPassAsync(List<int> ids)
+    public async Task<Dictionary<int, int>> ProcessBatchSecondPassAsync(List<int> ids)
     {
         return await _ballotService.GetShadowBatch(ids, true);
     }
 
-    public async Task<Dictionary<int, string?>> ProcessBatchSecondPassLastServerAsync(List<int> ids)
+    public async Task<Dictionary<int, string>> ProcessBatchSecondPassLastServerAsync(List<int> ids)
     {
         return await _voteSerialsService.GetVoteSerialsBatch(ids);
     }
 
-    public DataRecord ProcessSingleFirstPass(DataRecord record, (int?, int, int, string) firstPass)
+    public DataRecord ProcessSingleFirstPass(DataRecord record, (int, int, int, string) firstPass)
     {
-        // zaszyfrowanie swoich voteCodów i dodanie do rekordu
-
         if (record.EncryptedVoteCodes == null)
         {
             record.EncryptedVoteCodes = _paillierPublic.Encrypt(new BigInteger("0")).ToString();
@@ -89,10 +87,7 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int?, int, int, str
         codes = _paillierPublic.Encrypt(codes);
         record.EncryptedVoteCodes = (new BigInteger(record.EncryptedVoteCodes).Multiply(codes).Mod(_paillierPublic.n_squared)).ToString();
 
-        if (firstPass.Item1.HasValue)
-        {
-            record.BallotId = firstPass.Item1.Value;
-        }
+        record.BallotId = firstPass.Item1;
 
         return record;
     }

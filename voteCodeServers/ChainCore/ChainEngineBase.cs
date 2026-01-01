@@ -150,8 +150,8 @@ namespace ChainCore
                 ids.Add(record.BallotId);
             }
 
-            Dictionary<int, int?> secondPass = null;
-            Dictionary<int, string?> voteSerials = null;
+            Dictionary<int, int>? secondPass = null;
+            Dictionary<int, string>? voteSerials = null;
 
             if (_isLastServer)
                 voteSerials = await _processor.ProcessBatchSecondPassLastServerAsync(ids);
@@ -163,16 +163,24 @@ namespace ChainCore
 
         private async Task ProcessSingle(
             TRecord record,
-            Dictionary<int, int?> secondPass,
-            Dictionary<int, string?> voteSerials)
+            Dictionary<int, int>? secondPass,
+            Dictionary<int, string>? voteSerials)
         {
             try
             {
-                int? secondPassData = default;
-                string? voteSerialData = default;
+                int? secondPassData = null;
+                string? voteSerialData = null;
 
-                secondPass?.TryGetValue(record.BallotId, out secondPassData);
-                voteSerials?.TryGetValue(record.BallotId, out voteSerialData);
+                if (secondPass != null)
+                {
+                    secondPass.TryGetValue(record.BallotId, out var sp);
+                    secondPassData = sp;
+                }
+                if (voteSerials != null)
+                {
+                    voteSerials.TryGetValue(record.BallotId, out var vs);
+                    voteSerialData = vs;
+                }
 
                 var processed = _processor.ProcessSingleSecondPass(record, secondPassData);
                 Interlocked.Increment(ref _processedQ2);
