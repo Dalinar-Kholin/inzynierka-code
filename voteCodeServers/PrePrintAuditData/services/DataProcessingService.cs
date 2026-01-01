@@ -24,19 +24,19 @@ public class DataProcessingService
         _totalServers = totalServers;
         _isLastServer = _serverId == _totalServers;
 
-        _ballotService = new BallotService(serverId);
+        _ballotService = new BallotService(serverId, totalServers);
         _ballotLinkingService = new BallotLinkingService(serverId);
         _voteSerialsService = new VoteSerialsService(serverId);
         _codeSettingService = new CodeSettingService(serverId);
         _paillierPublic = new PaillierPublicKey("../../encryption/paillierKeys");
     }
 
-    public async Task<Dictionary<int, (int?, string[])>> ProcessBatchFirstPassAsync(List<int> ids)
+    public async Task<Dictionary<int, (int, string[])>> ProcessBatchFirstPassAsync(List<int> ids)
     {
-        Dictionary<int, int?> shadowBatch = await _ballotService.GetShadowBatch(ids, false);
+        Dictionary<int, int> shadowBatch = await _ballotService.GetShadowBatch(ids, false);
         Dictionary<int, string[]> vBatch = await _codeSettingService.GetVBatch(ids);
 
-        var batchData = new Dictionary<int, (int? shadowSerial, string[] v)>();
+        var batchData = new Dictionary<int, (int shadowSerial, string[] v)>();
         foreach (var ballotId in ids)
         {
             shadowBatch.TryGetValue(ballotId, out var shadow);
@@ -47,17 +47,17 @@ public class DataProcessingService
         return batchData;
     }
 
-    public async Task<Dictionary<int, int?>> ProcessBatchSecondPassAsync(List<int> ids)
+    public async Task<Dictionary<int, int>> ProcessBatchSecondPassAsync(List<int> ids)
     {
         return await _ballotService.GetShadowBatch(ids, true);
     }
 
-    public async Task<Dictionary<int, string?>> ProcessBatchSecondPassLastServerAsync(List<int> ids)
+    public async Task<Dictionary<int, string>> ProcessBatchSecondPassLastServerAsync(List<int> ids)
     {
         return await _voteSerialsService.GetVoteSerialsBatch(ids);
     }
 
-    public DataRecord ProcessSingleFirstPass(DataRecord record, (int?, string[]) firstPass)
+    public DataRecord ProcessSingleFirstPass(DataRecord record, (int, string[]) firstPass)
     {
         // reszyfracja kazdego wektora V ktory jest w tablicy record.Vectors
         for (int m = 0; m < record.Vectors.Count; m++)
@@ -70,10 +70,8 @@ public class DataProcessingService
             }
         }
 
-        if (firstPass.Item1.HasValue)
-        {
-            record.BallotId = firstPass.Item1.Value;
-        }
+        record.BallotId = firstPass.Item1;
+
         if (firstPass.Item2 != null)
         {
             record.Vectors.Add(firstPass.Item2);

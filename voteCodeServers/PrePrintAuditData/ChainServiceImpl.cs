@@ -404,8 +404,8 @@ public class ChainServiceImpl : ChainService.ChainServiceBase
         // zoraganizowac lepiej chyba sie by dalo
 
         // fetching data from DB
-        Dictionary<int, string?> voteSerials = null;
-        Dictionary<int, int?> secondPass = null;
+        Dictionary<int, string>? voteSerials = null;
+        Dictionary<int, int>? secondPass = null;
 
         if (_isLastServer)
         {
@@ -428,8 +428,8 @@ public class ChainServiceImpl : ChainService.ChainServiceBase
                     var record = batch[index];
                     var secondPassData = secondPass != null && secondPass.ContainsKey(record.BallotId)
                         ? secondPass[record.BallotId]
-                        : null;
-                    var voteSerialData = voteSerials != null && voteSerials.ContainsKey(record.BallotId)
+                        : 0;
+                    string? voteSerialData = voteSerials != null && voteSerials.ContainsKey(record.BallotId)
                         ? voteSerials[record.BallotId]
                         : null;
 
