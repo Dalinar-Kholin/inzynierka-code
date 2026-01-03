@@ -1,8 +1,9 @@
 using GrpcChain;
 using Grpc.Net.Client;
 
-int ballotNumber = 40400;
-int numberOfCandidates = 5;
+var cfg = VoteCodeServers.Helpers.Config.Load();
+int ballotNumber = cfg.NumberOfVoters * 4 + cfg.SafetyParameter * 2;
+int numberOfCandidates = cfg.NumberOfCandidates;
 
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
@@ -77,13 +78,9 @@ while (true)
 
         case "init":
             if (serverId == 1)
-            {
                 await engine.InitializeData(ballotNumber);
-            }
             else
-            {
                 Console.WriteLine("'init' only available on Server 1");
-            }
             break;
     }
 }

@@ -4,9 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Org.BouncyCastle.Math;
 using System.Security.Cryptography;
+using Microsoft.VisualBasic;
+using VoteCodeServers.Helpers;
 
-
-public class DataProcessingService
+public class RecordProcessor : IRecordProcessor<DataRecord, (int, string[])>
 {
     private readonly int _serverId;
     private readonly int _totalServers;
@@ -18,7 +19,7 @@ public class DataProcessingService
     private readonly CodeSettingService _codeSettingService;
     private readonly PaillierPublicKey _paillierPublic;
 
-    public DataProcessingService(int serverId, int totalServers)
+    public RecordProcessor(int serverId, int totalServers)
     {
         _serverId = serverId;
         _totalServers = totalServers;
@@ -59,7 +60,7 @@ public class DataProcessingService
 
     public DataRecord ProcessSingleFirstPass(DataRecord record, (int, string[]) firstPass)
     {
-        // reszyfracja kazdego wektora V ktory jest w tablicy record.Vectors
+        // re-encrypt each vector V which is in the record.Vectors array
         for (int m = 0; m < record.Vectors.Count; m++)
         {
             for (int i = 0; i < record.Vectors[m].Length; i++)
@@ -77,7 +78,7 @@ public class DataProcessingService
             record.Vectors.Add(firstPass.Item2);
         }
 
-        // tasowanie listy wektorów (Fisher–Yates, CSPRNG)
+        // Fisher–Yates vector shuffle
         if (record.Vectors != null && record.Vectors.Count > 1)
         {
             for (int i = record.Vectors.Count - 1; i > 0; i--)
@@ -97,7 +98,7 @@ public class DataProcessingService
 
     public DataRecord ProcessSingleSecondPass(DataRecord record, int? secondPass)
     {
-        // reszyfracja kazdego wektora V ktory jest w tablicy record.Vectors
+        // re-encrypt each vector V which is in the record.Vectors array
         for (int m = 0; m < record.Vectors.Count; m++)
         {
             for (int i = 0; i < record.Vectors[m].Length; i++)

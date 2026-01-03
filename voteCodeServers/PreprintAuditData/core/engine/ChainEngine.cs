@@ -1,22 +1,19 @@
 using ChainCore;
 
-public class ChainEngine : ChainEngineBase<DataRecord, (int, int, int, string), RecordProcessor, ITransport>
+public class ChainEngine : ChainEngineBase<DataRecord, (int, string[]), RecordProcessor, ITransport>
 {
-    // additional structures for VoteCodes processing
-    private readonly object _voteCodesListLock = new();
+    private readonly List<PrePrintAuditData> _auditList = new();
+    private readonly object _auditListLock = new();
+    private DateTime _lastAuditFlushTime = DateTime.Now;
+    private readonly PrePrintAuditService _auditService;
 
-    private DateTime _lastVoteCodesFlushTime = DateTime.Now;
-    private readonly List<VoteCodesData> _voteCodesList = new();
-
-    private readonly VoteCodesService _voteCodesService;
-
-    private const int _voteCodesBatchSize = 1000;
-    private const int _voteCodesTimeoutSeconds = 30;
+    private const int _auditBatchSize = 1000;
+    private const int _auditTimeoutSeconds = 30;
 
     public ChainEngine(int serverId, int totalServers, int myPort, RecordProcessor processor)
         : base(serverId, totalServers, myPort, processor)
     {
-        _voteCodesService = new VoteCodesService(serverId);
+        _auditService = new PrePrintAuditService(serverId);
     }
 
     public override void SetTransport(ITransport transport)
@@ -28,10 +25,28 @@ public class ChainEngine : ChainEngineBase<DataRecord, (int, int, int, string), 
         Task.Run(PrintStatsLoop);
         if (_isLastServer)
         {
-            Task.Run(MonitorVoteCodesTimeout);
+            Task.Run(MonitorAuditTimeout);
         }
     }
 
+    public async Task InitializeData(int ballotNumber)
+    {
+        if (_serverId != 1)
+        {
+            Console.WriteLine($"Initialize only available on Server 1");
+            return;
+        }
+
+        Console.WriteLine($"Initializing Queue 1 with {ballotNumber} records...");
+        for (int i = 1; i <= ballotNumber; i++)
+        {
+            _queue1.Add(new DataRecord { BallotId = i });
+            if (i % 100 == 0 || i == 1)
+            {
+                Console.WriteLine($"Added {i}/{ballotNumber} records");
+            }
+        }
+    }
 
     protected override void CheckAndStartProcessing()
     {
@@ -72,78 +87,59 @@ public class ChainEngine : ChainEngineBase<DataRecord, (int, int, int, string), 
 
     protected override void OnDataCompleted(DataRecord data, string voteSerial)
     {
-        // add encrypted vote codes to list
-        lock (_voteCodesListLock)
+        lock (_auditListLock)
         {
-            var voteCodesData = new VoteCodesData
+            var auditData = new PrePrintAuditData
             {
-                EncryptedVoteCodes = _processor.FinnalizeEncryptedVoteCodes(data.EncryptedVoteCodes, voteSerial),
+                BallotVoteSerial = voteSerial,
+                Vectors = data.Vectors
             };
-            _voteCodesList.Add(voteCodesData);
-            Console.WriteLine($"Added to vote codes list. Count: {_voteCodesList.Count}");
+            _auditList.Add(auditData);
+            Console.WriteLine($"Added to audit list. Count: {_auditList.Count}");
         }
 
-        CheckAndProcessVoteCodesQueue();
+        CheckAndProcessAuditQueue();
     }
 
-    private void CheckAndProcessVoteCodesQueue()
+    private void CheckAndProcessAuditQueue()
     {
-        lock (_voteCodesListLock)
+        lock (_auditListLock)
         {
-            bool hasEnoughRecords = _voteCodesList.Count >= _voteCodesBatchSize;
-            bool timeoutExpired = DateTime.Now.Subtract(_lastVoteCodesFlushTime).TotalSeconds >= _voteCodesTimeoutSeconds
-                                  && _voteCodesList.Count > 0;
+            bool hasEnoughRecords = _auditList.Count >= _auditBatchSize;
+            bool timeoutExpired = DateTime.Now.Subtract(_lastAuditFlushTime).TotalSeconds >= _auditTimeoutSeconds
+                                  && _auditList.Count > 0;
 
             if (hasEnoughRecords || timeoutExpired)
             {
-                Console.WriteLine($"Processing vote codes list batch of {_voteCodesList.Count} records");
-                Task.Run(() => ProcessVoteCodesQueueBatch());
+                Console.WriteLine($"Processing audit list batch of {_auditList.Count} records");
+                Task.Run(() => ProcessAuditQueueBatch());
             }
         }
     }
 
-    private async Task ProcessVoteCodesQueueBatch()
+    private async Task ProcessAuditQueueBatch()
     {
-        List<VoteCodesData> batch;
+        List<PrePrintAuditData> batch;
 
-        lock (_voteCodesListLock)
+        lock (_auditListLock)
         {
-            batch = new List<VoteCodesData>(_voteCodesList);
-            _voteCodesList.Clear();
-            _lastVoteCodesFlushTime = DateTime.Now;
+            batch = new List<PrePrintAuditData>(_auditList);
+            _auditList.Clear();
+            _lastAuditFlushTime = DateTime.Now;
         }
 
         if (batch.Count > 0)
         {
             try
             {
-                Console.WriteLine($"Creating VoteCodes batch of {batch.Count} records");
+                Console.WriteLine($"Creating PrePrintAudit batch of {batch.Count} records");
 
-                await _voteCodesService.CreateVoteCodesBatch(batch);
-                Console.WriteLine($"VoteCodes batch saved successfully.");
+                await _auditService.CreatePrePrintAuditBatch(batch);
+                Console.WriteLine($"Audit batch saved successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing vote codes batch: {ex.Message}");
-            }
-        }
-    }
-
-    public async Task InitializeData(int ballotNumber)
-    {
-        if (_serverId != 1)
-        {
-            Console.WriteLine($"Initialize only available on Server 1");
-            return;
-        }
-
-        Console.WriteLine($"Initializing Queue 1 with {ballotNumber} records...");
-        for (int i = 1; i <= ballotNumber; i++)
-        {
-            _queue1.Add(new DataRecord { BallotId = i });
-            if (i % 100 == 0 || i == 1)
-            {
-                Console.WriteLine($"Added {i}/{ballotNumber} records");
+                Console.WriteLine($"Error processing audit batch: {ex.Message}");
             }
         }
     }
@@ -169,18 +165,18 @@ public class ChainEngine : ChainEngineBase<DataRecord, (int, int, int, string), 
         }
     }
 
-    private void MonitorVoteCodesTimeout()
+    private void MonitorAuditTimeout()
     {
         while (true)
         {
             try
             {
                 Task.Delay(1000).Wait();
-                CheckAndProcessVoteCodesQueue();
+                CheckAndProcessAuditQueue();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[{_myPort}] VoteCodes monitor error: {ex.Message}");
+                Console.WriteLine($"[{_myPort}] Audit monitor error: {ex.Message}");
             }
         }
     }

@@ -23,15 +23,23 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
     // dodac losowe kolejki - teraz dla testow
     /////////////////////////////////////////////////
 
-    private const int _newVotesBatchSize = 1;
-    private const int _newVotesTriggerSize = 1; // > _newVotesBatchSize
+    private DateTime _votingEndDate = DateTime.Now.AddHours(1); // testowe
 
-    public ChainEngine(int serverId, int totalServers, int myPort, RecordProcessor processor)
+    private readonly int _newVotesBatchSize;
+    private readonly int _newVotesTriggerSize;
+
+    public ChainEngine(int serverId, int totalServers, int myPort, RecordProcessor processor,
+                       int newVotesBatchSize = 1000, int newVotesTriggerSize = 2000)
         : base(serverId, totalServers, myPort, processor)
     {
         _isFirstServer = _serverId == 1;
         _reversedShadowPermutation = _ballotLinkingService.GetReversedPermutationListAsync(false).Result;
         _reversedShadowPrimPermutation = _ballotLinkingService.GetReversedPermutationListAsync(true).Result;
+
+        _newVotesBatchSize = newVotesBatchSize;
+        _newVotesTriggerSize = newVotesTriggerSize;
+
+        Console.WriteLine($"[ChainEngine] BatchSize={_newVotesBatchSize}, TriggerSize={_newVotesTriggerSize}");
     }
 
     public override void SetTransport(IExtendedTransport transport)
@@ -46,6 +54,12 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
 
     public void OnNewVoteReceived(string voteSerial, string voteCode)
     {
+        if (DateTime.Now > _votingEndDate)
+        {
+            Console.WriteLine($"[{_myPort}] Voting period has ended. New votes are not accepted.");
+            return;
+        }
+
         _newVotesQueue.Add((voteSerial, voteCode));
     }
 
@@ -153,7 +167,7 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
         // get BallotId from ShadowSerialPrim
         var firstPass = await _processor.ProcessReturningBatchFirstPassAsync(ids);
 
-        await Task.WhenAll(batch.Select(record => ProcessReturningSingleFirstPass(record, firstPass)));
+        await Task.WhenAll(batch.Select(record => Task.Run(() => ProcessReturningSingleFirstPass(record, firstPass))));
     }
 
     private async Task ProcessReturningSingleFirstPass(
@@ -208,15 +222,7 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
             }
         }
 
-        await Task.WhenAll(
-            batch.Select(record =>
-                ProcessReturningSingleSecondPass(
-                    record,
-                    secondPass,
-                    codeSettingData,
-                    reversedSecondPass
-                )
-            )
+        await Task.WhenAll(batch.Select(record => Task.Run(() => ProcessReturningSingleSecondPass(record, secondPass, codeSettingData, reversedSecondPass)))
         );
     }
 

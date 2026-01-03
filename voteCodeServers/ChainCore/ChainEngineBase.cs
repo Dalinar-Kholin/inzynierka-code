@@ -114,7 +114,7 @@ namespace ChainCore
             var firstPass = await _processor.ProcessBatchFirstPassAsync(ids);
 
             await Task.WhenAll(
-                batch.Select(record => ProcessSingleFirstPass(record, firstPass))
+                batch.Select(record => Task.Run(() => ProcessSingleFirstPass(record, firstPass)))
             );
         }
 
@@ -158,7 +158,7 @@ namespace ChainCore
             else
                 secondPass = await _processor.ProcessBatchSecondPassAsync(ids);
 
-            await Task.WhenAll(batch.Select(record => ProcessSingle(record, secondPass, voteSerials)));
+            await Task.WhenAll(batch.Select(record => Task.Run(() => ProcessSingle(record, secondPass, voteSerials))));
         }
 
         private async Task ProcessSingle(

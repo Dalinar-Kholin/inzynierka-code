@@ -1,8 +1,10 @@
 using GrpcChain;
 using Grpc.Net.Client;
 
-int ballotNumber = 40400;
-int numberOfCandidates = 5;
+var cfg = VoteCodeServers.Helpers.Config.Load();
+int ballotNumber = cfg.NumberOfVoters * 4 + cfg.SafetyParameter * 2;
+int numberOfCandidates = cfg.NumberOfCandidates;
+var batchSettings = cfg.BatchSettings;
 
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
@@ -41,10 +43,10 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Services.AddGrpc();
 
 var processor = new RecordProcessor(serverId, totalServers, numberOfCandidates);
-var engine = new ChainEngine(serverId, totalServers, myPort, processor);
+var engine = new ChainEngine(serverId, totalServers, myPort, processor, batchSettings.VotesBatchSize, batchSettings.VotesTriggerSize);
 var service = new ChainServiceImpl(nextServer, prevServer, myPort, engine);
 
-engine.SetTransport(service); // jeśli ChainServiceImpl implementuje ITransport
+engine.SetTransport(service);
 
 builder.Services.AddSingleton(service);
 

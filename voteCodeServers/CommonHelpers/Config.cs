@@ -4,6 +4,12 @@ using System.Text.Json;
 
 namespace VoteCodeServers.Helpers
 {
+    public class BatchSettings
+    {
+        public int VotesBatchSize { get; set; } = 1;
+        public int VotesTriggerSize { get; set; } = 1;
+    }
+
     public class AppSettings
     {
         public string Alphabet { get; set; } = "";
@@ -11,6 +17,7 @@ namespace VoteCodeServers.Helpers
         public int NumberOfVoters { get; set; } = 0;
         public int SafetyParameter { get; set; } = 0;
         public int NumberOfServers { get; set; } = 0;
+        public BatchSettings BatchSettings { get; set; } = new();
     }
 
     public static class Config

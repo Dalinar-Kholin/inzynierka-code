@@ -1,7 +1,8 @@
 using GrpcChain;
 using Grpc.Net.Client;
 
-int ballotNumber = 40400;
+var cfg = VoteCodeServers.Helpers.Config.Load();
+int ballotNumber = cfg.NumberOfVoters * 4 + cfg.SafetyParameter * 2;
 
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
@@ -36,7 +37,12 @@ builder.WebHost.ConfigureKestrel(options =>
 
 builder.Services.AddGrpc();
 
-var service = new ChainServiceImpl(serverId, totalServers, nextServer, myPort, ballotNumber);
+var processor = new RecordProcessor(serverId, totalServers);
+var engine = new ChainEngine(serverId, totalServers, myPort, processor);
+var service = new ChainServiceImpl(nextServer, myPort, engine);
+
+engine.SetTransport(service);
+
 builder.Services.AddSingleton(service);
 
 var app = builder.Build();
@@ -45,12 +51,11 @@ app.MapGet("/", () => $"Chain node on port {myPort}");
 
 _ = app.RunAsync();
 
-Console.WriteLine("  send <message>");
 if (serverId == 1)
 {
-    Console.WriteLine("  init <count>    - Initialize Queue 1 with <count> records (Server 1 only)");
+    Console.WriteLine("  init");
 }
-Console.WriteLine("  exit");
+Console.WriteLine("  e");
 
 while (true)
 {
@@ -71,13 +76,9 @@ while (true)
 
         case "init":
             if (serverId == 1)
-            {
-                await service.InitializeData();
-            }
+                await engine.InitializeData(ballotNumber);
             else
-            {
                 Console.WriteLine("'init' only available on Server 1");
-            }
             break;
     }
 }
