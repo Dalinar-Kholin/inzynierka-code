@@ -18,6 +18,20 @@ import (
 
 var number = 1
 
+func SingleCommitment(c *gin.Context) {
+	var body commiterStruct.SingleCommitBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		panic(err)
+	}
+
+	var toCommit [64]byte
+	copy(toCommit[:], body.Data)
+	_, err := common.CallSingleCommitment(body.CommitmentType, body.Id, toCommit)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func FinalCommit(c *gin.Context) {
 	slices.SortFunc(h.list, func(a, b sha) int {
 		return bytes.Compare(a, b)
@@ -27,14 +41,13 @@ func FinalCommit(c *gin.Context) {
 	}
 
 	ct := c.Request.URL.Query().Get("commitment_type")
-	if ct == ""{
+	if ct == "" {
 		panic("bad commitment_type")
 	}
 	ctInted, err := strconv.Atoi(ct)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
-
 
 	tree, err := merkeleTree.NewMerkleTree(h.list)
 	defer func() {

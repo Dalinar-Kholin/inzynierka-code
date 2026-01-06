@@ -48,6 +48,7 @@ func main() {
 	r.POST(golangShared.AddCommitPackEndpoint, endpoint.AddAuthPackage)
 	r.GET(golangShared.FinalCommitEndpoint, endpoint.FinalCommit)
 	r.POST(golangShared.CommitSignKeyEndpoint, endpoint.CommitSignKey)
+	r.POST(golangShared.CommitSingleValue, endpoint.SingleCommitment)
 	r.GET("/healthz", func(context *gin.Context) {
 		context.Status(200)
 	})

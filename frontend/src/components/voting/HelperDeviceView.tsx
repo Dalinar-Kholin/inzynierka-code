@@ -4,6 +4,8 @@ import {Alert} from "@mui/material"
 import {useHelperDevice} from "../../hooks/useHelperDevice.ts";
 import DownloadXMLFile from "../downloadXMLFile.tsx";
 import {UploadContentToState, UploadSignedVoteRequest} from "../UploadSignedVote.tsx";
+import {useAnchor} from "../../hooks/useAnchor.ts";
+import {useEffect} from "react";
 
 
 export default function HelperDeviceView(){
@@ -21,6 +23,16 @@ export default function HelperDeviceView(){
         showSuccess
     } = useHelperDevice()
 
+    const {getProgram} = useAnchor()
+
+    useEffect(()=> {
+        const fetch = async () => {
+            const value = (await getProgram().account.singleCommitment.all())[0].account.toCommit
+
+            console.log(Buffer.from(value).toString("hex"))
+        }
+        fetch().then()
+    })
 
     return(
         <>
@@ -33,6 +45,7 @@ export default function HelperDeviceView(){
             <UploadContentToState setContent={setPublicKey} name={"set Public Key"}></UploadContentToState>
             {successMessage !== null ?  <Alert severity="success">{successMessage}</Alert> : <></>}
             {errorMessage !== null ? <Alert severity="error">{errorMessage}</Alert> : <></>}
+
         </>
     )
 }

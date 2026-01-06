@@ -1,4 +1,4 @@
-package commitment
+package commiterStruct
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	. "golangShared"
-	"golangShared/commiterStruct"
 	"net/http"
 )
 
@@ -25,7 +24,7 @@ func FinalCommit(commitmentType common.CommitmentType) bool {
 func AddToCommit(auth Serial, data string) bool {
 	basedAuth := base64.StdEncoding.EncodeToString(auth[:])
 
-	body := commiterStruct.CommitAuthPacketBody{
+	body := CommitAuthPacketBody{
 		AuthSerial: basedAuth,
 		Data:       data,
 	}
@@ -47,7 +46,7 @@ func AddToCommit(auth Serial, data string) bool {
 }
 
 func CommitSignKey(key string) error {
-	body := commiterStruct.CommitSignKeyBody{
+	body := CommitSignKeyBody{
 		Key: key,
 	}
 
@@ -68,6 +67,32 @@ func CommitSignKey(key string) error {
 	return nil
 }
 
-func Commit() {
+type SingleCommitBody struct {
+	CommitmentType common.CommitmentType `json:"commitmentType"`
+	Id             uint8                 `json:"id"`
+	Data           []byte                `json:"data"`
+}
 
+func CommitSingle(commitmentType common.CommitmentType, id uint8, toCommit [64]byte) error {
+	body := SingleCommitBody{
+		CommitmentType: commitmentType,
+		Id:             id,
+		Data:           toCommit[:],
+	}
+
+	jsonedBody, err := json.Marshal(body)
+	if err != nil {
+		panic(err)
+	}
+	post, err := (&http.Client{}).Post(
+		fmt.Sprintf("http://127.0.0.1:%d%s", CommiterPort, CommitSingleValue),
+		"application/json",
+		bytes.NewBuffer(jsonedBody))
+	if err != nil {
+		panic(err)
+	}
+	if post.StatusCode != http.StatusOK {
+		// panic("response not 200")
+	}
+	return nil
 }

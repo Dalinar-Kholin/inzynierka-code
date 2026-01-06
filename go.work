@@ -7,4 +7,6 @@ use (
 	./simpleSolanaSignerServer
 	./votingServer
 	SignerVeryfier
+	voteCodeServers/SharedRandomness
+	voteCodeServers/SharedRandomness/EaServer
 )

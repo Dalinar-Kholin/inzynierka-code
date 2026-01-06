@@ -6,12 +6,12 @@ import (
 	"context"
 	"fmt"
 	"golangShared"
+	"golangShared/commiterStruct"
 	"golangShared/signer"
 	"io"
 	"os"
 	"strings"
 	"time"
-	"votingServer/commitment"
 	"votingServer/endpoint"
 	"votingServer/helper"
 	"votingServer/initElection"
@@ -30,7 +30,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := commitment.CommitSignKey(string(pemBytes)); err != nil {
+	if err := commiterStruct.CommitSignKey(string(pemBytes)); err != nil {
 
 	}
 

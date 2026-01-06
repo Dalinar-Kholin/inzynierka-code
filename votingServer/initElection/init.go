@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	. "golangShared"
+	"golangShared/commiterStruct"
 	"golangShared/helpers"
 	"votingServer/DB"
-	"votingServer/commitment"
 	"votingServer/obliviousTransfer"
 
 	"github.com/google/uuid"
@@ -18,9 +18,9 @@ import (
 
 func CreatePackages() {
 	createAuthPackage()
-	commitment.FinalCommit(common.AuthPack)
+	commiterStruct.FinalCommit(common.AuthPack)
 	createVotingPackage()
-	commitment.FinalCommit(common.VotePacks)
+	commiterStruct.FinalCommit(common.VotePacks)
 }
 
 func createVotingPackage() {
@@ -48,7 +48,7 @@ func createVotingPackage() {
 		}
 		var votingSerial Serial
 		copy(votingSerial[:], newPackage.VoteSerial.Data)
-		if !commitment.AddToCommit(votingSerial, string(data)) {
+		if !commiterStruct.AddToCommit(votingSerial, string(data)) {
 			panic("error when commiting")
 		}
 
@@ -83,7 +83,7 @@ func createAuthPackage() {
 
 		var authSerial Serial
 		copy(authSerial[:], newAuth.AuthSerial.Data)
-		if !commitment.AddToCommit(authSerial, string(data)) {
+		if !commiterStruct.AddToCommit(authSerial, string(data)) {
 			panic("error while commiting")
 		}
 	}
