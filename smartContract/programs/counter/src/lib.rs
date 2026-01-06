@@ -18,9 +18,9 @@ mod counter {
     use super::*;
 
     pub fn cast_vote( // do umieszczenia krotki <VoteCode,AuthCode> na BB
-        ctx: Context<CastCtx>,
-        auth_code: Vec<u8>,
-        vote_code: Vec<u8>,
+                      ctx: Context<CastCtx>,
+                      auth_code: Vec<u8>,
+                      vote_code: Vec<u8>,
     ) -> Result<()> {
         let cast = &mut ctx.accounts.vote;
         require!(cast.stage == VotingStage::Empty, ErrorCode::InvalidProgramId);
@@ -46,7 +46,7 @@ mod counter {
         auth_serial: Vec<u8>,
         vote_serial: Vec<u8>,
         server_sign: Vec<u8> // po co ack code skoro mamy podpis
-    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
+    ) -> Result<()> { // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
         let cast = &mut ctx.accounts.vote;
         require!(cast.stage == VotingStage::Casted, ErrorCode::InvalidProgramId);
 
@@ -70,7 +70,7 @@ mod counter {
         auth_code: Vec<u8>,
         offset: u32,
         user_sign: Vec<u8>
-    ) -> Result<()>{ // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
+    ) -> Result<()> { // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
         let vote = &mut ctx.accounts.vote;
 
         let offset = offset as usize;
@@ -108,7 +108,47 @@ mod counter {
         Ok(())
     }
 
+    pub fn create_single_commitment(
+        ctx: Context<CreateSingleCommitment>,
+        commitment_type: u8,
+        id: u8,
+        to_commit: [u8; 64],
+    ) -> Result<()> {
+        let commitment_data = &mut ctx.accounts.commitment;
+        commitment_data.commitment_type = commitment_type;
+        commitment_data.id = id;
+        commitment_data.to_commit = to_commit;
+        commitment_data.bump = ctx.bumps.commitment;
+        Ok(())
+    }
 }
+    #[derive(Accounts)]
+    #[instruction(commitment_type: u8, id: u8, to_commit: [u8; 64])]
+    pub struct CreateSingleCommitment<'info> {
+        #[account(mut)]
+        pub payer: Signer<'info>,
+
+        #[account(
+        init,
+        payer = payer,
+        space = 8 + 1 + 1 + 64 + 1, // 8 = discriminator
+        seeds = [
+            b"createSingleCommitment".as_ref(), &[commitment_type], &to_commit[..32], &to_commit[32..],
+        ],
+        bump
+        )]
+        pub commitment: Account<'info, SingleCommitment>,
+
+        pub system_program: Program<'info, System>,
+    }
+
+    #[account]
+    pub struct SingleCommitment {
+        pub commitment_type: u8,
+        pub id: u8,
+        pub to_commit: [u8; 64],
+        pub bump: u8,
+    }
 
 #[derive(Accounts)]
 #[instruction(commitment_type: u8, hashed_data : [u8; 32])]
