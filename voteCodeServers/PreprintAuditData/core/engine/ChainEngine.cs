@@ -1,6 +1,6 @@
 using ChainCore;
 
-public class ChainEngine : ChainEngineBase<DataRecord, (int, string[]), RecordProcessor, ITransport>
+public class ChainEngine : ChainEngineBase<DataRecord, string[], RecordProcessor, ITransport>
 {
     private readonly List<PrePrintAuditData> _auditList = new();
     private readonly object _auditListLock = new();

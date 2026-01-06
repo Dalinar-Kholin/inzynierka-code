@@ -10,8 +10,8 @@ public class LocalBallotData
     private const int _serialLenght = 10;
     private const string _serialAlphabet = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
     private readonly int _serverId;
-    private readonly int _a; // alphabet length
-    private readonly int _n; // total number of ballots
+    private readonly int _alphabetLength;
+    private readonly int _numberOfBallots;
     private readonly int _numberOfServers;
     private readonly int _numberOfCandidates;
     private readonly BallotService _ballotService;
@@ -22,11 +22,11 @@ public class LocalBallotData
     public LocalBallotData(int serverId, string A, int numberOfVoters, int safetyParameter, int numberOfServers, int numberOfCandidates)
     {
         var n = 4 * numberOfVoters + 2 * safetyParameter;
-        if (n > 100_000_000) throw new ArgumentException("Too big."); ;
+        if (n > 100_000_000) throw new ArgumentException("Too big.");
 
         _serverId = serverId;
-        _a = A.Length;
-        _n = n;
+        _alphabetLength = A.Length;
+        _numberOfBallots = n;
         _numberOfServers = numberOfServers;
         _numberOfCandidates = numberOfCandidates;
         _ballotService = new BallotService(serverId, numberOfServers);
@@ -39,24 +39,20 @@ public class LocalBallotData
         var ballotsBatch = new List<BallotData>();
         var voteSerialsBatch = new List<VoteSerialData>();
 
-        var permutation = new PermutationGenerator(_n);
-        var permutationPrim = new PermutationGenerator(_n);
-
-        for (int i = 1; i <= _n; i++)
+        for (int i = 1; i <= _numberOfBallots; i++)
         {
             Console.WriteLine(i);
 
             var ballot = new BallotData
             {
                 BallotId = i,
-                Shadow = permutation.GetValue(i - 1)
             };
 
-            int first = RandomNumberGenerator.GetInt32(1, _a + 1);
+            int first = RandomNumberGenerator.GetInt32(1, _alphabetLength + 1);
             int second;
             do
             {
-                second = RandomNumberGenerator.GetInt32(1, _a + 1);
+                second = RandomNumberGenerator.GetInt32(1, _alphabetLength + 1);
             } while (second == first);
 
             ballot.C0 = first;
@@ -80,11 +76,6 @@ public class LocalBallotData
             ballot.CommB = commitment.Item1;
             ballot.R2 = commitment.Item2;
 
-            if (_serverId != _numberOfServers)
-            {
-                ballot.ShadowPrim = permutationPrim.GetValue(i - 1);
-            }
-
             ballotsBatch.Add(ballot);
 
             if (_serverId == _numberOfServers)
@@ -103,7 +94,7 @@ public class LocalBallotData
                 voteSerialsBatch.Add(voteSerialData);
             }
 
-            if (ballotsBatch.Count >= _batchSize || i == _n)
+            if (ballotsBatch.Count >= _batchSize || i == _numberOfBallots)
             {
                 await _ballotService.CreateBallotsBatch(ballotsBatch);
                 ballotsBatch.Clear();
@@ -125,10 +116,10 @@ public class LocalBallotData
 
         if (_serverId != 1)
         {
-            permutation = new PermutationGenerator(_n);
+            permutation = new PermutationGenerator(_numberOfBallots);
             var batchRecords = new List<BallotLinking>();
 
-            for (int i = 1; i <= _n; i++)
+            for (int i = 1; i <= _numberOfBallots; i++)
             {
                 Console.WriteLine($"{i} {permutation.GetValue(i - 1)}");
 
@@ -138,13 +129,13 @@ public class LocalBallotData
                 {
                     Id = ObjectId.GenerateNewId(),
                     BallotId = i,
-                    PrevBallot = permutation.GetValue(i - 1),
-                    CommPrevBallot = commitment.Item1,
+                    PrevBallotId = permutation.GetValue(i - 1),
+                    CommPrevBallotId = commitment.Item1,
                     R0 = commitment.Item2
                 };
                 batchRecords.Add(record);
 
-                if (batchRecords.Count >= _batchSize || i == _n)
+                if (batchRecords.Count >= _batchSize || i == _numberOfBallots)
                 {
                     await _ballotLinkingService.SaveLinkingBatch(batchRecords, false);
                     batchRecords.Clear();
@@ -153,10 +144,10 @@ public class LocalBallotData
             }
         }
 
-        permutation = new PermutationGenerator(_n);
+        permutation = new PermutationGenerator(_numberOfBallots);
         var batchRecordsPrim = new List<BallotLinking>();
 
-        for (int i = 1; i <= _n; i++)
+        for (int i = 1; i <= _numberOfBallots; i++)
         {
             Console.WriteLine($"{i} {permutation.GetValue(i - 1)} Prim");
             var commitment = Comm(permutation.GetValue(i - 1).ToString());
@@ -165,13 +156,13 @@ public class LocalBallotData
             {
                 Id = ObjectId.GenerateNewId(),
                 BallotId = i,
-                PrevBallot = permutation.GetValue(i - 1),
-                CommPrevBallot = commitment.Item1,
+                PrevBallotId = permutation.GetValue(i - 1),
+                CommPrevBallotId = commitment.Item1,
                 R0 = commitment.Item2
             };
             batchRecordsPrim.Add(record);
 
-            if (batchRecordsPrim.Count >= _batchSize || i == _n)
+            if (batchRecordsPrim.Count >= _batchSize || i == _numberOfBallots)
             {
                 await _ballotLinkingService.SaveLinkingBatch(batchRecordsPrim, true);
                 batchRecordsPrim.Clear();
@@ -191,7 +182,6 @@ public class LocalBallotData
         return serial.ToString();
     }
 
-    // zamienic na perfect hiding
     public (string commitment, long randomValue) Comm(string data)
     {
         // blinding factor

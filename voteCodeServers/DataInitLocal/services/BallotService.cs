@@ -15,18 +15,6 @@ public class BallotService
         _ballots.Indexes.CreateOne(new CreateIndexModel<BallotData>(
             Builders<BallotData>.IndexKeys.Ascending(b => b.BallotId),
             new CreateIndexOptions { Unique = true }));
-
-        _ballots.Indexes.CreateOne(new CreateIndexModel<BallotData>(
-            Builders<BallotData>.IndexKeys.Ascending(b => b.Shadow),
-            new CreateIndexOptions { Unique = true }));
-
-        // ShadowPrim is null on the last server
-        if (serverId != totalServers)
-        {
-            _ballots.Indexes.CreateOne(new CreateIndexModel<BallotData>(
-                Builders<BallotData>.IndexKeys.Ascending(b => b.ShadowPrim),
-                new CreateIndexOptions { Unique = true }));
-        }
     }
 
     public async Task CreateBallotsBatch(List<BallotData> ballots)
@@ -35,13 +23,6 @@ public class BallotService
         {
             await _ballots.InsertManyAsync(ballots, new InsertManyOptions { IsOrdered = false });
         }
-    }
-
-    public async Task<bool> BallotExists(int ballotId)
-    {
-        return await _ballots
-            .Find(b => b.BallotId == ballotId)
-            .AnyAsync();
     }
 
     // pobieranie wszystkich potrzebnych danych do CodeSetting (Protocol 5) w jednym batchu
@@ -60,48 +41,4 @@ public class BallotService
             .Limit(take)
             .ToListAsync();
     }
-
-    public async Task<Dictionary<int, int>> GetShadowBatch(List<int> ballotIds, bool isPrim = false)
-    {
-        var filter = Builders<BallotData>.Filter.In(b => b.BallotId, ballotIds);
-        var projection = isPrim
-            ? Builders<BallotData>.Projection
-                .Include(b => b.BallotId)
-                .Include(b => b.ShadowPrim)
-            : Builders<BallotData>.Projection
-                .Include(b => b.BallotId)
-                .Include(b => b.Shadow);
-
-        var results = await _ballots
-            .Find(filter)
-            .Project<BallotData>(projection)
-            .ToListAsync();
-
-        return results.ToDictionary(
-              b => b.BallotId,
-              b => isPrim ? b.ShadowPrim : b.Shadow
-        );
-    }
-
-    // get BallotIdBatch for given Shadows/ShadowsPrim
-    public async Task<Dictionary<int, int>> GetBallotIdBatch(List<int> ballotsShadows, bool isPrim = false)
-    {
-        var filter = isPrim
-            ? Builders<BallotData>.Filter.In(b => b.ShadowPrim, ballotsShadows)
-            : Builders<BallotData>.Filter.In(b => b.Shadow, ballotsShadows);
-        var projection = Builders<BallotData>.Projection
-            .Include(b => b.BallotId)
-            .Include(b => isPrim ? b.ShadowPrim : b.Shadow);
-
-        var results = await _ballots
-            .Find(filter)
-            .Project<BallotData>(projection)
-            .ToListAsync();
-
-        return results.ToDictionary(
-            b => isPrim ? b.ShadowPrim : b.Shadow,
-            b => b.BallotId
-        );
-    }
-
 }

@@ -15,7 +15,7 @@ public class BallotLinkingService
 
         var indexKeys1 = Builders<BallotLinking>.IndexKeys.Ascending(b => b.BallotId);
         _ballotLinking.Indexes.CreateOne(new CreateIndexModel<BallotLinking>(indexKeys1, new CreateIndexOptions { Unique = true }));
-        var indexKeys2 = Builders<BallotLinking>.IndexKeys.Ascending(b => b.PrevBallot);
+        var indexKeys2 = Builders<BallotLinking>.IndexKeys.Ascending(b => b.PrevBallotId);
         _ballotLinking.Indexes.CreateOne(new CreateIndexModel<BallotLinking>(indexKeys2, new CreateIndexOptions { Unique = true }));
 
         _ballotLinkingPrim.Indexes.CreateOne(new CreateIndexModel<BallotLinking>(indexKeys1, new CreateIndexOptions { Unique = true }));
@@ -28,22 +28,6 @@ public class BallotLinkingService
         await collection.InsertManyAsync(records);
     }
 
-    public async Task SaveLinking(int id, int prevBallot, string commitment, long randomKey, bool isPrim)
-    {
-        var collection = isPrim ? _ballotLinkingPrim : _ballotLinking;
-
-        var newData = new BallotLinking
-        {
-            Id = ObjectId.GenerateNewId(),
-            BallotId = id,
-            PrevBallot = prevBallot,
-            CommPrevBallot = commitment,
-            R0 = randomKey
-        };
-        await collection.InsertOneAsync(newData);
-
-    }
-
     public async Task<List<int>> GetPermutationListAsync(bool isPrim)
     {
         var collection = isPrim ? _ballotLinkingPrim : _ballotLinking;
@@ -54,7 +38,7 @@ public class BallotLinkingService
         var permutationList = new List<int>();
         foreach (var record in allRecords)
         {
-            permutationList.Add(record.PrevBallot);
+            permutationList.Add(record.PrevBallotId);
         }
 
         return permutationList;
@@ -64,7 +48,7 @@ public class BallotLinkingService
     {
         var collection = isPrim ? _ballotLinkingPrim : _ballotLinking;
         var allRecords = await collection.Find(FilterDefinition<BallotLinking>.Empty)
-            .Sort(Builders<BallotLinking>.Sort.Ascending(b => b.PrevBallot))
+            .Sort(Builders<BallotLinking>.Sort.Ascending(b => b.PrevBallotId))
             .ToListAsync();
 
         var reversedPermutationList = new List<int>();

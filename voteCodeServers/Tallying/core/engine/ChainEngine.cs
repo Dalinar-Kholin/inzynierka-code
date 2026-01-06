@@ -23,7 +23,7 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
     // dodac losowe kolejki - teraz dla testow
     /////////////////////////////////////////////////
 
-    private DateTime _votingEndDate = DateTime.Now.AddHours(1); // testowe
+    private DateTime _votingEndDate = DateTime.Now.AddMinutes(60); // ustawic na koniec glosowania
 
     private readonly int _newVotesBatchSize;
     private readonly int _newVotesTriggerSize;
@@ -164,22 +164,14 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
         foreach (var record in batch)
             ids.Add(record.BallotId);
 
-        // get BallotId from ShadowSerialPrim
-        var firstPass = await _processor.ProcessReturningBatchFirstPassAsync(ids);
-
-        await Task.WhenAll(batch.Select(record => Task.Run(() => ProcessReturningSingleFirstPass(record, firstPass))));
+        await Task.WhenAll(batch.Select(record => ProcessReturningSingleFirstPass(record)));
     }
 
-    private async Task ProcessReturningSingleFirstPass(
-        VoteCodeRecord record,
-        Dictionary<int, int> firstPass)
+    private async Task ProcessReturningSingleFirstPass(VoteCodeRecord record)
     {
         try
         {
-            if (!firstPass.TryGetValue(record.BallotId, out var firstPassData))
-                throw new InvalidOperationException($"Missing first-pass data for ballot {record.BallotId}");
-
-            var processedRecord = _processor.ProcessReturningSingleFirstPass(record, firstPassData);
+            var processedRecord = _processor.ProcessReturningSingleFirstPass(record);
 
             processedRecord.BallotId = _reversedShadowPrimPermutation[processedRecord.BallotId - 1];
 
@@ -203,60 +195,39 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
             ids.Add(record.BallotId);
         }
 
-        // get BallotId from ShadowSerial
-        var secondPass = await _processor.ProcessReturningBatchSecondPassAsync(ids);
-
         // get codeSetting data based on BallotId
-        var codeSettingData =
-            await _processor.ProcessReturningBatchSecondPassCodeSettingAsync(
-                secondPass.Values.ToList()
-            );
+        var codeSettingData = await _processor.ProcessReturningBatchSecondPassCodeSettingAsync(ids);
 
-        Dictionary<int, int>? reversedSecondPass = null;
-        if (_isFirstServer)
-        {
-            reversedSecondPass = new Dictionary<int, int>(secondPass.Count);
-            foreach (var kvp in secondPass)
-            {
-                reversedSecondPass[kvp.Value] = kvp.Key;
-            }
-        }
-
-        await Task.WhenAll(batch.Select(record => Task.Run(() => ProcessReturningSingleSecondPass(record, secondPass, codeSettingData, reversedSecondPass)))
+        await Task.WhenAll(
+            batch.Select(record =>
+                ProcessReturningSingleSecondPass(
+                    record,
+                    codeSettingData
+                )
+            )
         );
     }
 
     private async Task ProcessReturningSingleSecondPass(
         VoteCodeRecord record,
-        Dictionary<int, int> secondPass,
-        Dictionary<int, (int, int, string)> codeSettingData,
-        Dictionary<int, int>? reversedSecondPass)
+        Dictionary<int, (int, int, string)> codeSettingData)
     {
         try
         {
-            if (!secondPass.TryGetValue(record.BallotId, out var newBallotId))
-                throw new InvalidOperationException($"Missing second-pass mapping for ballot {record.BallotId}");
-
-            record.BallotId = newBallotId;
-
             if (!codeSettingData.TryGetValue(record.BallotId, out var codeSetting))
                 throw new InvalidOperationException($"Missing code-setting data for ballot {record.BallotId}");
 
-            var processedRecord =
-                _processor.ProcessReturningSingleSecondPass(record, codeSetting);
+            var processedRecord = _processor.ProcessReturningSingleSecondPass(record, codeSetting);
 
             Interlocked.Increment(ref _processedQ2);
 
             // bounce to next server instead of the previous one
             if (_isFirstServer)
             {
-                if (reversedSecondPass == null || !reversedSecondPass.TryGetValue(processedRecord.BallotId, out var originalBallotId))
-                    throw new InvalidOperationException($"Missing reversed second-pass mapping for ballot {processedRecord.BallotId}");
-
                 // VoteCodeRecord -> VoteRecord + old BallotId restoration
                 var newProcessedRecord = new VoteRecord
                 {
-                    BallotId = originalBallotId,
+                    BallotId = record.BallotId,
                     VoteVector = processedRecord.VoteVector,
                 };
 
@@ -265,8 +236,7 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
             }
             else
             {
-                processedRecord.BallotId =
-                    _reversedShadowPermutation[processedRecord.BallotId - 1];
+                processedRecord.BallotId = _reversedShadowPermutation[processedRecord.BallotId - 1];
 
                 var payload = SerializeRecord(processedRecord);
                 await _transport.SendReturningRecordAsync(payload, isSecondPass: true);
@@ -295,7 +265,6 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
             }
             writer.WriteLine();
         }
-
     }
 
     // create VoteCodeRecord from new votes batch and send to previous server

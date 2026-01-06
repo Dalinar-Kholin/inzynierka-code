@@ -84,7 +84,6 @@ public class CodeSetting
 
                         int b_m = (b_j_i_m_r + b_p_values[m]) % 2;
                         b_m_values[m] = b_m;
-
                     }
 
                     var commitments = GenerateCommitments(c0, c1, b_m_values);

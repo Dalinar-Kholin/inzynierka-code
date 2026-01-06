@@ -25,33 +25,6 @@ public class VoteSerialsService
         }
     }
 
-    public async Task SaveVoteSerial(int id, string trueVoteSerial, string commitment, long randomKey)
-    {
-        var record = await _voteSerials
-            .Find(b => b.BallotId == id)
-            .FirstOrDefaultAsync();
-
-        if (record == null)
-        {
-            var newData = new VoteSerialData
-            {
-                Id = ObjectId.GenerateNewId(),
-                BallotId = id,
-                VoteSerial = trueVoteSerial,
-                CommVoteSerial = commitment,
-                R0 = randomKey
-            };
-            await _voteSerials.InsertOneAsync(newData);
-        }
-        else
-        {
-            record.VoteSerial = trueVoteSerial;
-            record.CommVoteSerial = commitment;
-            record.R0 = randomKey;
-            await _voteSerials.ReplaceOneAsync(b => b.Id == record.Id, record);
-        }
-    }
-
     public async Task<Dictionary<int, string>> GetVoteSerialsBatch(List<int> ballotIds)
     {
         if (ballotIds == null || ballotIds.Count == 0)

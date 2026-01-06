@@ -38,11 +38,6 @@ public class RecordProcessor : IExtendedRecordProcessor<VoteRecord, int>
 
     }
 
-    public async Task<Dictionary<int, string>> ProccesNewVotesBatch(List<int> ids)
-    {
-        return await _voteSerialsService.GetVoteSerialsBatch(ids);
-    }
-
     public (List<string>, List<string>) InitVoteCodeEncryption(string voteCode)
     {
         var encryptedVoteCodeC1 = new List<string>();
@@ -75,12 +70,7 @@ public class RecordProcessor : IExtendedRecordProcessor<VoteRecord, int>
         return voteVector;
     }
 
-    public async Task<Dictionary<int, int>> ProcessReturningBatchFirstPassAsync(List<int> ids)
-    {
-        return await _ballotService.GetBallotIdBatch(ids, true);
-    }
-
-    public VoteCodeRecord ProcessReturningSingleFirstPass(VoteCodeRecord record, int firstPass)
+    public VoteCodeRecord ProcessReturningSingleFirstPass(VoteCodeRecord record)
     {
         // re-encryption of EncryptedVoteCode and VoteVector
         var reEncryptedVoteCodeC1 = new List<string>();
@@ -107,14 +97,8 @@ public class RecordProcessor : IExtendedRecordProcessor<VoteRecord, int>
         record.EncryptedVoteCodeC1 = reEncryptedVoteCodeC1;
         record.EncryptedVoteCodeC2 = reEncryptedVoteCodeC2;
         record.VoteVector = reEncryptedVoteVector;
-        record.BallotId = firstPass;
 
         return record;
-    }
-
-    public async Task<Dictionary<int, int>> ProcessReturningBatchSecondPassAsync(List<int> ids)
-    {
-        return await _ballotService.GetBallotIdBatch(ids, false);
     }
 
     public async Task<Dictionary<int, (int, int, string)>> ProcessReturningBatchSecondPassCodeSettingAsync(List<int> ids)
@@ -161,12 +145,7 @@ public class RecordProcessor : IExtendedRecordProcessor<VoteRecord, int>
 
     public async Task<Dictionary<int, int>> ProcessBatchFirstPassAsync(List<int> ids)
     {
-        return await _ballotService.GetShadowBatch(ids, false);
-    }
-
-    public async Task<Dictionary<int, int>> ProcessBatchSecondPassAsync(List<int> ids)
-    {
-        return await _ballotService.GetShadowBatch(ids, true);
+        return new Dictionary<int, int>(ids.ToDictionary(id => id, id => -1));
     }
 
     public async Task<Dictionary<int, string>> ProcessBatchSecondPassLastServerAsync(List<int> ids)
@@ -176,16 +155,30 @@ public class RecordProcessor : IExtendedRecordProcessor<VoteRecord, int>
 
     public VoteRecord ProcessSingleFirstPass(VoteRecord record, int firstPass)
     {
-        record.BallotId = firstPass;
+        // re-encryption of VoteSerial
+        var reEncryptedVoteVector = new List<string>();
+        foreach (var vote in record.VoteVector)
+        {
+            var encVote = new BigInteger(vote);
+            var reEncVote = _paillierPublic.ReEncrypt(encVote);
+            reEncryptedVoteVector.Add(reEncVote.ToString());
+        }
+
+        record.VoteVector = reEncryptedVoteVector;
         return record;
     }
 
-    public VoteRecord ProcessSingleSecondPass(VoteRecord record, int? secondPass)
+    public VoteRecord ProcessSingleSecondPass(VoteRecord record)
     {
-        if (secondPass.HasValue)
+        // re-encryption of VoteSerial
+        var reEncryptedVoteVector = new List<string>();
+        foreach (var vote in record.VoteVector)
         {
-            record.BallotId = secondPass.Value;
+            var encVote = new BigInteger(vote);
+            var reEncVote = _paillierPublic.ReEncrypt(encVote);
+            reEncryptedVoteVector.Add(reEncVote.ToString());
         }
+        record.VoteVector = reEncryptedVoteVector;
 
         return record;
     }

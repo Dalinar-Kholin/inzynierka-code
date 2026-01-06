@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using Microsoft.VisualBasic;
 using VoteCodeServers.Helpers;
 
-public class RecordProcessor : IRecordProcessor<DataRecord, (int, string[])>
+public class RecordProcessor : IRecordProcessor<DataRecord, string[]>
 {
     private readonly int _serverId;
     private readonly int _totalServers;
@@ -32,25 +32,18 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, string[])>
         _paillierPublic = new PaillierPublicKey("../../encryption/paillierKeys");
     }
 
-    public async Task<Dictionary<int, (int, string[])>> ProcessBatchFirstPassAsync(List<int> ids)
+    public async Task<Dictionary<int, string[]>> ProcessBatchFirstPassAsync(List<int> ids)
     {
-        Dictionary<int, int> shadowBatch = await _ballotService.GetShadowBatch(ids, false);
         Dictionary<int, string[]> vBatch = await _codeSettingService.GetVBatch(ids);
 
-        var batchData = new Dictionary<int, (int shadowSerial, string[] v)>();
+        var batchData = new Dictionary<int, string[]>();
         foreach (var ballotId in ids)
         {
-            shadowBatch.TryGetValue(ballotId, out var shadow);
             vBatch.TryGetValue(ballotId, out var v);
-            batchData[ballotId] = (shadow, v);
+            batchData[ballotId] = v;
         }
 
         return batchData;
-    }
-
-    public async Task<Dictionary<int, int>> ProcessBatchSecondPassAsync(List<int> ids)
-    {
-        return await _ballotService.GetShadowBatch(ids, true);
     }
 
     public async Task<Dictionary<int, string>> ProcessBatchSecondPassLastServerAsync(List<int> ids)
@@ -58,7 +51,7 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, string[])>
         return await _voteSerialsService.GetVoteSerialsBatch(ids);
     }
 
-    public DataRecord ProcessSingleFirstPass(DataRecord record, (int, string[]) firstPass)
+    public DataRecord ProcessSingleFirstPass(DataRecord record, string[] firstPass)
     {
         // re-encrypt each vector V which is in the record.Vectors array
         for (int m = 0; m < record.Vectors.Count; m++)
@@ -71,11 +64,9 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, string[])>
             }
         }
 
-        record.BallotId = firstPass.Item1;
-
-        if (firstPass.Item2 != null)
+        if (firstPass != null)
         {
-            record.Vectors.Add(firstPass.Item2);
+            record.Vectors.Add(firstPass);
         }
 
         // Fisher–Yates vector shuffle
@@ -96,7 +87,7 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, string[])>
         return record;
     }
 
-    public DataRecord ProcessSingleSecondPass(DataRecord record, int? secondPass)
+    public DataRecord ProcessSingleSecondPass(DataRecord record)
     {
         // re-encrypt each vector V which is in the record.Vectors array
         for (int m = 0; m < record.Vectors.Count; m++)
@@ -107,11 +98,6 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, string[])>
                 BigInteger reEncryptedElement = _paillierPublic.ReEncrypt(vElementBigInt);
                 record.Vectors[m][i] = reEncryptedElement.ToString();
             }
-        }
-
-        if (secondPass.HasValue)
-        {
-            record.BallotId = secondPass.Value;
         }
 
         return record;

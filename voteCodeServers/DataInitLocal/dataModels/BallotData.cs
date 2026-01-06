@@ -6,8 +6,6 @@ public class BallotData
     [BsonId]
     public ObjectId Id { get; set; }
     public int BallotId { get; set; }
-    public int Shadow { get; set; }
-    public int ShadowPrim { get; set; } = -1;
     public int C0 { get; set; }
     public string CommC0 { get; set; }
     public long R0 { get; set; }
