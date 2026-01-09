@@ -161,7 +161,6 @@ class Program
 
         Console.WriteLine("\n=== RĘCZNE ŁĄCZENIE PARTIAL DECRYPTIONS ===");
 
-        // Wklej tutaj partial decryptions z każdego serwera (jako stringi)
         var manualPartialDecryptions = new Dictionary<int, BigInteger>
         {
             [1] = new BigInteger("306597114889731876393719256055254870083758933742728341848103408230841603167919379156562067432367360092602086705633325463561612322487408019716932974070212325119600277190570892790653168466945268906796363909366029120065382662357397293865947033112959441276719467062840337342122792475967733297992145575508843393857977"), // Server 1 partial decryption
@@ -175,11 +174,10 @@ class Program
             [9] = new BigInteger("260687742235794464868287249878198254558707156543133528885714997123131864426176800244911191593981466963959752876387022145483751861508051798615638108392172200252185887248495644693132888216037961249694620592430660143131239594561177995647651157984503645760130449113529506018653226665694658325895032869986048358703719"), // Server 9 partial decryption
         };
 
-        // Połącz i odszyfruj
+        // join partial decryptions
         var manualDecrypted = decryptKey.decrypt(manualPartialDecryptions);
         Console.WriteLine($"Odszyfrowane z ręcznych partial decryptions: {manualDecrypted}");
 
-        // Jeśli to są zakodowane kody głosowania, zdekoduj
         var manualDecoded = Decode(manualDecrypted);
         Console.WriteLine($"Zdekodowane: {manualDecoded}");
         Console.WriteLine("===========================================\n");

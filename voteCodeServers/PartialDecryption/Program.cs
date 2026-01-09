@@ -13,11 +13,10 @@ Console.WriteLine($"Starting Partial Decryption Server {serverId}");
 
 const int batchSize = 1000;
 
-// Inicjalizacja serwisów
+// services
 var voteCodesService = new VoteCodesService(serverId);
 var partialDecryptionService = new PartialDecryptionService(serverId);
 
-// Załaduj klucz prywatny Pailliera
 var paillierSharedKey = new PaillierSharedKey(serverId, "../../encryption/paillierKeys/paillier_keys_private.json");
 
 Console.WriteLine("Fetching vote codes from VoteCodesDatabase...");
@@ -29,10 +28,6 @@ if (totalCount == 0)
     Console.WriteLine("No vote codes found. Exiting.");
     return;
 }
-
-// Wyczyść poprzednie dane (opcjonalnie)
-Console.WriteLine("Clearing previous partial decryptions...");
-await partialDecryptionService.ClearCollection();
 
 int processedCount = 0;
 int skip = 0;
@@ -51,16 +46,13 @@ while (skip < totalCount)
     {
         try
         {
-            // Konwertuj zaszyfrowany kod na BigInteger
             var encryptedValue = new BigInteger(voteCode.EncryptedVoteCodes);
-
-            // Wykonaj częściową deszyfrację
             var partialDecryption = paillierSharedKey.partial_decrypt(encryptedValue);
 
-            // Zapisz wynik
+            // save partial decryption
             var partialDecryptionData = new PartialDecryptionData
             {
-                Id = voteCode.Id,  // Zachowaj to samo _id
+                Id = voteCode.Id,  // same Id as in VoteCodesData
                 EncryptedVoteCodes = voteCode.EncryptedVoteCodes,
                 PartialDecryption = partialDecryption.ToString()
             };
@@ -84,6 +76,4 @@ while (skip < totalCount)
 }
 
 Console.WriteLine($"=== Partial Decryption Complete ===");
-Console.WriteLine($"Total processed: {processedCount}");
-Console.WriteLine($"Results saved in PartialDecryptionDatabase_Server{serverId}");
 
