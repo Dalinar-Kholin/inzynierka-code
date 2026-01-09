@@ -6,6 +6,7 @@ const (
 	SignerPort   = 8082
 	VerifierPort = 8083
 	StorerPort   = 8084
+	ProxyPort    = 8085
 
 	GetVotingPackEndpoint   = "/getVotingPack"
 	GetVoteCodesEndpoint    = "/getVoteCodes"

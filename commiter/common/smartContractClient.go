@@ -199,11 +199,10 @@ func CallCreateCommitmentPack(commitmentType CommitmentType, hashedData [32]byte
 func CallSingleCommitment(commitmentType CommitmentType, id uint8, toCommit [64]byte) (solana.Signature, error) {
 	seedA := []byte("createSingleCommitment")
 	seedB := []byte{byte(commitmentType)}
-	seedC1 := toCommit[:32]
-	seedC2 := toCommit[32:]
+	seedC1 := []byte{id}
 
 	commitmentPDA, _, err := solana.FindProgramAddress(
-		[][]byte{seedA, seedB, seedC1, seedC2},
+		[][]byte{seedA, seedB, seedC1},
 		ProgramID,
 	)
 	if err != nil {

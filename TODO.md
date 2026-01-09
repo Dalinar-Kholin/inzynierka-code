@@ -10,3 +10,17 @@ sprawdza czy commitmenty sa wygenerowane i jeżeli są to generuje, jeśli nei s
 poprawić implementacje commitera aby trustee mogło z nich korzysatać
 
 https://people.csail.mit.edu/silvio/Selected%20Scientific%20Papers/Pseudo%20Randomness/Verifiable_Random_Functions.pdf
+
+
+
+napisać prosty server który będzie porxy między BB a jsonem aby łatwo pobierać wartości z BB
+
+napisać prosty przykładowy request który pokaże jak działa Commiter
+
+napsiać joba który ściągnie z BB VS i VC poprawnych zweryfikowanych głosów i wyśle do vote servera Trustee
+
+dodac 2 kartę dla V aby dało się ją odsłonić 
+
+przesyłanie vektora głosu do BB
+
+podpisy między serverami trustee (kochamy podpisy)

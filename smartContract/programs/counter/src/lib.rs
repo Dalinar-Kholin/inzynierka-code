@@ -133,7 +133,7 @@ mod counter {
         payer = payer,
         space = 8 + 1 + 1 + 64 + 1, // 8 = discriminator
         seeds = [
-            b"createSingleCommitment".as_ref(), &[commitment_type], &to_commit[..32], &to_commit[32..],
+            b"createSingleCommitment".as_ref(), &[commitment_type], &[id],
         ],
         bump
         )]
@@ -247,6 +247,7 @@ pub struct Vote {
     pub auth_code: [u8; AUTH_CODE_CODE_LENGTH],
     pub server_sign: [u8; 64],
     pub voter_sign: Vec<u8>,
+    // vote vector --> po wymnozeniu wszystkich mamy wynik
     pub bump: u8,
 }
 const MAX_VOTER_SIGN_LEN: usize = 5000;

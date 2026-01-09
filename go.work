@@ -9,4 +9,5 @@ use (
 	SignerVeryfier
 	voteCodeServers/SharedRandomness
 	voteCodeServers/SharedRandomness/EaServer
+	bbProxy
 )
