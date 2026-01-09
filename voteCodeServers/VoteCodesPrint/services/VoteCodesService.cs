@@ -20,4 +20,17 @@ public class VoteCodesService
             await _ballots.InsertManyAsync(ballots, new InsertManyOptions { IsOrdered = false });
         }
     }
+
+    public async Task<List<VoteCodesData>> GetVoteCodesBatch(int skip, int limit)
+    {
+        return await _ballots.Find(Builders<VoteCodesData>.Filter.Empty)
+            .Skip(skip)
+            .Limit(limit)
+            .ToListAsync();
+    }
+
+    public async Task<long> GetTotalCount()
+    {
+        return await _ballots.CountDocumentsAsync(Builders<VoteCodesData>.Filter.Empty);
+    }
 }

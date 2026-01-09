@@ -4,7 +4,7 @@ using System.Text;
 
 public static class SummandDraw
 {
-    public static long GenerateSummand(byte[] r_x, int j, int i)
+    public static long ComputeSummand(string r_x, int j, int i)
     {
         using (var sha256 = SHA256.Create())
         {
@@ -12,6 +12,7 @@ public static class SummandDraw
             byte[] hash = sha256.ComputeHash(input);
             var result = BitConverter.ToInt64(hash, 0);
 
+            // long.MinValue cannot be negated
             if (result == long.MinValue)
                 return long.MaxValue;
 
@@ -19,7 +20,7 @@ public static class SummandDraw
         }
     }
 
-    public static bool GenerateRandomBit(byte[] r_x, int j, int i, int m)
+    public static bool ComputeSummandBit(string r_x, int j, int i, int m)
     {
         using (var sha256 = SHA256.Create())
         {

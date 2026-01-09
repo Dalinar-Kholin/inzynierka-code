@@ -5,7 +5,6 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using Org.BouncyCastle.Math;
 
-
 public class CodeSetting
 {
     private readonly int _serverId;
@@ -30,8 +29,6 @@ public class CodeSetting
 
     public async Task Execute(string randomValue)
     {
-        byte[] r_x = Encoding.UTF8.GetBytes(randomValue);
-
         int currentBatch = 0;
         bool hasMoreData = true;
 
@@ -65,7 +62,7 @@ public class CodeSetting
                     int i = ballotData.BallotId;
                     int j = _serverId;
 
-                    long c_j_i_r = SummandDraw.GenerateSummand(r_x, j, i);
+                    long c_j_i_r = SummandDraw.ComputeSummand(randomValue, j, i);
 
                     int c_j_i_0_p = ballotData.C0;
                     int c_j_i_1_p = ballotData.C1;
@@ -79,7 +76,7 @@ public class CodeSetting
 
                     for (int m = 0; m < _numberOfCandidates; m++)
                     {
-                        bool b_j_i_m_r_bool = SummandDraw.GenerateRandomBit(r_x, j, i, m + 1);
+                        bool b_j_i_m_r_bool = SummandDraw.ComputeSummandBit(randomValue, j, i, m + 1);
                         int b_j_i_m_r = b_j_i_m_r_bool ? 1 : 0;
 
                         int b_m = (b_j_i_m_r + b_p_values[m]) % 2;

@@ -19,13 +19,13 @@ public class LocalBallotData
     private readonly BallotLinkingService _ballotLinkingService;
 
 
-    public LocalBallotData(int serverId, string A, int numberOfVoters, int safetyParameter, int numberOfServers, int numberOfCandidates)
+    public LocalBallotData(int serverId, string alphabet, int numberOfVoters, int safetyParameter, int numberOfServers, int numberOfCandidates)
     {
         var n = 4 * numberOfVoters + 2 * safetyParameter;
         if (n > 100_000_000) throw new ArgumentException("Too big.");
 
         _serverId = serverId;
-        _alphabetLength = A.Length;
+        _alphabetLength = alphabet.Length;
         _numberOfBallots = n;
         _numberOfServers = numberOfServers;
         _numberOfCandidates = numberOfCandidates;
@@ -128,9 +128,9 @@ public class LocalBallotData
                 var record = new BallotLinking
                 {
                     Id = ObjectId.GenerateNewId(),
-                    BallotId = i,
-                    PrevBallotId = permutation.GetValue(i - 1),
-                    CommPrevBallotId = commitment.Item1,
+                    PrevBallotId = i,
+                    BallotId = permutation.GetValue(i - 1),
+                    CommLinking = commitment.Item1,
                     R0 = commitment.Item2
                 };
                 batchRecords.Add(record);
@@ -155,9 +155,9 @@ public class LocalBallotData
             var record = new BallotLinking
             {
                 Id = ObjectId.GenerateNewId(),
-                BallotId = i,
-                PrevBallotId = permutation.GetValue(i - 1),
-                CommPrevBallotId = commitment.Item1,
+                PrevBallotId = i,
+                BallotId = permutation.GetValue(i - 1),
+                CommLinking = commitment.Item1,
                 R0 = commitment.Item2
             };
             batchRecordsPrim.Add(record);
@@ -173,7 +173,6 @@ public class LocalBallotData
 
     private string GenerateSerialNumber(int length, string alphabet)
     {
-        var random = Random.Shared;
         var serial = new StringBuilder();
         for (int i = 0; i < length; i++)
         {

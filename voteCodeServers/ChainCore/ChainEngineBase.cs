@@ -102,7 +102,6 @@ namespace ChainCore
 
         protected async Task ProcessQueueFirstPass(List<TRecord> batch)
         {
-            // shadow permutation + ids
             var ids = new List<int>(batch.Count);
             foreach (var record in batch)
             {
@@ -135,7 +134,7 @@ namespace ChainCore
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[{_myPort}] [Q1] Processing error: {ex.Message}");
+                Console.WriteLine($"[{_myPort}] [Q1] Processing error: {ex}");
             }
         }
 
@@ -182,7 +181,7 @@ namespace ChainCore
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[{_myPort}] [Q2] Processing error: {ex.Message}");
+                Console.WriteLine($"[{_myPort}] [Q2] Processing error: {ex}");
             }
         }
 

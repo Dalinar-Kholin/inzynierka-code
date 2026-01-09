@@ -25,7 +25,6 @@ public class BallotService
         }
     }
 
-    // pobieranie wszystkich potrzebnych danych do CodeSetting (Protocol 5) w jednym batchu
     public async Task<List<DataForCodeSetting>> GetProtocol5DataBatch(int skip, int take)
     {
         var projection = Builders<BallotData>.Projection

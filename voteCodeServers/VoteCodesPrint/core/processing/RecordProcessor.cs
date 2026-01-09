@@ -42,7 +42,12 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, int, string)>
         var batchData = new Dictionary<int, (int, int, string)>();
         foreach (var ballotId in ballotIds)
         {
-            codeSettingBatch.TryGetValue(ballotId, out var codeSetting);
+            if (!codeSettingBatch.TryGetValue(ballotId, out var codeSetting) || codeSetting.Item3 == null)
+            {
+                Console.WriteLine($"[RecordProcessor] Missing code setting for ballot {ballotId} (skipping)");
+                continue;
+            }
+
             batchData[ballotId] = (codeSetting.Item1, codeSetting.Item2, codeSetting.Item3);
         }
 

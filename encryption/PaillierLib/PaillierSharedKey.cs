@@ -23,16 +23,17 @@ public class PaillierSharedKey
         JObject? serverKey = null;
         foreach (JProperty property in sharedKey.Properties())
         {
-            int serverId = int.Parse(property.Name);
-            if (serverId == serverNumber)
+            var keyData = (JObject)property.Value;
+            int playerId = int.Parse(keyData["player_id"]!.ToString());
+            if (playerId == serverNumber)
             {
-                serverKey = (JObject)property.Value;
+                serverKey = keyData;
                 break;
             }
         }
         if (serverKey == null)
         {
-            throw new ArgumentException($"Server number {serverNumber} not found in the file.");
+            throw new ArgumentException($"Server with player_id {serverNumber} not found in the file.");
         }
 
         this.player_id = int.Parse(serverKey["player_id"]!.ToString());

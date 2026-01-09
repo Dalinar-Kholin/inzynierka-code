@@ -13,9 +13,9 @@ public class BallotLinkingService
         _ballotLinking = database.GetCollection<BallotLinking>($"BallotLinking");
         _ballotLinkingPrim = database.GetCollection<BallotLinking>($"BallotLinkingPrim");
 
-        var indexKeys1 = Builders<BallotLinking>.IndexKeys.Ascending(b => b.BallotId);
+        var indexKeys1 = Builders<BallotLinking>.IndexKeys.Ascending(b => b.PrevBallotId);
         _ballotLinking.Indexes.CreateOne(new CreateIndexModel<BallotLinking>(indexKeys1, new CreateIndexOptions { Unique = true }));
-        var indexKeys2 = Builders<BallotLinking>.IndexKeys.Ascending(b => b.PrevBallotId);
+        var indexKeys2 = Builders<BallotLinking>.IndexKeys.Ascending(b => b.BallotId);
         _ballotLinking.Indexes.CreateOne(new CreateIndexModel<BallotLinking>(indexKeys2, new CreateIndexOptions { Unique = true }));
 
         _ballotLinkingPrim.Indexes.CreateOne(new CreateIndexModel<BallotLinking>(indexKeys1, new CreateIndexOptions { Unique = true }));
@@ -32,13 +32,13 @@ public class BallotLinkingService
     {
         var collection = isPrim ? _ballotLinkingPrim : _ballotLinking;
         var allRecords = await collection.Find(FilterDefinition<BallotLinking>.Empty)
-            .Sort(Builders<BallotLinking>.Sort.Ascending(b => b.BallotId))
+            .Sort(Builders<BallotLinking>.Sort.Ascending(b => b.PrevBallotId))
             .ToListAsync();
 
         var permutationList = new List<int>();
         foreach (var record in allRecords)
         {
-            permutationList.Add(record.PrevBallotId);
+            permutationList.Add(record.BallotId);
         }
 
         return permutationList;
@@ -48,13 +48,13 @@ public class BallotLinkingService
     {
         var collection = isPrim ? _ballotLinkingPrim : _ballotLinking;
         var allRecords = await collection.Find(FilterDefinition<BallotLinking>.Empty)
-            .Sort(Builders<BallotLinking>.Sort.Ascending(b => b.PrevBallotId))
+            .Sort(Builders<BallotLinking>.Sort.Ascending(b => b.BallotId))
             .ToListAsync();
 
         var reversedPermutationList = new List<int>();
         foreach (var record in allRecords)
         {
-            reversedPermutationList.Add(record.BallotId);
+            reversedPermutationList.Add(record.PrevBallotId);
         }
 
         return reversedPermutationList;
