@@ -1,0 +1,10 @@
+{
+  "ServerId": 7,
+  "Phase": 1,
+  "CommitmentType": "CommC0\u002BCommC1\u002BCommB",
+  "RootHash": "b972fcbe18257a0bf9990d15f0cbbfc54aea1e2bd87f7150f106cbdbbeed483f10b182931a7386f7ac9c963d2c001b86a25fe14b1ced1f160478fcb76fbb6017",
+  "TotalLeaves": 121200,
+  "TotalBallots": 40400,
+  "TreeLevels": 18,
+  "Timestamp": "2026-01-10T18:28:08.3695134Z"
+}

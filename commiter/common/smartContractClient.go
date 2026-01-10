@@ -40,6 +40,7 @@ const (
 	VotePacks CommitmentType = iota
 	AuthPack
 	SharedRandomness
+	MerkleRoot CommitmentType = 128
 )
 
 func CallCreateSignKey(key [113]byte) (solana.Signature, error) {

@@ -40,4 +40,17 @@ public class BallotService
             .Limit(take)
             .ToListAsync();
     }
+
+    public async Task<long> GetTotalCount()
+    {
+        return await _ballots.CountDocumentsAsync(Builders<BallotData>.Filter.Empty);
+    }
+
+    public async Task<List<BallotData>> GetBallotsBatch(int skip, int limit)
+    {
+        return await _ballots.Find(Builders<BallotData>.Filter.Empty)
+            .Skip(skip)
+            .Limit(limit)
+            .ToListAsync();
+    }
 }
