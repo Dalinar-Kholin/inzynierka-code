@@ -35,12 +35,15 @@ try
 {
     using (var client = new HttpClient())
     {
+        // Convert hex string to bytes
+        byte[] rootBytes = Convert.FromHexString(rootHash);
+        
         // CommitmentType 128 = MerkleRoot (> 127, fits in uint8)
         var payload = new
         {
             commitmentType = 128,
             id = serverId,
-            data = rootHash
+            data = rootBytes
         };
 
         var json = JsonSerializer.Serialize(payload);
