@@ -21,28 +21,41 @@ func main() {
 		rp := rpc.New("http://127.0.0.1:8899")
 
 		sType := c.Request.URL.Query().Get("type")
-		sId := c.Request.URL.Query().Get("if")
+		sId := c.Request.URL.Query().Get("id")
 
-		t, _ := strconv.Atoi(sType)
-		id, _ := strconv.Atoi(sId)
+		t, err := strconv.Atoi(sType)
+		if err != nil || t < 0 || t > 255 {
+			c.JSON(400, gin.H{"error": "invalid type"})
+			return
+		}
+		id, err := strconv.Atoi(sId)
+		if err != nil || id < 0 || id > 255 {
+			c.JSON(400, gin.H{"error": "invalid id"})
+			return
+		}
 
 		pda, _, err := solana.FindProgramAddress(
 			[][]byte{[]byte("createSingleCommitment"), {uint8(t)}, {uint8(id)}},
 			helper.ProgramID,
 		)
 		if err != nil {
-			panic(err)
+			c.JSON(500, gin.H{"error": "failed to derive PDA", "details": err.Error()})
 			return
 		}
 
 		acc, err := rp.GetAccountInfo(context.Background(), pda)
 		if err != nil {
-			panic(err)
+			c.JSON(404, gin.H{"error": "account not found", "details": err.Error()})
 			return
 		}
-		voteCommitmentModel, err := DecodeCommitmentAnchor(acc.Bytes())
+		data := acc.Bytes()
+		if len(data) == 0 {
+			c.JSON(404, gin.H{"error": "account has no data"})
+			return
+		}
+		voteCommitmentModel, err := DecodeCommitmentAnchor(data)
 		if err != nil {
-			panic(err)
+			c.JSON(500, gin.H{"error": "decode error", "details": err.Error()})
 			return
 		}
 		model := &voteCommitmentModel
@@ -52,9 +65,14 @@ func main() {
 
 	r.GET("/voteModel", func(c *gin.Context) {
 		authCode := c.Query("authCode")
+		if len(authCode) == 0 {
+			c.JSON(400, gin.H{"error": "missing authCode"})
+			return
+		}
 		model, err := getAnchorVoteModel(authCode)
 		if err != nil {
-			panic(err)
+			c.JSON(404, gin.H{"error": err.Error()})
+			return
 		}
 		c.JSON(200, model)
 	})
@@ -80,7 +98,8 @@ func DecodeCommitmentAnchor(data []byte) (Commitment, error) {
 
 	c.CommitmentType = payload[0]
 	c.Id = payload[1]
-	copy(c.Data[:], payload[1:64+1])
+	// Payload layout after discriminator: [0]=ct, [1]=id, [2..65]=to_commit(64B), [66]=bump
+	copy(c.Data[:], payload[2:66])
 
 	return c, nil
 }

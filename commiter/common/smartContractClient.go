@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ProgramID = solana.MustPublicKeyFromBase58("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af")
+	ProgramID = solana.MustPublicKeyFromBase58("HEowdZXRMsKjiJkvgGfSWQQHc3gGpPd4CdQ7TjMSNkpG")
 	Payer     *solana.Wallet
 	Client    *rpc.Client
 	ctx       = context.Background()
@@ -40,6 +40,7 @@ const (
 	VotePacks CommitmentType = iota
 	AuthPack
 	SharedRandomness
+	MerkleRoot CommitmentType = 128
 )
 
 func CallCreateSignKey(key [113]byte) (solana.Signature, error) {
