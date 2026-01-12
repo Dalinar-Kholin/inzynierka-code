@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from "react";
 import {useStatusMessages} from "./useAlertMessage.ts";
 import useGetServerPubKey from "./useGetServerPubKey.ts";
 import useGetFrontendKey from "./useGetFrontendKey.ts";
-import useGetVotingPackage from "../api/getVotingPackage.ts";
+import useGetVotingPackage, {type VotingPack} from "../api/getVotingPackage.ts";
 
 
 
@@ -13,9 +13,7 @@ const createContent = (sign : string, pubKey: string) =>{
 
 
 export function useHelperDevice() {
-    const [voteSerial, setVoteSerial] = useState<string>("")
-    const [authSerial, setAuthSerial] = useState<string>("")
-    const [voteCodes, setVoteCodes] = useState<string[]>([])
+    const [votePack, setVotePack] = useState<VotingPack | null>(null)
 
     const {successMessage, errorMessage, showError, showSuccess, clearMessages} = useStatusMessages()
     const { pubKey } = useGetServerPubKey()
@@ -32,9 +30,7 @@ export function useHelperDevice() {
         useCallback(async (sign: string) => {
             try {
                 const data = await getPackage({sign: sign})
-                setAuthSerial(data.authSerial)
-                setVoteSerial(data.voteSerial)
-                setVoteCodes(data.voteCodes)
+                setVotePack(data)
                 clearMessages()
             }
             catch (error: any) {
@@ -45,9 +41,7 @@ export function useHelperDevice() {
 
 
     return {
-        voteSerial,
-        authSerial,
-        voteCodes,
+        votePack,
         successMessage,
         errorMessage,
         content,

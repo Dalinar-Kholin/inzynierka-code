@@ -6,13 +6,11 @@ import DownloadXMLFile from "../downloadXMLFile.tsx";
 import {UploadContentToState, UploadSignedVoteRequest} from "../UploadSignedVote.tsx";
 import {useAnchor} from "../../hooks/useAnchor.ts";
 import {useEffect} from "react";
-
+import {Box} from "@mui/material";
 
 export default function HelperDeviceView(){
     const {
-        authSerial,
-        voteSerial,
-        voteCodes,
+        votePack,
         successMessage,
         errorMessage,
         content,
@@ -36,8 +34,14 @@ export default function HelperDeviceView(){
 
     return(
         <>
-            <BallotDataPrint authSerial={authSerial} voteSerial={voteSerial} authCode={""}/>
-            {voteCodes?.map(c => <p key={c}>{c}</p>)}
+        <Box sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+            gap: 2,
+        }}>
+            { votePack ? <ShowVoteStatus voteSerial={votePack.votes[0].voteSerial} authSerial={votePack.authSerial} voteCodes={votePack.votes[0].voteCodes} /> : <></>}
+            { votePack ? <ShowVoteStatus voteSerial={votePack.votes[1].voteSerial} authSerial={votePack.authSerial} voteCodes={votePack.votes[1].voteCodes} /> : <></>}
+        </Box>
             <p></p>
             <DownloadXMLFile content={content} filename={"voteRequest"} name={"Download XML Vote Request"}></DownloadXMLFile>
             <UploadSignedVoteRequest GetBallot={GetBallot}></UploadSignedVoteRequest>
@@ -48,4 +52,17 @@ export default function HelperDeviceView(){
 
         </>
     )
+}
+
+interface ShowVoteStatus {
+    authSerial: string
+    voteSerial: string
+    voteCodes: string[]
+}
+
+function ShowVoteStatus({authSerial, voteSerial, voteCodes}: ShowVoteStatus){
+    return <>
+        <BallotDataPrint authSerial={authSerial} voteSerial={voteSerial} authCode={""}/>
+        {voteCodes?.map(c => <p key={c}>{c}</p>)}
+    </>
 }

@@ -10,10 +10,15 @@ interface IGetVotingPackage{
     sign : string
 }
 
-export interface VotingPack {
-    authSerial: string;
+interface VotePack{
     voteSerial: string;
     voteCodes: string[];
+}
+
+export interface VotingPack {
+    authSerial: string;
+    votes: VotePack[];
+
 }
 
 interface IGetVotePackageRequest {

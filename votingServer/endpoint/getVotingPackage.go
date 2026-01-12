@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"golangShared/ServerResponse"
-	"inz/Storer/StoreClient"
 	"io"
 	"net/http"
 	"votingServer/DB"
@@ -33,10 +32,14 @@ type ballotRequest struct {
 
 var ServerPubKey string
 
-type VotingPack struct {
-	AuthSerial string   `json:"authSerial"`
+type VotePack struct {
 	VoteSerial string   `json:"voteSerial"`
 	VoteCodes  []string `json:"voteCodes"`
+}
+
+type VotingPack struct {
+	AuthSerial string      `json:"authSerial"`
+	Votes      [2]VotePack `json:"votes"`
 }
 
 func GetVotingPack(c *gin.Context) {
@@ -67,37 +70,12 @@ func GetVotingPack(c *gin.Context) {
 		return
 	}
 
-	coll := DB.GetDataBase("inz", "votesCard")
-	votingPackage, err := popRandomDocumentTx[VotingPackage](context.Background(), coll)
+	pack, err := GetVotingPackage()
 	if err != nil {
-		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, ServerError{Error: err.Error()})
-		return
+		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, ServerError{Error: err.Error()})
 	}
 
-	coll = DB.GetDataBase("inz", "authCard")
-	authPackage, err := popRandomDocumentTx[AuthPackage](context.Background(), coll)
-
-	if err != nil {
-		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, ServerError{Error: err.Error()})
-		return
-	}
-
-	authSerial, _ := uuid.FromBytes(authPackage.AuthSerial.Data)
-	voteSerial, _ := uuid.FromBytes(votingPackage.VoteSerial.Data)
-	voteCodes := []string{
-		string(votingPackage.Codes[0][:]),
-		string(votingPackage.Codes[1][:]),
-		string(votingPackage.Codes[2][:]),
-		string(votingPackage.Codes[3][:]),
-	}
-
-	result := VotingPack{
-		AuthSerial: authSerial.String(),
-		VoteSerial: voteSerial.String(),
-		VoteCodes:  voteCodes,
-	}
-
-	jsoned, _ := ServerResponse.ToJSONNoEscape(body) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+	/*jsoned, _ := ServerResponse.ToJSONNoEscape(body)
 	err = StoreClient.Client(StoreClient.RequestBody{
 		AuthSerial: &result.AuthSerial,
 		AuthCode:   nil,
@@ -106,9 +84,55 @@ func GetVotingPack(c *gin.Context) {
 	if err != nil {
 		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, ServerError{Error: err.Error()}) // to raczej nie powinno się wydarzyć chyba że server przestanie działać
 		return
-	}
-	ServerResponse.ResponseWithSign(c, http.StatusOK, body, result)
+	}*/
+
+	ServerResponse.ResponseWithSign(c, http.StatusOK, body, pack)
 	// c.JSON(200, result)
+}
+
+func GetVotingPackage() (*VotingPack, error) {
+	coll := DB.GetDataBase("inz", "authCard")
+	authPackage, err := popRandomDocumentTx[AuthPackage](context.Background(), coll)
+
+	if err != nil {
+		return nil, err
+	}
+
+	authSerial, _ := uuid.FromBytes(authPackage.AuthSerial.Data)
+
+	coll = DB.GetDataBase("inz", "votesCard")
+	var vp1 VotePack
+	votingPackage, err := popRandomDocumentTx[VotingPackage](context.Background(), coll)
+	if err != nil {
+		return nil, err
+	}
+	voteSerial, _ := uuid.FromBytes(votingPackage.VoteSerial.Data)
+	vp1.VoteSerial = voteSerial.String()
+	vp1.VoteCodes = []string{
+		string(votingPackage.Codes[0][:]),
+		string(votingPackage.Codes[1][:]),
+		string(votingPackage.Codes[2][:]),
+		string(votingPackage.Codes[3][:]),
+	}
+
+	var vp2 VotePack
+	votingPackage, err = popRandomDocumentTx[VotingPackage](context.Background(), coll)
+	if err != nil {
+		return nil, err
+	}
+	voteSerial, _ = uuid.FromBytes(votingPackage.VoteSerial.Data)
+	vp2.VoteSerial = voteSerial.String()
+	vp2.VoteCodes = []string{
+		string(votingPackage.Codes[0][:]),
+		string(votingPackage.Codes[1][:]),
+		string(votingPackage.Codes[2][:]),
+		string(votingPackage.Codes[3][:]),
+	}
+
+	return &VotingPack{
+		AuthSerial: authSerial.String(),
+		Votes:      [2]VotePack{vp1, vp2},
+	}, nil
 }
 
 func popRandomDocumentTx[T any](ctx context.Context, coll *mongo.Collection) (*T, error) {
