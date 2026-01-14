@@ -38,6 +38,15 @@ builder.WebHost.ConfigureKestrel(options =>
     {
         listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2;
     });
+
+    // last server also listens for requests
+    if (serverId == totalServers)
+    {
+        options.ListenLocalhost(5000, listenOptions =>
+        {
+            listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1;
+        });
+    }
 });
 
 builder.Services.AddGrpc();
@@ -45,14 +54,60 @@ builder.Services.AddGrpc();
 var processor = new RecordProcessor(serverId, totalServers, numberOfCandidates);
 var engine = new ChainEngine(serverId, totalServers, myPort, processor, batchSettings.VotesBatchSize, batchSettings.VotesTriggerSize);
 var service = new ChainServiceImpl(nextServer, prevServer, myPort, engine);
+var authSerialProcessor = new AuthSerialProcessor(serverId, service);
 
 engine.SetTransport(service);
 
 builder.Services.AddSingleton(service);
+builder.Services.AddSingleton(authSerialProcessor);
 
 var app = builder.Build();
 app.MapGrpcService<ChainServiceImpl>();
 app.MapGet("/", () => $"Chain node on port {myPort}");
+
+// receive authSerial and queue for processing
+app.MapPost("/api/submitvote/authserial", async (HttpRequest request, AuthSerialProcessor processor) =>
+{
+    // try to read authSerial from body as plain text
+    string authSerial;
+    using (var reader = new StreamReader(request.Body))
+    {
+        authSerial = await reader.ReadToEndAsync();
+    }
+
+    if (string.IsNullOrEmpty(authSerial))
+    {
+        return Results.BadRequest(new { error = "AuthSerial is required" });
+    }
+
+    // add to queue
+    processor.EnqueueAuthSerial(authSerial);
+
+    return Results.Accepted(null, new
+    {
+        message = "AuthSerial queued for processing",
+        authSerial = authSerial,
+        queueSize = processor.GetQueueSize(),
+        serverId = serverId
+    });
+});
+
+// status endpoint
+app.MapGet("/api/submitvote/status", (AuthSerialProcessor processor) =>
+{
+    return Results.Ok(new
+    {
+        serverId,
+        queueSize = processor.GetQueueSize()
+    });
+});
+
+if (serverId == totalServers)
+{
+    Console.WriteLine($"HTTP API available at http://localhost:5000/");
+    Console.WriteLine($"  POST /api/submitvote/authserial - Submit authSerial (only server {totalServers})");
+    Console.WriteLine($"  GET  /api/submitvote/status - Check processing queue status");
+}
 
 _ = app.RunAsync();
 

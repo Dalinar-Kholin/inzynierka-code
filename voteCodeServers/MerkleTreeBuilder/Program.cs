@@ -4,14 +4,44 @@ using System.Text;
 
 Console.WriteLine("=== Merkle Tree Builder ===");
 
+// Dictionary mapping collection numbers to collection names
+var collectionNames = new Dictionary<int, string>
+{
+    { 0, "BallotData" },
+    { 1, "PreprintAuditData" },
+    { 2, "PartialDecryptionData" }
+};
+
 if (args.Length < 1)
 {
-    Console.WriteLine("Usage: dotnet run <serverId>");
+    Console.WriteLine("Usage: dotnet run <serverId> [collectionNumber]");
+    Console.WriteLine("  serverId: Server ID (required)");
+    Console.WriteLine("  collectionNumber: Collection number (default: 0)");
+    Console.WriteLine("\nAvailable collections:");
+    foreach (var kvp in collectionNames)
+    {
+        Console.WriteLine($"    {kvp.Key} - {kvp.Value}");
+    }
     return;
 }
 
 int serverId = int.Parse(args[0]);
+int collectionNumber = args.Length > 1 ? int.Parse(args[1]) : 0;
+
+if (!collectionNames.ContainsKey(collectionNumber))
+{
+    Console.WriteLine($"Error: Invalid collection number {collectionNumber}");
+    Console.WriteLine("\nAvailable collections:");
+    foreach (var kvp in collectionNames)
+    {
+        Console.WriteLine($"    {kvp.Key} - {kvp.Value}");
+    }
+    return;
+}
+
+string collectionName = collectionNames[collectionNumber];
 Console.WriteLine($"Building Merkle Tree for Server {serverId}");
+Console.WriteLine($"Collection: {collectionName} (#{collectionNumber})");
 
 var cfg = Config.Load();
 int numberOfVoters = cfg.NumberOfVoters;
@@ -21,7 +51,7 @@ int numberOfServers = cfg.NumberOfServers;
 int totalBallots = 4 * numberOfVoters + 2 * safetyParameter;
 Console.WriteLine($"Total ballots expected: {totalBallots}");
 
-var builder = new MerkleTreeBuilder(serverId);
+var builder = new MerkleTreeBuilder(serverId, numberOfServers);
 
 Console.WriteLine("\nBuilding Merkle tree...");
 string rootHash = await builder.BuildMerkleTree();
@@ -37,7 +67,7 @@ try
     {
         // Convert hex string to bytes
         byte[] rootBytes = Convert.FromHexString(rootHash);
-        
+
         // CommitmentType 128 = MerkleRoot (> 127, fits in uint8)
         var payload = new
         {

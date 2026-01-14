@@ -7,10 +7,10 @@ public class MerkleTreeBuilder
     private readonly BallotService _ballotService;
     private readonly int _serverId;
 
-    public MerkleTreeBuilder(int serverId)
+    public MerkleTreeBuilder(int serverId, int numberOfServers)
     {
         _serverId = serverId;
-        _ballotService = new BallotService(serverId, 10);
+        _ballotService = new BallotService(serverId, numberOfServers);
     }
 
     private string HashCommitment(string commitment)
@@ -36,7 +36,6 @@ public class MerkleTreeBuilder
     {
         Console.WriteLine($"Building Merkle Tree for Server {_serverId}...");
 
-        // Pobierz ilość ballotów
         long totalCount = await _ballotService.GetTotalCount();
         Console.WriteLine($"Total ballots: {totalCount}");
 
@@ -46,7 +45,7 @@ public class MerkleTreeBuilder
             return string.Empty;
         }
 
-        // Wczytaj liście z wszystkich commitmentów (CommC0, CommC1, CommB razem)
+        // get all leaves
         var leaves = new List<string>();
         int skip = 0;
         const int batchSize = 1000;
@@ -57,7 +56,7 @@ public class MerkleTreeBuilder
 
             foreach (var ballot in ballots)
             {
-                // Dodaj wszystkie 3 commitmenty do drzewa
+                // add all 3 commitments to the tree
                 leaves.Add(HashCommitment(ballot.CommC0));
                 leaves.Add(HashCommitment(ballot.CommC1));
                 leaves.Add(HashCommitment(ballot.CommB));
@@ -67,11 +66,10 @@ public class MerkleTreeBuilder
 
         Console.WriteLine($"Loaded {leaves.Count} leaves (CommC0, CommC1, CommB for each ballot)");
 
-        // Buduj drzewo
         int level = 0;
         var currentLevel = leaves;
 
-        // Buduj wyższe poziomy
+        // build higher levels
         while (currentLevel.Count > 1)
         {
             var nextLevel = new List<string>();
@@ -91,7 +89,7 @@ public class MerkleTreeBuilder
         string rootHash = currentLevel[0];
         Console.WriteLine($"Root hash: {rootHash}");
 
-        // Zapisz root do pliku JSON
+        // save root to JSON file
         var rootData = new
         {
             ServerId = _serverId,
