@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ProgramID = solana.MustPublicKeyFromBase58("HEowdZXRMsKjiJkvgGfSWQQHc3gGpPd4CdQ7TjMSNkpG")
+	ProgramID = solana.MustPublicKeyFromBase58("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af")
 	Payer     *solana.Wallet
 	Client    *rpc.Client
 	ctx       = context.Background()

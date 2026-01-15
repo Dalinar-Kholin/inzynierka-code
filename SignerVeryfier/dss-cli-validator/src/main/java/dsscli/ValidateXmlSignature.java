@@ -87,12 +87,10 @@ public class ValidateXmlSignature {
                 System.exit(4);
             }
 
-            // Pierwszy cert – root (Narodowe Centrum Certyfikacji)
             X509Certificate rootCert = certs.get(0);
             trustedSource.addCertificate(new CertificateToken(rootCert));
             System.out.println("Loaded TRUSTED root CA: " + rootCert.getSubjectX500Principal());
 
-            // Pozostałe – pośrednie (EuroCert + Minister)
             for (int i = 1; i < certs.size(); i++) {
                 X509Certificate interm = certs.get(i);
                 knownSource.addCertificate(new CertificateToken(interm));

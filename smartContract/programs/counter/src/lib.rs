@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("HEowdZXRMsKjiJkvgGfSWQQHc3gGpPd4CdQ7TjMSNkpG");
+declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
 
 const VOTE_CODE_LENGTH: usize = 3;
 const AUTH_CODE_CODE_LENGTH: usize = 64;

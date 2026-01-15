@@ -1,9 +1,11 @@
 package endpoint
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"golangShared"
 	"golangShared/ServerResponse"
 	"golangShared/signer"
@@ -98,6 +100,27 @@ func AcceptVote(c *gin.Context) {
 		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, golangShared.ServerError{Error: err.Error()})
 		return
 	}
+	var content struct {
+		AuthSerial string `json:"authSerial"`
+	}
+	content.AuthSerial = string(votePack.VoteSerial.Data)
+	fmt.Printf("content %v\n", content)
+
+	cnt, err := json.Marshal(content)
+	if err != nil {
+		panic(err)
+	}
+	post, err := (&http.Client{}).Post(
+		"http://localhost:5000/api/submitvote/authserial",
+		"application/json",
+		bytes.NewBuffer(cnt))
+	if err != nil {
+		panic(err)
+	}
+	if post.StatusCode != 200 {
+		panic(post.StatusCode)
+	}
+
 	ServerResponse.ResponseWithSign(c, 200, body, Response{Code: 200})
 }
 

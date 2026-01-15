@@ -8,7 +8,7 @@ public class BallotService
 
     public BallotService(int serverId, int totalServers)
     {
-        var client = new MongoClient("mongodb://localhost:27017");
+        var client = new MongoClient("mongodb://root:nice123@localhost:27017/");
         var database = client.GetDatabase($"server_{serverId}");
         _ballots = database.GetCollection<BallotData>("BallotData");
 

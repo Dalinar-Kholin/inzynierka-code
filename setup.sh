@@ -1,10 +1,4 @@
-solana-test-validator --reset &
-
-
-
 cd ./smartContract
-
-sleep 3
 
 anchor build && anchor deploy
 
