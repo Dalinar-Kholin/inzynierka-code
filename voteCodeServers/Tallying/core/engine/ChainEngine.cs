@@ -265,6 +265,11 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
             }
             writer.WriteLine();
         }
+
+        // wyslij VS i wektor glosow na BB (przez BBproxy)
+        Console.WriteLine($"[{_myPort}] VoteRecord tallied for BallotId: {data.BallotId}");
+        // var externalServerUrl = $"http://
+
     }
 
     // create VoteCodeRecord from new votes batch and send to previous server

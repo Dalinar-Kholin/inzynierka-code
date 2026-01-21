@@ -7,9 +7,12 @@ Krok 2:
 Trzeba sparwdzić w danych czy wszystkie wygenerowane
 
 Krok 3:
-~/inzynierka-code/voteCodeServers/VoteCodesGenerator ./start_servers.sh
+~/inzynierka-code/voteCodeServers/VoteCodesPrint ./start_servers.sh
 Powinna się wtedy konsola odpalić co wyświetla wszystkie 10 serwerów
 i na konsoli 1 (powinna to być 5001) trzeba wpisać: "init"
-
 Ostatni zapis do bazy danych może trwać 30s (bo taki timeout jest ustawiony, żeby sie nie zapisywało po 5-10 rekordow tylko np po 1k).
+
+Kork 4:
+~/inzynierka-code/voteCodeServers/PartialDecryption ./run_all_partial_decryption
+
 Może również wystąpić błąd z paillierem (bo wrapper czasami nie możę znaleźć kodu cpp i trzeba mu to gdzieś dać żeby znalazł)

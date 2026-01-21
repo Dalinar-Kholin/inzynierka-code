@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Text;
 
-// Dane wejściowe - pobrane z bb
 var cfg = VoteCodeServers.Helpers.Config.Load();
 string alphabet = cfg.Alphabet;
 int numberOfCandidates = cfg.NumberOfCandidates;
