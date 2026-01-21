@@ -10,6 +10,7 @@ import (
 	"golangShared"
 	"os"
 	"time"
+	"votingServer/helper"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -32,6 +33,7 @@ func main() {
 
 	payer := WalletFromPrivateKey(golangShared.LoadPrivateKeyFromJSON("../signer.json"))
 	common.Payer = payer
+	helper.FeePayer = payer
 
 	client := rpc.New("http://127.0.0.1:8899")
 	common.Client = client
@@ -48,7 +50,9 @@ func main() {
 	r.POST(golangShared.AddCommitPackEndpoint, endpoint.AddAuthPackage)
 	r.GET(golangShared.FinalCommitEndpoint, endpoint.FinalCommit)
 	r.POST(golangShared.CommitSignKeyEndpoint, endpoint.CommitSignKey)
-	r.POST(golangShared.CommitSingleValue, endpoint.SingleCommitment)
+	r.POST(golangShared.CommitSingleValueEndpoint, endpoint.SingleCommitment)
+	r.POST(golangShared.UpdateVoteVectorEndpoint, endpoint.UpdateVote)
+
 	r.GET("/healthz", func(context *gin.Context) {
 		context.Status(200)
 	})

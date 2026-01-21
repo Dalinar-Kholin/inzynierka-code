@@ -18,6 +18,7 @@ interface accountData {
     AuthCode: string;
     ServerSign: number[];
     VoterSign: string;
+    voteVector: string
 }
 
 type StageName = keyof VotingStage; // "empty" | "casted" | "accepted" | "committed"
@@ -59,7 +60,8 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
                     VoteCode: decoder.decode(new Uint8Array(r.account.voteCode)),
                     AuthCode: decoder.decode(new Uint8Array(r.account.authCode)),
                     ServerSign: r.account.serverSign,
-                    VoterSign: decoder.decode(new Uint8Array(r.account.voterSign))
+                    VoterSign: decoder.decode(new Uint8Array(r.account.voterSign)),
+                    voteVector: decoder.decode(new Uint8Array(r.account.voteVector))
                 }
                 data.push(newItem)
             })
@@ -84,6 +86,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
                     <p>vote serial := {ad.VoteSerial}</p>
                     <p>auth serial := {ad.AuthSerial}</p>
                     <p>lock code := {ad.LockCode}</p>
+                    <p>vote Vector := {ad.voteVector}</p>
                     <p>
                         <Button onClick={async () => {
                             const signedObject: BackendLookPack = {

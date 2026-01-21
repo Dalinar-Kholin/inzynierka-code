@@ -20,9 +20,10 @@ const (
 
 	AddCommitPackEndpoint = "/addAuthPack"
 
-	FinalCommitEndpoint   = "/finalCommit"
-	CommitSignKeyEndpoint = "/commitSignKey"
-	CommitSingleValue     = "/commitSingleValue"
+	FinalCommitEndpoint       = "/finalCommit"
+	CommitSignKeyEndpoint     = "/commitSignKey"
+	CommitSingleValueEndpoint = "/commitSingleValue"
+	UpdateVoteVectorEndpoint  = "/updateVoteVector"
 
 	VerifySignKeyEndpoint = "/verifySignKey"
 

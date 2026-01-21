@@ -85,7 +85,7 @@ func CommitSingle(commitmentType common.CommitmentType, id uint8, toCommit [64]b
 		panic(err)
 	}
 	post, err := (&http.Client{}).Post(
-		fmt.Sprintf("http://127.0.0.1:%d%s", CommiterPort, CommitSingleValue),
+		fmt.Sprintf("http://127.0.0.1:%d%s", CommiterPort, CommitSingleValueEndpoint),
 		"application/json",
 		bytes.NewBuffer(jsonedBody))
 	if err != nil {

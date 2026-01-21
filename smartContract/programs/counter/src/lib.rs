@@ -11,22 +11,43 @@ pub enum VotingStage {
     Casted,
     Accepted,
     Committed,
+    ToOpen,
+    ToCount,
+    ToOpenButToCountOnSameCard,
+}
+
+impl VotingStage {
+    pub fn from_u8(v: u8) -> Option<Self> {
+        match v {
+            0 => Some(VotingStage::Empty),
+            1 => Some(VotingStage::Casted),
+            2 => Some(VotingStage::Accepted),
+            3 => Some(VotingStage::Committed),
+            4 => Some(VotingStage::ToOpen),
+            5 => Some(VotingStage::ToCount),
+            6 => Some(VotingStage::ToOpenButToCountOnSameCard),
+            _ => None,
+        }
+    }
 }
 
 #[program]
 mod counter {
-    use anchor_lang::__private::bytemuck::cast;
     use super::*;
 
-    pub fn cast_vote( // do umieszczenia krotki <VoteCode,AuthCode> na BB
-                      ctx: Context<CastCtx>,
-                      auth_code: Vec<u8>,
-                      vote_serial: Vec<u8>,
-                      vote_code: Vec<u8>,
-                      lock_code: Vec<u8>,
+    pub fn cast_vote(
+        // do umieszczenia krotki <VoteCode,AuthCode> na BB
+        ctx: Context<CastCtx>,
+        auth_code: Vec<u8>,
+        vote_serial: Vec<u8>,
+        vote_code: Vec<u8>,
+        lock_code: Vec<u8>,
     ) -> Result<()> {
         let cast = &mut ctx.accounts.vote;
-        require!(cast.stage == VotingStage::Empty, ErrorCode::InvalidProgramId);
+        require!(
+            cast.stage == VotingStage::Empty,
+            ErrorCode::InvalidProgramId
+        );
 
         require!(auth_code.len() == 64, ErrorCode::InvalidProgramId);
         require!(vote_serial.len() == 16, ErrorCode::InvalidProgramId);
@@ -58,10 +79,14 @@ mod counter {
         ctx: Context<AcceptCtx>,
         auth_code: Vec<u8>,
         auth_serial: Vec<u8>,
-        server_sign: Vec<u8> // po co ack code skoro mamy podpis
-    ) -> Result<()> { // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
+        server_sign: Vec<u8>, // po co ack code skoro mamy podpis
+    ) -> Result<()> {
+        // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
         let cast = &mut ctx.accounts.vote;
-        require!(cast.stage == VotingStage::Casted, ErrorCode::InvalidProgramId);
+        require!(
+            cast.stage == VotingStage::Casted,
+            ErrorCode::InvalidProgramId
+        );
 
         let mut auth_fixed = [0u8; 16];
         auth_fixed.copy_from_slice(&auth_serial);
@@ -79,8 +104,9 @@ mod counter {
         ctx: Context<CommitCtx>,
         auth_code: Vec<u8>,
         offset: u32,
-        user_sign: Vec<u8>
-    ) -> Result<()> { // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
+        user_sign: Vec<u8>,
+    ) -> Result<()> {
+        // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
         let vote = &mut ctx.accounts.vote;
 
         let offset = offset as usize;
@@ -96,6 +122,36 @@ mod counter {
         Ok(())
     }
 
+    pub fn interpret_card_vote(
+        ctx: Context<InterpretCtx>,
+        auth_code: Vec<u8>,
+        status: u8,
+    ) -> Result<()> {
+        let vote = &mut ctx.accounts.vote;
+        let stage = VotingStage::from_u8(status).ok_or(ErrorCode::InvalidProgramId)?;
+        require!(
+            stage == VotingStage::ToCount
+                || stage == VotingStage::ToOpen
+                || stage == VotingStage::ToOpenButToCountOnSameCard,
+            ErrorCode::InvalidProgramId
+        );
+
+        vote.stage = stage;
+        Ok(())
+    }
+
+    pub fn update_vote_vec(
+        ctx: Context<UpdateVoteVectorCtx>,
+        auth_code: Vec<u8>,
+        vote_vector: Vec<u8>,
+    ) -> Result<()> {
+        let vote = &mut ctx.accounts.vote;
+
+        require!(vote.stage == VotingStage::Accepted || vote.stage == VotingStage::Committed, ErrorCode::InvalidProgramId);
+        vote.vote_vector = vote_vector;
+        Ok(())
+    }
+
     pub fn create_commitment_pack(
         ctx: Context<CreateAuthPackCommitment>,
         commitment_type: u8,
@@ -108,10 +164,7 @@ mod counter {
         Ok(())
     }
 
-    pub fn create_key(
-        ctx: Context<CreateSignKey>,
-        key: [u8; 113],
-    ) -> Result<()> {
+    pub fn create_key(ctx: Context<CreateSignKey>, key: [u8; 113]) -> Result<()> {
         let commitment_data = &mut ctx.accounts.key;
         commitment_data.key = key;
         commitment_data.bump = ctx.bumps.key;
@@ -132,13 +185,13 @@ mod counter {
         Ok(())
     }
 }
-    #[derive(Accounts)]
-    #[instruction(commitment_type: u8, id: u8, to_commit: [u8; 64])]
-    pub struct CreateSingleCommitment<'info> {
-        #[account(mut)]
-        pub payer: Signer<'info>,
+#[derive(Accounts)]
+#[instruction(commitment_type: u8, id: u8, to_commit: [u8; 64])]
+pub struct CreateSingleCommitment<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
 
-        #[account(
+    #[account(
         init,
         payer = payer,
         space = 8 + 1 + 1 + 64 + 1, // 8 = discriminator
@@ -147,18 +200,18 @@ mod counter {
         ],
         bump
         )]
-        pub commitment: Account<'info, SingleCommitment>,
+    pub commitment: Account<'info, SingleCommitment>,
 
-        pub system_program: Program<'info, System>,
-    }
+    pub system_program: Program<'info, System>,
+}
 
-    #[account]
-    pub struct SingleCommitment {
-        pub commitment_type: u8,
-        pub id: u8,
-        pub to_commit: [u8; 64],
-        pub bump: u8,
-    }
+#[account]
+pub struct SingleCommitment {
+    pub commitment_type: u8,
+    pub id: u8,
+    pub to_commit: [u8; 64],
+    pub bump: u8,
+}
 
 #[derive(Accounts)]
 #[instruction(commitment_type: u8, hashed_data : [u8; 32])]
@@ -209,7 +262,6 @@ pub struct SignKey {
     pub bump: u8,
 }
 
-
 #[derive(Accounts)]
 #[instruction(auth_code: Vec<u8>)]
 pub struct CastCtx<'info> {
@@ -239,6 +291,29 @@ pub struct AcceptCtx<'info> {
 
 #[derive(Accounts)]
 #[instruction(auth_code: Vec<u8>)]
+pub struct InterpretCtx<'info> {
+    #[account(
+        mut,
+        seeds = [b"commitVote", &auth_code[..32], &auth_code[32..]],
+        bump = vote.bump
+    )]
+    pub vote: Account<'info, Vote>,
+}
+
+#[derive(Accounts)]
+#[instruction(auth_code: Vec<u8>)]
+pub struct UpdateVoteVectorCtx<'info> {
+    #[account(
+        mut,
+        seeds = [b"commitVote", &auth_code[..32], &auth_code[32..]],
+        bump = vote.bump
+    )]
+    pub vote: Account<'info, Vote>,
+}
+
+
+#[derive(Accounts)]
+#[instruction(auth_code: Vec<u8>)]
 pub struct CommitCtx<'info> {
     #[account(
         mut,
@@ -257,14 +332,14 @@ pub struct Vote {
     pub auth_code: [u8; AUTH_CODE_CODE_LENGTH],
     pub server_sign: [u8; 64],
     pub lock_code: [u8; 8],
+    pub vote_vector: Vec<u8>,
     pub voter_sign: Vec<u8>,
     // vote vector --> po wymnozeniu wszystkich mamy wynik
     pub bump: u8,
 }
 const MAX_VOTER_SIGN_LEN: usize = 5000;
-
-const VOTE_ACCOUNT_SPACE: usize =
-    8    // discriminator
+const MAX_VOTE_VECTOR_LEN: usize = 350;
+const VOTE_ACCOUNT_SPACE: usize = 8    // discriminator
         + 1    // stage
         + 16   // vote_serial
         + 3    // vote_code
@@ -274,4 +349,5 @@ const VOTE_ACCOUNT_SPACE: usize =
         + 4    // voter_sign length prefix (u32)
         + 8   // lock_code
         + MAX_VOTER_SIGN_LEN
-        + 1;   // bump
+        + MAX_VOTE_VECTOR_LEN
+        + 1; // bump

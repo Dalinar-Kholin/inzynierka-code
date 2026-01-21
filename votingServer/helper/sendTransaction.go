@@ -119,13 +119,14 @@ type Vote struct {
 	AuthCode   [64]byte
 	ServerSign [64]byte
 	LockCode   [8]byte
+	VoteVector []byte
 	VoterSign  []byte
 	Bump       uint8
 }
 
 func DecodeVoteAnchor(data []byte) (Vote, error) {
 
-	const total = 5185
+	const total = 5185 + 350
 	if len(data) != total {
 		return Vote{}, fmt.Errorf("unexpected length %d, want %d", len(data), total)
 	}
@@ -140,10 +141,18 @@ func DecodeVoteAnchor(data []byte) (Vote, error) {
 	copy(v.AuthCode[:], payload[36:36+64])
 	copy(v.ServerSign[:], payload[100:100+64])
 	copy(v.LockCode[:], payload[164:164+8])
+
 	length, _ := ReadSolanaU32AsInt32(payload[172 : 172+4])
+	v.VoteVector = make([]byte, length)
+	position := int32(176)
+	copy(v.VoteVector[:], payload[position:position+length])
+	position += length
+	length, _ = ReadSolanaU32AsInt32(payload[position : position+4])
+	position += 4
 	v.VoterSign = make([]byte, length)
-	copy(v.VoterSign[:], payload[176:176+length])
-	v.Bump = payload[176+length]
+	copy(v.VoterSign[:], payload[position:position+length])
+	position += length
+	v.Bump = payload[position]
 
 	fmt.Printf("%v\n", length)
 	return v, nil
