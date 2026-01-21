@@ -1,15 +1,15 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-public class AuthSerialProcessor
+public class AuthCodeProcessor
 {
     private readonly int _serverId;
-    private readonly ConcurrentQueue<string> _authSerialQueue = new();
+    private readonly ConcurrentQueue<string> _authCodeQueue = new();
     private readonly HttpClient _httpClient = new();
     private readonly ChainServiceImpl _chainService;
     private readonly SemaphoreSlim _signal = new(0);
 
-    public AuthSerialProcessor(int serverId, ChainServiceImpl chainService)
+    public AuthCodeProcessor(int serverId, ChainServiceImpl chainService)
     {
         _serverId = serverId;
         _chainService = chainService;
@@ -17,16 +17,16 @@ public class AuthSerialProcessor
         Task.Run(() => ProcessQueueAsync());
     }
 
-    public void EnqueueAuthSerial(string authSerial)
+    public void EnqueueAuthCode(string authCode)
     {
-        _authSerialQueue.Enqueue(authSerial);
+        _authCodeQueue.Enqueue(authCode);
         _signal.Release();
-        Console.WriteLine($"[Server {_serverId}] AuthSerial queued: {authSerial} (Queue size: {_authSerialQueue.Count})");
+        Console.WriteLine($"[Server {_serverId}] AuthCode queued: {authCode} (Queue size: {_authCodeQueue.Count})");
     }
 
     private async Task ProcessQueueAsync()
     {
-        Console.WriteLine($"[Server {_serverId}] AuthSerial processor started");
+        Console.WriteLine($"[Server {_serverId}] AuthCode processor started");
 
         while (true)
         {
@@ -34,9 +34,9 @@ public class AuthSerialProcessor
             {
                 await _signal.WaitAsync();
 
-                if (_authSerialQueue.TryDequeue(out string? authSerial))
+                if (_authCodeQueue.TryDequeue(out string? authCode))
                 {
-                    await ProcessAuthSerialAsync(authSerial);
+                    await ProcessAuthCodeAsync(authCode);
                 }
             }
             catch (OperationCanceledException)
@@ -49,22 +49,21 @@ public class AuthSerialProcessor
             }
         }
 
-        Console.WriteLine($"[Server {_serverId}] AuthSerial processor stopped");
+        Console.WriteLine($"[Server {_serverId}] AuthCode processor stopped");
     }
 
-    private async Task ProcessAuthSerialAsync(string authSerial)
+    private async Task ProcessAuthCodeAsync(string authCode)
     {
         try
         {
-            Console.WriteLine($"[Server {_serverId}] Processing authSerial: {authSerial}");
-
-            string externalServerUrl = $"http://127.0.0.1:8085/voteModel?authCode={authSerial}";
+            Console.WriteLine($"[Server {_serverId}] Processing authCode: {authCode}");
+            string externalServerUrl = $"http://127.0.0.1:8085/voteModel?authCode={authCode}";
 
             var response = await _httpClient.GetAsync(externalServerUrl);
 
             if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"[Server {_serverId}] Failed to query external server for {authSerial}: {response.StatusCode}");
+                Console.WriteLine($"[Server {_serverId}] Failed to query external server for {authCode}: {response.StatusCode}");
                 return;
             }
 
@@ -72,26 +71,25 @@ public class AuthSerialProcessor
 
             if (voteData == null || string.IsNullOrEmpty(voteData.VoteSerial) || string.IsNullOrEmpty(voteData.VoteCode))
             {
-                Console.WriteLine($"[Server {_serverId}] Invalid response from external server for {authSerial}");
+                Console.WriteLine($"[Server {_serverId}] Invalid response from external server for {authCode}");
                 return;
             }
 
-            Console.WriteLine($"[Server {_serverId}] Retrieved for {authSerial} -> voteSerial: {voteData.VoteSerial}, voteCode: {voteData.VoteCode}");
-
+            Console.WriteLine($"[Server {_serverId}] Retrieved for {authCode} -> voteSerial: {voteData.VoteSerial}, voteCode: {voteData.VoteCode}");
             // send to processing chain
             _chainService.SendData(voteData.VoteSerial, voteData.VoteCode);
 
-            Console.WriteLine($"[Server {_serverId}] Data sent to chain for authSerial: {authSerial}");
+            Console.WriteLine($"[Server {_serverId}] Data sent to chain for authCode: {authCode}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Server {_serverId}] Error processing authSerial {authSerial}: {ex.Message}");
+            Console.WriteLine($"[Server {_serverId}] Error processing authCode {authCode}: {ex.Message}");
         }
     }
-    
+
     public int GetQueueSize()
     {
-        return _authSerialQueue.Count;
+        return _authCodeQueue.Count;
     }
 }
 

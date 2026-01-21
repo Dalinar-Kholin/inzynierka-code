@@ -65,35 +65,34 @@ var app = builder.Build();
 app.MapGrpcService<ChainServiceImpl>();
 app.MapGet("/", () => $"Chain node on port {myPort}");
 
-// receive authSerial and queue for processing
-app.MapPost("/api/submitvote/authserial", async (HttpRequest request, AuthSerialProcessor processor) =>
+// receive authCode and queue for processing
+app.MapPost("/api/submitvote/authcode", async (HttpRequest request, AuthCodeProcessor processor) =>
 {
-    // try to read authSerial from body as plain text
-    string authSerial;
+    // try to read authCode from body as plain text
+    string authCode;
     using (var reader = new StreamReader(request.Body))
     {
-        authSerial = await reader.ReadToEndAsync();
+        authCode = await reader.ReadToEndAsync();
     }
 
-    if (string.IsNullOrEmpty(authSerial))
+    if (string.IsNullOrEmpty(authCode))
     {
-        return Results.BadRequest(new { error = "AuthSerial is required" });
+        return Results.BadRequest(new { error = "AuthCode is required" });
     }
 
     // add to queue
-    processor.EnqueueAuthSerial(authSerial);
-
+    processor.EnqueueAuthCode(authCode);
     return Results.Accepted(null, new
     {
-        message = "AuthSerial queued for processing",
-        authSerial = authSerial,
+        message = "AuthCode queued for processing",
+        authCode = authCode,
         queueSize = processor.GetQueueSize(),
         serverId = serverId
     });
 });
 
 // status endpoint
-app.MapGet("/api/submitvote/status", (AuthSerialProcessor processor) =>
+app.MapGet("/api/submitvote/status", (AuthCodeProcessor processor) =>
 {
     return Results.Ok(new
     {
@@ -105,7 +104,7 @@ app.MapGet("/api/submitvote/status", (AuthSerialProcessor processor) =>
 if (serverId == totalServers)
 {
     Console.WriteLine($"HTTP API available at http://localhost:5000/");
-    Console.WriteLine($"  POST /api/submitvote/authserial - Submit authSerial (only server {totalServers})");
+    Console.WriteLine($"  POST /api/submitvote/authcode - Submit authCode (only server {totalServers})");
     Console.WriteLine($"  GET  /api/submitvote/status - Check processing queue status");
 }
 
