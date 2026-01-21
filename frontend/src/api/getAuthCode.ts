@@ -17,7 +17,8 @@ interface IGetAuthCodeInitResponse{
     n: string,
 }
 
-interface IGetAuthCodeResponse{
+
+interface otData{
     c0: string,
     c1: string,
     n0: string,
@@ -26,8 +27,16 @@ interface IGetAuthCodeResponse{
     x1: string,
 }
 
-interface IResponse{
-    result : string
+interface IGetAuthCodeResponse{
+    otData: otData;
+    permCode: string;
+    r: string;
+}
+
+export interface IOtResponse {
+    authCode : string
+    permCode? : string
+    r?: string,
 }
 
 interface IGetAuthCodeInitRequest{
@@ -43,7 +52,7 @@ interface IGetAuthCodeRequest{
 export default function useGetAuthCode(){
     const fetchWithAuth = useFetchWithVerify()
 
-    async function getCode({ authSerial, bit }: IGetAuthCode): Promise<IResponse>{
+    async function getCode({ authSerial, bit }: IGetAuthCode): Promise<IOtResponse>{
         return await getAuthCode({authSerial, bit, fetchWithAuth})
     }
 
@@ -58,8 +67,8 @@ interface IGetAuthCodeHelper{
     fetchWithAuth: FetchWithAuthFnType
 }
 
-async function getAuthCode({ authSerial, bit, fetchWithAuth } : IGetAuthCodeHelper) : Promise<IResponse> {
-    if (authSerial === "") return {result: ""};
+async function getAuthCode({ authSerial, bit, fetchWithAuth } : IGetAuthCodeHelper) : Promise<IOtResponse> {
+    if (authSerial === "") return {authCode: ""};
 
 
     let response = await fetchWithAuth<IGetAuthCodeInitResponse, IGetAuthCodeInitRequest>(consts.API_URL + "/getAuthCodeInit", {
@@ -102,8 +111,6 @@ async function getAuthCode({ authSerial, bit, fetchWithAuth } : IGetAuthCodeHelp
         A =(C * inv) % n
         AHex = bigIntToHex(A);
     }
-
-    console.log("all is OK?");
     const secResponse = await fetchWithAuth<IGetAuthCodeResponse, IGetAuthCodeRequest>(consts.API_URL + "/getAuthCode", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -116,9 +123,8 @@ async function getAuthCode({ authSerial, bit, fetchWithAuth } : IGetAuthCodeHelp
         throw new Error(secResponse.error);
     }
 
-    console.log("OK");
-    const X0Hex = secResponse.x0;
-    const X1Hex = secResponse.x1;
+    const X0Hex = secResponse.otData.x0;
+    const X1Hex = secResponse.otData.x1;
     const X0 = BigInt('0x' + X0Hex);
     const X1 = BigInt('0x' + X1Hex);
 
@@ -139,10 +145,10 @@ async function getAuthCode({ authSerial, bit, fetchWithAuth } : IGetAuthCodeHelp
     const k0 = await hkdfSha256(Z0b, salt, infoBytes, 32);
     const k1 = await hkdfSha256(Z1b, salt, infoBytes, 32);
 
-    const n0 = hexToBytes(secResponse.n0);
-    const n1 = hexToBytes(secResponse.n1);
-    const c0 = hexToBytes(secResponse.c0);
-    const c1 = hexToBytes(secResponse.c1);
+    const n0 = hexToBytes(secResponse.otData.n0);
+    const n1 = hexToBytes(secResponse.otData.n1);
+    const c0 = hexToBytes(secResponse.otData.c0);
+    const c1 = hexToBytes(secResponse.otData.c1);
 
     const m0 = await decryptGCM(k0, n0, infoBytes, c0).catch(() => null);
     const m1 = await decryptGCM(k1, n1, infoBytes, c1).catch(() => null);
@@ -150,7 +156,7 @@ async function getAuthCode({ authSerial, bit, fetchWithAuth } : IGetAuthCodeHelp
     const text0 = m0 ? bytesToUtf8(m0) : null;
     const text1 = m1 ? bytesToUtf8(m1) : null;
 
-    return { result: (bit ? text0 : text1) as string };
+    return { authCode: (bit ? text0 : text1) as string, permCode:secResponse.permCode, r: secResponse.r };
 }
 
 function hexToBytesEven(h: string): Uint8Array {

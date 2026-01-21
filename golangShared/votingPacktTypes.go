@@ -1,6 +1,8 @@
 package golangShared
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Serial [16]byte
 type CandidateCode [candidatesCodeLength]byte
@@ -31,9 +33,17 @@ type VotingPackage struct {
 }
 
 type AuthPackage struct {
-	AuthSerial primitive.Binary                `bson:"authSerial" json:"authSerial"`
-	AuthCode   [NumberOfAuthCodes]AuthCodePack `bson:"authCode" json:"authCode"`
-	Used       bool                            `bson:"used" json:"-"`
+	AuthSerial  primitive.Binary                `bson:"authSerial" json:"authSerial"`
+	AuthCode    [NumberOfAuthCodes]AuthCodePack `bson:"authCode" json:"authCode"`
+	Used        bool                            `bson:"used" json:"-"`
+	LockPackage LockPackage                     `bson:"lockPackage"`
+	PermCode    string                          `bson:"permCode" json:"-"`
+}
+
+type LockPackage struct {
+	LockCode           string `bson:"lockCode"`
+	LockCodeCommitment string `bson:"lockCodeCommitment"`
+	LockCodeRandomness string `bson:"lockCodeRandomness"`
 }
 
 type AuthCodePack struct {

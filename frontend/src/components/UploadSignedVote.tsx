@@ -47,6 +47,17 @@ export function UploadSignedVoteRequest({GetBallot}: IUploadSignedVote) {
     const [voterSign, setVoterSign] = useState<string>("")
     const {handleFileChange} = useFileSystem()
 
+    const toDelete = async ()=>{
+        const data = await fetch("http://127.0.0.1:8085/voter",{
+            method:"POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: voterSign
+        })
+        console.log(data)
+    }
+
     return <>
         <h2>upload signed Request</h2>
 
@@ -56,6 +67,7 @@ export function UploadSignedVoteRequest({GetBallot}: IUploadSignedVote) {
         {voterSign}
       </pre>
         <Button onClick={async () => await GetBallot(voterSign)}>Get Ballot</Button>
+        <Button onClick={toDelete}>ping EA</Button>
     </>
 }
 

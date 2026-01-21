@@ -7,6 +7,7 @@ const (
 	VerifierPort = 8083
 	StorerPort   = 8084
 	ProxyPort    = 8085
+	SGXPort      = 8086
 
 	GetVotingPackEndpoint   = "/getVotingPack"
 	GetVoteCodesEndpoint    = "/getVoteCodes"

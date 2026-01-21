@@ -31,7 +31,6 @@ func main() {
 	}
 
 	if err := commiterStruct.CommitSignKey(string(pemBytes)); err != nil {
-
 	}
 
 	stringed := string(pemBytes)

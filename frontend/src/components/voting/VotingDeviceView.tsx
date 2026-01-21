@@ -10,7 +10,7 @@ export default function VotingDeviceView() {
     const {
         bit,
         authSerial,
-        authCode,
+        otPack,
         voteSerial,
         voteCodes,
         successMessage,
@@ -19,6 +19,8 @@ export default function VotingDeviceView() {
         voterSign,
         serverSign,
         accessCode,
+        lockCode,
+        PingForAccept,
         setVoteSerial,
         setAuthSerial,
         setVoterSign,
@@ -26,12 +28,20 @@ export default function VotingDeviceView() {
         CastVote,
         GetVoteCodes,
         GetAuthCodes,
-        PingForAccept,
+        setLockCode,
         GetAcceptedBallot
     } = useVoting()
 
     return (<>
             <form>
+                <div>
+                    <p>lockCode</p>
+                    <p>
+                        <input onChange={e => {
+                            setLockCode(e.target.value)
+                        }} value={lockCode}/>
+                    </p>
+                </div>
                 <div>
                     <p>auth serial</p>
                     <p>
@@ -85,16 +95,16 @@ export default function VotingDeviceView() {
             </p>
 
             <BallotDataPrint
-                voteSerial={voteSerial} authSerial={authSerial} authCode={authCode}/>
+                voteSerial={voteSerial} authSerial={authSerial} authCode={otPack?.authCode || ""}/>
 
             <DownloadXMLFile content={serializeVoteToXML(
                 new Vote(
-                    voteSerial || "", selectedCode || "", authSerial || "", authCode || "", serverSign || [])
+                    voteSerial || "", selectedCode || "", authSerial || "", otPack?.authCode || "", serverSign || [])
             )} filename={"vote"} name={"DownloadXMLVoteFile"}/>
 
             <UploadSignedVote
                 setVoterSign={setVoterSign}
-                authCode={ authCode || ""}
+                authCode={ otPack?.authCode || ""}
                 voterSign={voterSign || ""}
                 accessCode={ accessCode || ""}
             />

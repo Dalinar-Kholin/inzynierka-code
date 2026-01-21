@@ -43,14 +43,13 @@ func SendAcceptVote(
 	ctx context.Context,
 	authCode []byte, // 64 bytes
 	authSerial []byte, // 16
-	voteSerial []byte, // 16
 	serverSign []byte, // 64
 ) (string, error) {
 
 	// 1) Walidacja długości
-	if len(authCode) != 64 || len(authSerial) != 16 || len(voteSerial) != 16 {
+	if len(authCode) != 64 || len(authSerial) != 16 {
 		return "", fmt.Errorf("invalid lengths: authCode=%d authSerial=%d voteSerial=%d serverSign=%d",
-			len(authCode), len(authSerial), len(voteSerial), len(serverSign))
+			len(authCode), len(authSerial), len(serverSign))
 	}
 
 	// 2) Wylicz PDA konta vote z auth_code
@@ -60,11 +59,10 @@ func SendAcceptVote(
 	}
 
 	// 3) Zbuduj dane instrukcji: discriminator + Borsh Vec<u8>... w kolejności argumentów
-	data := make([]byte, 0, 8+4+64+4+16+4+16+4+8+4+64)
+	data := make([]byte, 0, 8+4+64+4+16+4+4+8+4+64)
 	data = append(data, methodDiscriminator("accept_vote")...)
 	data = borshAppendVec(data, authCode)
 	data = borshAppendVec(data, authSerial)
-	data = borshAppendVec(data, voteSerial)
 	data = borshAppendVec(data, serverSign)
 
 	// 4) Instruction (tylko jedno konto: vote - writable, bez signera)
@@ -120,13 +118,14 @@ type Vote struct {
 	AuthSerial [16]byte
 	AuthCode   [64]byte
 	ServerSign [64]byte
+	LockCode   [8]byte
 	VoterSign  []byte
 	Bump       uint8
 }
 
 func DecodeVoteAnchor(data []byte) (Vote, error) {
 
-	const total = 5177
+	const total = 5185
 	if len(data) != total {
 		return Vote{}, fmt.Errorf("unexpected length %d, want %d", len(data), total)
 	}
@@ -140,10 +139,11 @@ func DecodeVoteAnchor(data []byte) (Vote, error) {
 	copy(v.AuthSerial[:], payload[20:20+16])
 	copy(v.AuthCode[:], payload[36:36+64])
 	copy(v.ServerSign[:], payload[100:100+64])
-	length, _ := ReadSolanaU32AsInt32(payload[164 : 164+4])
+	copy(v.LockCode[:], payload[164:164+8])
+	length, _ := ReadSolanaU32AsInt32(payload[172 : 172+4])
 	v.VoterSign = make([]byte, length)
-	copy(v.VoterSign[:], payload[168:168+length])
-	v.Bump = payload[168+length]
+	copy(v.VoterSign[:], payload[176:176+length])
+	v.Bump = payload[176+length]
 
 	fmt.Printf("%v\n", length)
 	return v, nil

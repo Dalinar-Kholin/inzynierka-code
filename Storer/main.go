@@ -34,7 +34,7 @@ func StoreData(store DataToStore) {
 }
 
 const (
-	AuthSerial = "AuthSerial"
+	AuthSerial = "AuthCode"
 	AuthCode   = "AuthCode"
 )
 
@@ -85,7 +85,7 @@ func main() {
 		name := sha512.Sum512([]byte(body.Data))
 		cwd, _ := os.Getwd()
 		if !golangShared.IsNullOrEmpty(body.AuthSerial) {
-			/*if fileExists(filepath.Join(cwd, AuthSerial, fmt.Sprintf("%s.json", hex.EncodeToString(name[:])))) {
+			/*if fileExists(filepath.Join(cwd, AuthCode, fmt.Sprintf("%s.json", hex.EncodeToString(name[:])))) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "file exists"})
 				return
 			}*/

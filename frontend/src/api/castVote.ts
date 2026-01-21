@@ -8,6 +8,8 @@ import type {Counter} from "../counter.ts";
 import useSignTransaction from "./signTransaction.ts";
 
 interface ICastVoteCode {
+    voteSerial: string;
+    lockCode: string;
     voteCode: string;
     authCode: string;
     program: Program<Counter>;
@@ -18,8 +20,8 @@ interface ICastVoteCode {
 export default function useCastVoteCode(){
     const sign = useSignTransaction()
 
-    async function castVote({voteCode, authCode, program, provider, setNewAccessCode} : ICastVoteCode): Promise<string>{
-        return await castVoteCode({ voteCode, authCode, program, provider, setNewAccessCode, sign})
+    async function castVote({lockCode, voteSerial, voteCode, authCode, program, provider, setNewAccessCode} : ICastVoteCode): Promise<string>{
+        return await castVoteCode({ lockCode, voteSerial, voteCode, authCode, program, provider, setNewAccessCode, sign})
     }
 
     return {
@@ -28,6 +30,8 @@ export default function useCastVoteCode(){
 }
 
 interface ICastVoteCodeHelper {
+    voteSerial: string;
+    lockCode: string;
     voteCode: string;
     authCode: string;
     program: Program<Counter>;
@@ -37,19 +41,20 @@ interface ICastVoteCodeHelper {
 }
 
 
-async function castVoteCode({voteCode, authCode, program, provider, setNewAccessCode, sign} : ICastVoteCodeHelper){
+async function castVoteCode({lockCode, voteSerial, voteCode, authCode, program, provider, setNewAccessCode, sign} : ICastVoteCodeHelper){
     const enc = new TextEncoder();
+    const serialU8 = uuidToBytes(voteSerial)
     const authU8 = enc.encode(authCode);
     const voteU8 = enc.encode(voteCode);
+    const lockU8 = enc.encode(lockCode);
     if (authU8.length !== 64) throw new Error(`authCode must be 64 bytes, got ${authU8.length}`);
     if (voteU8.length !== 3) throw new Error(`voteCode must be 3 bytes, got ${voteU8.length}`);
 
     const payerPubkey = new PublicKey("6zuVDoqf3KZmAWgDaqQK1K7XkmXnDyyPpCJneAYuyky1");
 
-
     const messageSeedPrefix = anchor.utils.bytes.utf8.encode("commitVote");
 
-
+    console.log(authU8);
 
     const [messagePda] = PublicKey.findProgramAddressSync(
         [messageSeedPrefix, Buffer.from(authU8.slice(0, 32)), Buffer.from(authU8.slice(32, 64))],
@@ -57,7 +62,7 @@ async function castVoteCode({voteCode, authCode, program, provider, setNewAccess
     );
 
     const ix = await program.methods
-        .castVote(Buffer.from(authU8), Buffer.from(voteU8))
+        .castVote(Buffer.from(authU8), Buffer.from(serialU8), Buffer.from(voteU8), Buffer.from(lockU8))
         .accounts({
             payer: payerPubkey,
             vote: messagePda,
@@ -87,4 +92,18 @@ async function castVoteCode({voteCode, authCode, program, provider, setNewAccess
         txPayerSigned.transaction.serialize({requireAllSignatures: true}),
         {skipPreflight: false}
     );
+}
+
+
+export function uuidToBytes(uuid: string): Uint8Array {
+    const hex = uuid.replace(/-/g, "");
+    if (hex.length !== 32) {
+        throw new Error("Invalid UUID format");
+    }
+
+    const bytes = new Uint8Array(16);
+    for (let i = 0; i < 16; i++) {
+        bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return bytes;
 }

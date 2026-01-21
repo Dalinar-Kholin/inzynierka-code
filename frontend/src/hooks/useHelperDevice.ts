@@ -7,7 +7,7 @@ import useGetVotingPackage, {type VotingPack} from "../api/getVotingPackage.ts";
 
 
 const createContent = (sign : string, pubKey: string) =>{
-    return `<?xml version="1.0" encoding="UTF-8"?><Gime><Ballot>${sign}</Ballot><Key>${pubKey}</Key></Gime>`
+    return `<?xml version="1.0" encoding="UTF-8"?><Gime><Ballot>${sign}</Ballot><Key>${pubKey}</Key><timestamp>${Date.now()}</timestamp></Gime>`
 }
 
 
@@ -31,6 +31,7 @@ export function useHelperDevice() {
             try {
                 const data = await getPackage({sign: sign})
                 setVotePack(data)
+                console.log("GetBallot", data)
                 clearMessages()
             }
             catch (error: any) {

@@ -3,11 +3,13 @@ go 1.25.0
 use (
 	.
 	./commiter
-	./golangShared
+	golangShared
 	./simpleSolanaSignerServer
 	./votingServer
 	SignerVeryfier
 	voteCodeServers/SharedRandomness
 	voteCodeServers/SharedRandomness/EaServer
 	bbProxy
+	FakeSgx
+	golangShared/helpers
 )

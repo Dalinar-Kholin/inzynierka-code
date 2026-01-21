@@ -2,11 +2,14 @@ package endpoint
 
 import (
 	"context"
+	"crypto/sha512"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"golangShared/ServerResponse"
+	"helpers"
 	"io"
 	"net/http"
 	"votingServer/DB"
@@ -16,30 +19,28 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type GetVotingPackBody struct {
-	BasedSign string `json:"basedSign"`
-}
-
-type ballotRequest struct {
-	XMLName xml.Name `xml:"Gime"`   // root element
-	Ballot  string   `xml:"Ballot"` // <Name>...</Name>
-	Key     string   `xml:"Key"`
+	SignedXML string `json:"signedXML"`
 }
 
 var ServerPubKey string
 
-type VotePack struct {
+/*type VotePack struct {
 	VoteSerial string   `json:"voteSerial"`
 	VoteCodes  []string `json:"voteCodes"`
-}
+}*/
 
 type VotingPack struct {
-	AuthSerial string      `json:"authSerial"`
-	Votes      [2]VotePack `json:"votes"`
+	AuthSerial         string    `json:"authSerial"`
+	LockCode           string    `json:"lockCode"`
+	LockCodeCommitment string    `json:"lockCodeCommitment"`
+	VoteSerials        [2]string `json:"voteSerials"`
+	// Votes      [2]VotePack `json:"votes"`
 }
 
 func GetVotingPack(c *gin.Context) {
@@ -55,13 +56,15 @@ func GetVotingPack(c *gin.Context) {
 		return
 	}
 
-	if err := VerifySign(body.Body.BasedSign); err != nil {
+	sha := sha512.Sum512([]byte(body.Body.SignedXML))
+	fmt.Printf("sha := %x\n", string(sha[:]))
+	if err := VerifySign(body.Body.SignedXML); err != nil {
 		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, ServerError{Error: err.Error()})
 		return
 	}
 
-	var p ballotRequest
-	if err := xml.Unmarshal([]byte(body.Body.BasedSign), &p); err != nil {
+	var p BallotRequest
+	if err := xml.Unmarshal([]byte(body.Body.SignedXML), &p); err != nil {
 		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, ServerError{Error: err.Error()})
 		return
 	}
@@ -73,11 +76,12 @@ func GetVotingPack(c *gin.Context) {
 	pack, err := GetVotingPackage()
 	if err != nil {
 		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, ServerError{Error: err.Error()})
+		return
 	}
 
 	/*jsoned, _ := ServerResponse.ToJSONNoEscape(body)
 	err = StoreClient.Client(StoreClient.RequestBody{
-		AuthSerial: &result.AuthSerial,
+		AuthCode: &result.AuthCode,
 		AuthCode:   nil,
 		Data:       string(jsoned),
 	})
@@ -85,9 +89,67 @@ func GetVotingPack(c *gin.Context) {
 		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, ServerError{Error: err.Error()}) // to raczej nie powinno się wydarzyć chyba że server przestanie działać
 		return
 	}*/
-
+	pack.VoteSerials = communicateWithFakeSgx([]byte(body.Body.SignedXML), pack.AuthSerial)
 	ServerResponse.ResponseWithSign(c, http.StatusOK, body, pack)
 	// c.JSON(200, result)
+}
+
+func communicateWithFakeSgx(xml []byte, authSerial string) [2]string {
+	sha := sha512.Sum512(xml)
+
+	based := base64.URLEncoding.EncodeToString(sha[:])
+
+	u, err := uuid.Parse(authSerial)
+	if err != nil {
+		panic(err)
+	}
+
+	permCodeBytes := helpers.SecureRandomString()
+	PermCodeString := base64.URLEncoding.EncodeToString(permCodeBytes[:])
+
+	filter := bson.M{
+		"authSerial": primitive.Binary{
+			Subtype: 0x04, // standard UUID
+			Data:    u[:], // 16 bytes
+		},
+	}
+
+	// update: set status = USED for all array elements that match the array filter
+	update := bson.M{
+		"$set": bson.M{
+			"permCode": PermCodeString,
+		},
+	}
+
+	_, err = DB.GetDataBase("inz", DB.AuthCollection).UpdateOne(
+		context.Background(),
+		filter,
+		update,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	response, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/ea?sha=%s&perm=%s", SGXPort, based, PermCodeString))
+	if err != nil {
+		panic(err)
+	}
+
+	defer response.Body.Close()
+	b, err := io.ReadAll(response.Body)
+	if err != nil {
+		panic(err)
+	}
+	var arr []EaPack
+	err = json.Unmarshal(b, &arr)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("arr = %+v\n", arr)
+	return [2]string{
+		arr[0].AuthSerial,
+		arr[1].AuthSerial,
+	}
 }
 
 func GetVotingPackage() (*VotingPack, error) {
@@ -100,38 +162,10 @@ func GetVotingPackage() (*VotingPack, error) {
 
 	authSerial, _ := uuid.FromBytes(authPackage.AuthSerial.Data)
 
-	coll = DB.GetDataBase("inz", "votesCard")
-	var vp1 VotePack
-	votingPackage, err := popRandomDocumentTx[VotingPackage](context.Background(), coll)
-	if err != nil {
-		return nil, err
-	}
-	voteSerial, _ := uuid.FromBytes(votingPackage.VoteSerial.Data)
-	vp1.VoteSerial = voteSerial.String()
-	vp1.VoteCodes = []string{
-		string(votingPackage.Codes[0][:]),
-		string(votingPackage.Codes[1][:]),
-		string(votingPackage.Codes[2][:]),
-		string(votingPackage.Codes[3][:]),
-	}
-
-	var vp2 VotePack
-	votingPackage, err = popRandomDocumentTx[VotingPackage](context.Background(), coll)
-	if err != nil {
-		return nil, err
-	}
-	voteSerial, _ = uuid.FromBytes(votingPackage.VoteSerial.Data)
-	vp2.VoteSerial = voteSerial.String()
-	vp2.VoteCodes = []string{
-		string(votingPackage.Codes[0][:]),
-		string(votingPackage.Codes[1][:]),
-		string(votingPackage.Codes[2][:]),
-		string(votingPackage.Codes[3][:]),
-	}
-
 	return &VotingPack{
-		AuthSerial: authSerial.String(),
-		Votes:      [2]VotePack{vp1, vp2},
+		AuthSerial:         authSerial.String(),
+		LockCode:           authPackage.LockPackage.LockCode,
+		LockCodeCommitment: authPackage.LockPackage.LockCodeCommitment,
 	}, nil
 }
 

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"golangShared"
 	"golangShared/ServerResponse"
-	"golangShared/helpers"
+	"helpers"
 	"inz/Storer/StoreClient"
 	"net/http"
 	"votingServer/DB"

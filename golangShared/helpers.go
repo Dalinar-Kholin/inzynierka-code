@@ -2,6 +2,7 @@ package golangShared
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"log"
 	"os"
 
@@ -38,4 +39,16 @@ func IsNullOrEmpty(s *string) bool {
 
 type ServerError struct {
 	Error string `json:"error"`
+}
+
+type BallotRequest struct {
+	XMLName   xml.Name `xml:"Gime"`   // root element
+	Ballot    string   `xml:"Ballot"` // <Name>...</Name>
+	Key       string   `xml:"Key"`
+	Timestamp int64    `xml:"timestamp"`
+}
+
+type EaPack struct {
+	VoteCodes  []string `json:"voteCodes"`
+	AuthSerial string   `json:"authSerial"`
 }

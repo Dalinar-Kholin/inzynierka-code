@@ -9,7 +9,6 @@ import (
 	"golangShared"
 	"golangShared/ServerResponse"
 	"golangShared/signer"
-	"inz/Storer/StoreClient"
 	"io"
 	"net/http"
 	"votingServer/DB"
@@ -46,16 +45,6 @@ func AcceptVote(c *gin.Context) {
 		return
 	}
 
-	jsoned, _ := ServerResponse.ToJSONNoEscape(body) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
-	err = StoreClient.Client(StoreClient.RequestBody{
-		AuthSerial: nil,
-		AuthCode:   &body.Body.AuthCode,
-		Data:       string(jsoned),
-	})
-	if err != nil {
-		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, golangShared.ServerError{Error: err.Error()})
-	}
-
 	bin := primitive.Binary{Subtype: 0x00, Data: []byte(body.Body.AuthCode)}
 	filter := bson.D{{"authCode.code", bin}}
 	var authPack golangShared.AuthPackage
@@ -70,11 +59,6 @@ func AcceptVote(c *gin.Context) {
 	}
 	bin = primitive.Binary{Subtype: 0x04, Data: idFromBody[:]}
 	filter = bson.D{{"voteSerial", bin}}
-	var votePack golangShared.VotingPackage
-	if err := DB.GetDataBase("inz", DB.VoteCollection).FindOne(context.Background(), filter).Decode(&votePack); err != nil {
-		ServerResponse.ResponseWithSign(c, http.StatusUnauthorized, body, golangShared.ServerError{Error: "cant find auth package/check spelling"})
-		return
-	}
 	voteAnchorModel, err := getAnchorVoteModel(body.Body)
 	if err != nil {
 		ServerResponse.ResponseWithSign(c, http.StatusUnauthorized, body, golangShared.ServerError{Error: err.Error()})
@@ -93,7 +77,6 @@ func AcceptVote(c *gin.Context) {
 		context.Background(),
 		[]byte(body.Body.AuthCode),
 		authPack.AuthSerial.Data,
-		votePack.VoteSerial.Data,
 		signature)
 
 	if err != nil {
@@ -101,25 +84,25 @@ func AcceptVote(c *gin.Context) {
 		return
 	}
 	var content struct {
-		AuthSerial string `json:"authSerial"`
+		AuthCode string `json:"authCode"`
 	}
-	content.AuthSerial = string(votePack.VoteSerial.Data)
+	content.AuthCode = string(voteAnchorModel.AuthCode[:])
 	fmt.Printf("content %v\n", content)
 
 	cnt, err := json.Marshal(content)
 	if err != nil {
 		panic(err)
 	}
-	post, err := (&http.Client{}).Post(
+	_, err = (&http.Client{}).Post(
 		"http://localhost:5000/api/submitvote/authserial",
 		"application/json",
 		bytes.NewBuffer(cnt))
 	if err != nil {
-		panic(err)
+		//panic(err)
 	}
-	if post.StatusCode != 200 {
+	/*if post.StatusCode != 200 {
 		panic(post.StatusCode)
-	}
+	}*/
 
 	ServerResponse.ResponseWithSign(c, 200, body, Response{Code: 200})
 }

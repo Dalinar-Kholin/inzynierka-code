@@ -4,12 +4,12 @@ import getVoteCode from "../api/getVoteCode.ts";
 import {useStatusMessages} from "./useAlertMessage.ts";
 import {stringify} from "uuid";
 import useGetServerPubKey from "./useGetServerPubKey.ts";
-import useGetAuthCode from "../api/getAuthCode.ts";
+import useGetAuthCode, {type IOtResponse} from "../api/getAuthCode.ts";
 import usePingServerForAcceptVote from "../api/pingServerForAcceptVote.ts";
 import useCastVoteCode from "../api/castVote.ts";
 
 function useVoting() {
-    const [authCode, setAuthCode] = useState<string>("")
+    const [otPack, setOtPack] = useState<IOtResponse | undefined>(undefined);
     const [voteSerial, setVoteSerial] = useState<string>("")
     const [authSerial, setAuthSerial] = useState<string>("")
     const [voteCodes, setVoteCodes] = useState<string[]>([])
@@ -19,6 +19,7 @@ function useVoting() {
     const {pubKey} = useGetServerPubKey()
     const [accessCode, setAccessCode] = useState<string | undefined>()
     const [bit, setBit] = useState<boolean | undefined>(undefined);
+    const [lockCode, setLockCode] = useState<string>("")
 
     const {getProgram, getProvider} = useAnchor();
     const {successMessage, errorMessage, showError, showSuccess} = useStatusMessages()
@@ -29,12 +30,15 @@ function useVoting() {
 
     const CastVote = useCallback(async (code: string) => {
         setSelectedCode(code)
+        console.log(otPack?.authCode)
         try {
             await castVote({
+                voteSerial: voteSerial,
                 voteCode: code,
-                authCode: authCode || "",
+                authCode: otPack?.authCode || "",
                 program: getProgram(),
                 provider: getProvider(),
+                lockCode: lockCode,
                 setNewAccessCode: setAccessCode,
             })
             showSuccess("vote casted")
@@ -42,25 +46,27 @@ function useVoting() {
             showError(err.message)
         }
 
-        }, [authCode, pubKey])
+        }, [otPack, pubKey])
 
     const GetVoteCodes = useCallback(async () => {
-        setVoteCodes(await getVoteCode({voteSerial: voteSerial || ""}))
-    }, [voteSerial])
+        const data = await getVoteCode({permCode: otPack?.permCode || ""})
+        setVoteCodes(data[data[0].authSerial === voteSerial ? 0 : 1].voteCodes)
+        console.log(data)
+    }, [otPack])
 
     const GetAuthCodes = useCallback(async () => {
             if (authSerial?.length !== 36 || bit === undefined) {
                 showError(`Invalid auth serial length := ${authSerial?.length}`)
                 return;
             }
-            setAuthCode((await getCode({authSerial: authSerial || "", bit })).result)
+            setOtPack(await getCode({authSerial: authSerial || "", bit }))
         }, [authSerial, bit])
 
     const PingForAccept = useCallback(async () => {
             try {
                 const res =  await ping({
                     sign: "",
-                    authCode: authCode || "",
+                    authCode: otPack?.authCode || "",
                     voteSerial: voteSerial || "",
                 })
                 if (res){
@@ -71,7 +77,7 @@ function useVoting() {
             catch (e: any) {
                 showError(e.message)
             }
-        }, [voteSerial, authCode])
+        }, [voteSerial, otPack])
 
     const GetAcceptedBallot = async () =>{
         const fetchData = async () => {
@@ -85,7 +91,7 @@ function useVoting() {
                 setAuthSerial(stringify(new Uint8Array(item.account.authSerial)))
                 setVoteSerial(stringify(new Uint8Array(item.account.voteSerial)))
                 setSelectedCode(decoder.decode(new Uint8Array(item.account.voteCode)))
-                setAuthCode(decoder.decode(new Uint8Array(item.account.authCode)))
+                setOtPack({authCode: decoder.decode(new Uint8Array(item.account.authCode))})
                 setServerSign(item.account.serverSign)
                 setVoterSign(decoder.decode(new Uint8Array(item.account.voterSign)))
 
@@ -103,13 +109,14 @@ function useVoting() {
         authSerial,
         voteSerial,
         voteCodes,
-        authCode,
+        otPack,
         successMessage,
         errorMessage,
         selectedCode,
         voterSign,
         serverSign,
         accessCode,
+        lockCode,
         // funckcje
         setAuthSerial,
         setVoteSerial,
@@ -117,6 +124,7 @@ function useVoting() {
         setBit,
         setVoterSign,
         setAccessCode,
+        setLockCode,
 
         CastVote,
         GetVoteCodes,

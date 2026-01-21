@@ -10,6 +10,7 @@ type VoteAccountType = IdlAccounts<Counter>["vote"];
 type VotingStage = VoteAccountType["stage"];
 
 interface accountData {
+    LockCode: string;
     VotingStage: VotingStage;
     AuthSerial: string;
     VoteSerial: string;
@@ -51,6 +52,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
             const decoder = new TextDecoder("utf-8");
             res.forEach(r => {
                 const newItem: accountData = {
+                    LockCode: decoder.decode(new Uint8Array(r.account.lockCode)),
                     VotingStage: r.account.stage,
                     AuthSerial: stringify(new Uint8Array(r.account.authSerial)),
                     VoteSerial: stringify(new Uint8Array(r.account.voteSerial)),
@@ -74,13 +76,14 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
             }} value={authSerial}/>
         </p>
         <div>
-            {authSerial.length > 5 ? accountData.filter(ad => ad.AuthSerial.substring(0, authSerial.length) === authSerial).map(ad => (
+            {authSerial.length > 0 ? accountData.filter(ad => ad.AuthSerial.substring(0, authSerial.length) === authSerial).map(ad => (
                 <div key={ad.AuthSerial}>
                     <p>voting stage := {getStageName(ad.VotingStage)}</p>
                     <p>auth Code := {ad.AuthCode}</p>
                     <p>vote code := {ad.VoteCode}</p>
                     <p>vote serial := {ad.VoteSerial}</p>
                     <p>auth serial := {ad.AuthSerial}</p>
+                    <p>lock code := {ad.LockCode}</p>
                     <p>
                         <Button onClick={async () => {
                             const signedObject: BackendLookPack = {

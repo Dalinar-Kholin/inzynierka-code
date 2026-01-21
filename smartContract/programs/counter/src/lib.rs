@@ -15,26 +15,40 @@ pub enum VotingStage {
 
 #[program]
 mod counter {
+    use anchor_lang::__private::bytemuck::cast;
     use super::*;
 
     pub fn cast_vote( // do umieszczenia krotki <VoteCode,AuthCode> na BB
                       ctx: Context<CastCtx>,
                       auth_code: Vec<u8>,
+                      vote_serial: Vec<u8>,
                       vote_code: Vec<u8>,
+                      lock_code: Vec<u8>,
     ) -> Result<()> {
         let cast = &mut ctx.accounts.vote;
         require!(cast.stage == VotingStage::Empty, ErrorCode::InvalidProgramId);
 
         require!(auth_code.len() == 64, ErrorCode::InvalidProgramId);
+        require!(vote_serial.len() == 16, ErrorCode::InvalidProgramId);
         require!(vote_code.len() == 3, ErrorCode::InvalidProgramId);
+        require!(lock_code.len() == 8, ErrorCode::InvalidProgramId);
 
         let mut auth_fixed = [0u8; 64];
         auth_fixed.copy_from_slice(&auth_code);
+
+        let mut serial_fixed = [0u8; 16];
+        serial_fixed.copy_from_slice(&vote_serial);
+
         let mut vote_fixed = [0u8; 3];
         vote_fixed.copy_from_slice(&vote_code);
 
+        let mut lock_fixed = [0u8; 8];
+        lock_fixed.copy_from_slice(&lock_code);
+
+        cast.vote_serial = serial_fixed;
         cast.auth_code = auth_fixed;
         cast.vote_code = vote_fixed;
+        cast.lock_code = lock_fixed;
         cast.bump = ctx.bumps.vote;
         cast.stage = VotingStage::Casted;
         Ok(())
@@ -44,7 +58,6 @@ mod counter {
         ctx: Context<AcceptCtx>,
         auth_code: Vec<u8>,
         auth_serial: Vec<u8>,
-        vote_serial: Vec<u8>,
         server_sign: Vec<u8> // po co ack code skoro mamy podpis
     ) -> Result<()> { // do umieszczenia krotki <VoteSerial, VoteCode, AuthSerial, AuthCode, sig(servera)> na BB
         let cast = &mut ctx.accounts.vote;
@@ -52,12 +65,9 @@ mod counter {
 
         let mut auth_fixed = [0u8; 16];
         auth_fixed.copy_from_slice(&auth_serial);
-        let mut vote_fixed = [0u8; 16];
-        vote_fixed.copy_from_slice(&vote_serial);
         let mut server_fixed = [0u8; 64];
         server_fixed.copy_from_slice(&server_sign);
 
-        cast.vote_serial = vote_fixed;
         cast.auth_serial = auth_fixed;
         cast.server_sign = server_fixed;
 
@@ -246,6 +256,7 @@ pub struct Vote {
     pub auth_serial: [u8; 16],
     pub auth_code: [u8; AUTH_CODE_CODE_LENGTH],
     pub server_sign: [u8; 64],
+    pub lock_code: [u8; 8],
     pub voter_sign: Vec<u8>,
     // vote vector --> po wymnozeniu wszystkich mamy wynik
     pub bump: u8,
@@ -261,5 +272,6 @@ const VOTE_ACCOUNT_SPACE: usize =
         + 64   // auth_code
         + 64   // server_sign
         + 4    // voter_sign length prefix (u32)
+        + 8   // lock_code
         + MAX_VOTER_SIGN_LEN
         + 1;   // bump

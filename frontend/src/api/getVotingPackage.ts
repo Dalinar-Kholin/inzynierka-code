@@ -1,28 +1,37 @@
 import {consts} from "../const.ts";
-import {
+import useFetchWithVerify, {
     type FetchWithAuthFnType,
     IsBadSignError,
     IsServerError,
 } from "../hooks/useFetchWithVerify.ts";
-import useFetchWithVerify from "../hooks/useFetchWithVerify.ts";
 
 interface IGetVotingPackage{
     sign : string
 }
 
-interface VotePack{
-    voteSerial: string;
-    voteCodes: string[];
+type InnerMapping = Record<string, number>; // np. { "0": 3, "1": 1, "2": 2, "3": 0 }
+type OuterMapping = Map<string, InnerMapping>;
+
+export type VotingPack = {
+    authSerial: string;
+    lockCode: string;
+    lockCodeCommitment: string;
+    mapping: OuterMapping;
+};
+interface VotingPackPartEA {
+    authSerial: string;
+    lockCode: string;
+    lockCodeCommitment: string;
+    voteSerials: string[2];
 }
 
-export interface VotingPack {
+interface VotingPackPartSGX {
     authSerial: string;
-    votes: VotePack[];
-
+    mapping: InnerMapping;
 }
 
 interface IGetVotePackageRequest {
-    basedSign: string;
+    signedXML: string;
 }
 
 
@@ -30,7 +39,22 @@ export default function useGetVotingPackage(){
     const fetchWithAuth = useFetchWithVerify()
 
     async function getPackage({ sign } : IGetVotingPackage): Promise<VotingPack>{
-        return await getVotingPackage({sign, fetchWithAuth})
+        return await (async () => {
+            const sgx = await getVotingPackageFromSGX({sign})
+            const ea = await getVotingPackageFromEA({sign, fetchWithAuth})
+            const map = new Map<string, InnerMapping>
+            map.set(sgx[0].authSerial, sgx[0].mapping)
+            map.set(sgx[1].authSerial, sgx[1].mapping)
+            const res: VotingPack = {
+                authSerial: ea.authSerial,
+                lockCode: ea.lockCode,
+                lockCodeCommitment: ea.lockCodeCommitment,
+                mapping: map
+            }
+
+
+            return res
+        })();
     }
 
     return {
@@ -38,19 +62,40 @@ export default function useGetVotingPackage(){
     }
 }
 
-interface IGetVotePackageHelper {
+interface IGetVotePackageHelperSign {
     sign : string
-    fetchWithAuth: FetchWithAuthFnType
 }
 
-async function getVotingPackage({ sign, fetchWithAuth } : IGetVotePackageHelper) : Promise<VotingPack>{
+interface IGetVotePackageHelperFetch {
+    fetchWithAuth: FetchWithAuthFnType
+    sign : string
+}
 
-    const response = await fetchWithAuth<VotingPack, IGetVotePackageRequest>(consts.API_URL + '/getVotingPack', {
+
+async function getVotingPackageFromSGX({ sign }: IGetVotePackageHelperSign) : Promise<VotingPackPartSGX[]>{
+    try{
+        const response = await fetch(consts.SGX_URL + '/voter', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-    }, { basedSign : sign })
+        body: sign
+        })
+        return await response.json();
+    }
+    catch(error){
+        throw error;
+    }
+}
+
+async function getVotingPackageFromEA({ sign, fetchWithAuth } : IGetVotePackageHelperFetch) : Promise<VotingPackPartEA>{
+
+    const response = await fetchWithAuth<VotingPackPartEA, IGetVotePackageRequest>(consts.API_URL + '/getVotingPack', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    }, { signedXML : sign })
 
     if (IsBadSignError(response)) {
         throw new Error(`bad signed request, server is probably try to cheat`)

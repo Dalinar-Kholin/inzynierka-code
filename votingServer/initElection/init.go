@@ -8,7 +8,7 @@ import (
 	"fmt"
 	. "golangShared"
 	"golangShared/commiterStruct"
-	"golangShared/helpers"
+	"helpers"
 	"votingServer/DB"
 	"votingServer/obliviousTransfer"
 
@@ -62,7 +62,7 @@ func createAuthPackage() {
 			fmt.Printf("stworzono := %v\n", i)
 		}
 		guid := uuid.New()
-		newAuth := AuthPackage{
+		newAuth := &AuthPackage{
 			AuthSerial: primitive.Binary{
 				Subtype: 0x04,    // UUID (standard) – BSON subtype 4
 				Data:    guid[:], // 16 bajtów
@@ -70,6 +70,7 @@ func createAuthPackage() {
 			AuthCode: [NumberOfAuthCodes]AuthCodePack{
 				*generateAuthCodePack(), *generateAuthCodePack(), *generateAuthCodePack(), *generateAuthCodePack(),
 			},
+			LockPackage: *CreateNewLockPackage(),
 		}
 		_, err := conn.InsertOne(context.Background(), newAuth)
 		if err != nil {
@@ -102,6 +103,7 @@ func generateAuthCodePack() *AuthCodePack {
 
 	codeOne := helpers.SecureRandomString()
 	codeTwo := helpers.SecureRandomString()
+
 	return &AuthCodePack{
 		Code: [2]primitive.Binary{
 			primitive.Binary{Subtype: 0x00, Data: codeOne[:]},
@@ -113,4 +115,15 @@ func generateAuthCodePack() *AuthCodePack {
 		SignStatus: UNUSED,
 	}
 
+}
+
+func CreateNewLockPackage() *LockPackage {
+	lockCodeTmp := helpers.SecureRandomString()
+	lockCode := string(lockCodeTmp[:8])
+	randomness := string(lockCodeTmp[8:16])
+	commitment := helpers.Commit(lockCode, randomness)
+
+	return &LockPackage{
+		LockCode: lockCode, LockCodeCommitment: commitment.String(), LockCodeRandomness: randomness,
+	}
 }
