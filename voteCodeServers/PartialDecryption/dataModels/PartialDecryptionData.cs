@@ -5,6 +5,7 @@ public class PartialDecryptionData
 {
     [BsonId]
     public ObjectId Id { get; set; }
+    public int BallotId { get; set; }
     public string EncryptedVoteCodes { get; set; } = string.Empty;
     public string PartialDecryption { get; set; } = string.Empty;
 }

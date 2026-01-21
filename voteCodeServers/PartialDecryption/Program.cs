@@ -31,6 +31,7 @@ if (totalCount == 0)
 
 int processedCount = 0;
 int skip = 0;
+int ballotIdCounter = 1;  // Licznik BallotId od 1
 
 while (skip < totalCount)
 {
@@ -53,12 +54,14 @@ while (skip < totalCount)
             var partialDecryptionData = new PartialDecryptionData
             {
                 Id = voteCode.Id,  // same Id as in VoteCodesData
+                BallotId = ballotIdCounter,  // BallotId od 1 do końca
                 EncryptedVoteCodes = voteCode.EncryptedVoteCodes,
                 PartialDecryption = partialDecryption.ToString()
             };
 
             partialDecryptionBatch.Add(partialDecryptionData);
             processedCount++;
+            ballotIdCounter++;  // Inkrementuj licznik BallotId
         }
         catch (Exception ex)
         {
