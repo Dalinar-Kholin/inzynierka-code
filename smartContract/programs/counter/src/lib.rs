@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 declare_id!("8PuBy6uMn4SRfDDZeJeuYH6hDE9eft1t791mFdUFc5Af");
 
-const VOTE_CODE_LENGTH: usize = 3;
+const VOTE_CODE_LENGTH: usize = 10;
 const AUTH_CODE_CODE_LENGTH: usize = 64;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -50,17 +50,17 @@ mod counter {
         );
 
         require!(auth_code.len() == 64, ErrorCode::InvalidProgramId);
-        require!(vote_serial.len() == 16, ErrorCode::InvalidProgramId);
-        require!(vote_code.len() == 3, ErrorCode::InvalidProgramId);
+        require!(vote_serial.len() == 10, ErrorCode::InvalidProgramId);
+        require!(vote_code.len() == 10, ErrorCode::InvalidProgramId);
         require!(lock_code.len() == 8, ErrorCode::InvalidProgramId);
 
         let mut auth_fixed = [0u8; 64];
         auth_fixed.copy_from_slice(&auth_code);
 
-        let mut serial_fixed = [0u8; 16];
+        let mut serial_fixed = [0u8; 10];
         serial_fixed.copy_from_slice(&vote_serial);
 
-        let mut vote_fixed = [0u8; 3];
+        let mut vote_fixed = [0u8; 10];
         vote_fixed.copy_from_slice(&vote_code);
 
         let mut lock_fixed = [0u8; 8];
@@ -326,7 +326,7 @@ pub struct CommitCtx<'info> {
 #[account]
 pub struct Vote {
     pub stage: VotingStage,
-    pub vote_serial: [u8; 16],
+    pub vote_serial: [u8; 10],
     pub vote_code: [u8; VOTE_CODE_LENGTH],
     pub auth_serial: [u8; 16],
     pub auth_code: [u8; AUTH_CODE_CODE_LENGTH],
@@ -341,7 +341,7 @@ const MAX_VOTER_SIGN_LEN: usize = 5000;
 const MAX_VOTE_VECTOR_LEN: usize = 350;
 const VOTE_ACCOUNT_SPACE: usize = 8    // discriminator
         + 1    // stage
-        + 16   // vote_serial
+        + 10   // vote_serial
         + 3    // vote_code
         + 16   // auth_serial
         + 64   // auth_code

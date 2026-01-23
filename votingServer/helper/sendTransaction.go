@@ -112,13 +112,13 @@ func SendAcceptVote(
 }
 
 type Vote struct {
-	Stage      uint8
-	VoteSerial [16]byte
-	VoteCode   [3]byte
-	AuthSerial [16]byte
-	AuthCode   [64]byte
-	ServerSign [64]byte
-	LockCode   [8]byte
+	Stage      uint8    // 1
+	VoteSerial [10]byte // 1:11
+	VoteCode   [10]byte // 11:21
+	AuthSerial [16]byte // 21:37
+	AuthCode   [64]byte // 37:101
+	ServerSign [64]byte // 101:165
+	LockCode   [8]byte  // 165:173
 	VoteVector []byte
 	VoterSign  []byte
 	Bump       uint8
@@ -126,7 +126,7 @@ type Vote struct {
 
 func DecodeVoteAnchor(data []byte) (Vote, error) {
 
-	const total = 5185 + 350
+	const total = 5529
 	if len(data) != total {
 		return Vote{}, fmt.Errorf("unexpected length %d, want %d", len(data), total)
 	}
@@ -135,16 +135,15 @@ func DecodeVoteAnchor(data []byte) (Vote, error) {
 
 	v.Stage = payload[0]
 
-	copy(v.VoteSerial[:], payload[1:1+16])
-	copy(v.VoteCode[:], payload[17:17+3])
-	copy(v.AuthSerial[:], payload[20:20+16])
-	copy(v.AuthCode[:], payload[36:36+64])
-	copy(v.ServerSign[:], payload[100:100+64])
-	copy(v.LockCode[:], payload[164:164+8])
-
-	length, _ := ReadSolanaU32AsInt32(payload[172 : 172+4])
+	copy(v.VoteSerial[:], payload[1:11])
+	copy(v.VoteCode[:], payload[11:21])
+	copy(v.AuthSerial[:], payload[21:37])
+	copy(v.AuthCode[:], payload[37:37+64])
+	copy(v.ServerSign[:], payload[101:101+64])
+	copy(v.LockCode[:], payload[165:165+8])
+	length, _ := ReadSolanaU32AsInt32(payload[173 : 173+4])
 	v.VoteVector = make([]byte, length)
-	position := int32(176)
+	position := int32(177)
 	copy(v.VoteVector[:], payload[position:position+length])
 	position += length
 	length, _ = ReadSolanaU32AsInt32(payload[position : position+4])
@@ -153,8 +152,6 @@ func DecodeVoteAnchor(data []byte) (Vote, error) {
 	copy(v.VoterSign[:], payload[position:position+length])
 	position += length
 	v.Bump = payload[position]
-
-	fmt.Printf("%v\n", length)
 	return v, nil
 }
 

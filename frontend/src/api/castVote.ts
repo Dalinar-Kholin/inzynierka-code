@@ -43,12 +43,12 @@ interface ICastVoteCodeHelper {
 
 async function castVoteCode({lockCode, voteSerial, voteCode, authCode, program, provider, setNewAccessCode, sign} : ICastVoteCodeHelper){
     const enc = new TextEncoder();
-    const serialU8 = uuidToBytes(voteSerial)
+    const serialU8 = enc.encode(voteSerial)
     const authU8 = enc.encode(authCode);
     const voteU8 = enc.encode(voteCode);
     const lockU8 = enc.encode(lockCode);
     if (authU8.length !== 64) throw new Error(`authCode must be 64 bytes, got ${authU8.length}`);
-    if (voteU8.length !== 3) throw new Error(`voteCode must be 3 bytes, got ${voteU8.length}`);
+    if (voteU8.length !== 10) throw new Error(`voteCode must be 3 bytes, got ${voteU8.length}`);
 
     const payerPubkey = new PublicKey("6zuVDoqf3KZmAWgDaqQK1K7XkmXnDyyPpCJneAYuyky1");
 
@@ -92,18 +92,4 @@ async function castVoteCode({lockCode, voteSerial, voteCode, authCode, program, 
         txPayerSigned.transaction.serialize({requireAllSignatures: true}),
         {skipPreflight: false}
     );
-}
-
-
-export function uuidToBytes(uuid: string): Uint8Array {
-    const hex = uuid.replace(/-/g, "");
-    if (hex.length !== 32) {
-        throw new Error("Invalid UUID format");
-    }
-
-    const bytes = new Uint8Array(16);
-    for (let i = 0; i < 16; i++) {
-        bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-    }
-    return bytes;
 }

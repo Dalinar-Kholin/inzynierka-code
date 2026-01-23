@@ -130,7 +130,7 @@ func communicateWithFakeSgx(xml []byte, authSerial string) [2]string {
 		panic(err)
 	}
 
-	response, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/ea?sha=%s&perm=%s", SGXPort, based, PermCodeString))
+	response, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/ea?sha=%s", SGXPort, based))
 	if err != nil {
 		panic(err)
 	}
@@ -146,6 +146,12 @@ func communicateWithFakeSgx(xml []byte, authSerial string) [2]string {
 		panic(err)
 	}
 	fmt.Printf("arr = %+v\n", arr)
+
+	_, err = DB.GetDataBase("inz", DB.VoteCollection).InsertOne(context.Background(), VotePack{EaPack: arr, PermCode: PermCodeString})
+	if err != nil {
+		panic(err)
+	}
+
 	return [2]string{
 		arr[0].AuthSerial,
 		arr[1].AuthSerial,

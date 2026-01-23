@@ -80,6 +80,7 @@ async function commitVote({signedDocument, authCode, program, provider, accessCo
             txPayerSigned.transaction.serialize({ requireAllSignatures: true }),
             { skipPreflight: false }
         );
+        console.log(newAccessCode);
     }
 }
 

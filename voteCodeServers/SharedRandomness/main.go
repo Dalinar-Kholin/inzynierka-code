@@ -24,7 +24,6 @@ func main() {
 	commit := commitments.NewCommitment()
 
 	ea := client.EaRandomnessClient{C: &http.Client{}}
-	fmt.Printf("%v\n", *commit)
 	ea.Commit(*commit)
 	for {
 		if ea.IsReady() {

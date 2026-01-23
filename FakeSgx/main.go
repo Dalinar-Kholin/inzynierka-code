@@ -4,6 +4,8 @@ import (
 	"FakeSgx/endpoints"
 	"fmt"
 	"golangShared"
+	"helpers"
+	"net/http"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -29,9 +31,18 @@ func main() {
 	}))
 	r.POST("/voter", endpoints.GetPermutation)
 
-	r.GET("/voter/codes", endpoints.GetVcFromPermCode)
-
 	r.GET("/ea", endpoints.LinkPackToHashReturnPermuted)
+
+	r.GET("/xd", func(context *gin.Context) {
+		as, vc, err := helpers.ProcessServerData(helpers.FetchDataFromServers())
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("as:= %v\n", as)
+		fmt.Printf("vc:= %v\n", vc)
+		context.JSON(http.StatusOK, as)
+	})
 
 	_ = r.Run(fmt.Sprintf(":%d", golangShared.SGXPort))
 

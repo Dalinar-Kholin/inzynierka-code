@@ -17,7 +17,6 @@ const EaPort = 6969
 func (e *EaRandomnessClient) Commit(commit commitments.Commitment) {
 	jsoned, _ := json.Marshal(commit)
 
-	fmt.Printf("%v\n", string(jsoned))
 	res, err := e.C.Post(fmt.Sprintf("http://127.0.0.1:%d/commit",
 		EaPort),
 		"application/json",

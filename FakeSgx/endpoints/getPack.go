@@ -1,39 +1,50 @@
 package endpoints
 
 import (
+	"crypto/rand"
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
 	"golangShared"
+	"helpers"
 	"io"
+	"math/big"
 	"slices"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-type trusteePack struct {
-	primaryPerm  []string
-	permutedPerm []string
-}
 
 var permMapper = make(map[string][2]TPack)
 
-var packOne = &trusteePack{
-	primaryPerm:  []string{"ala", "bob", "cat", "def"},
-	permutedPerm: []string{"def", "bob", "cat", "ala"},
-}
-
-var packTwo = &trusteePack{
-	primaryPerm:  []string{"ada", "bim", "cel", "dan"},
-	permutedPerm: []string{"bim", "dan", "ada", "cel"},
-}
-
 type TPack struct {
-	_id          primitive.ObjectID `bson:"_id"`
-	AuthSerial   primitive.Binary   `bson:"authSerial" json:"authSerial"`
+	AuthSerial   string
 	primaryPerm  []string
 	permutedPerm []string
+}
+
+func (tp *TPack) permut() error {
+	permuted := make([]string, len(tp.primaryPerm))
+	copy(permuted, tp.primaryPerm)
+
+	if err := SecureShuffle(permuted); err != nil {
+		return err
+	}
+
+	tp.permutedPerm = permuted
+	return nil
+}
+
+func SecureShuffle[T any](a []T) error {
+	n := len(a)
+	for i := n - 1; i > 0; i-- {
+		r, err := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
+		if err != nil {
+			return err
+		}
+		j := int(r.Int64())
+		a[i], a[j] = a[j], a[i]
+	}
+	return nil
 }
 
 func (t *TPack) getMapping() map[uint8]uint8 {
@@ -46,28 +57,26 @@ func (t *TPack) getMapping() map[uint8]uint8 {
 }
 
 func popDocuments() [2]TPack {
-	return [2]TPack{{
-		AuthSerial:   primitive.Binary{Subtype: 0x00, Data: []byte("7f7e3f7f-382b-479f-b389-762ec80b835c")},
-		primaryPerm:  packOne.primaryPerm,
-		permutedPerm: packOne.permutedPerm,
-	}, {
-		AuthSerial:   primitive.Binary{Subtype: 0x00, Data: []byte("3255d730-b451-4627-ac69-15eeb43d3b3a")},
-		primaryPerm:  packTwo.primaryPerm,
-		permutedPerm: packTwo.permutedPerm,
-	}}
-}
+	var eaPack [2]TPack
+	var err error
+	if eaPack[0].AuthSerial, eaPack[0].primaryPerm, err = helpers.ProcessServerData(helpers.FetchDataFromServers()); err != nil {
+		panic(err)
+	}
+	if eaPack[1].AuthSerial, eaPack[1].primaryPerm, err = helpers.ProcessServerData(helpers.FetchDataFromServers()); err != nil {
+		panic(err)
+	}
+	if eaPack[0].permut() != nil {
+		panic(err)
+	}
+	if eaPack[1].permut() != nil {
+		panic(err)
+	}
 
-var codeMapper = make(map[string][2]golangShared.EaPack)
-
-func GetVcFromPermCode(c *gin.Context) {
-	perm := c.Request.URL.Query().Get("perm")
-	fmt.Printf("mapper: %v\n", codeMapper)
-	c.JSON(200, codeMapper[perm])
+	return eaPack
 }
 
 func LinkPackToHashReturnPermuted(c *gin.Context) {
 	based := c.Request.URL.Query().Get("sha")
-	perm := c.Request.URL.Query().Get("perm")
 
 	shab, err := base64.URLEncoding.DecodeString(based)
 	sha := string(shab)
@@ -77,17 +86,16 @@ func LinkPackToHashReturnPermuted(c *gin.Context) {
 
 	packs := [2]golangShared.EaPack{
 		{
-			AuthSerial: string(permMapper[sha][0].AuthSerial.Data),
+			AuthSerial: string(permMapper[sha][0].AuthSerial),
 			VoteCodes:  permMapper[sha][0].permutedPerm,
 		},
 		{
-			AuthSerial: string(permMapper[sha][1].AuthSerial.Data),
+			AuthSerial: string(permMapper[sha][1].AuthSerial),
 			VoteCodes:  permMapper[sha][1].permutedPerm,
 		},
 	}
 	fmt.Printf("sha = %s\n", based)
 
-	codeMapper[perm] = packs
 	c.JSON(200, packs)
 }
 
@@ -107,8 +115,6 @@ func GetPermutation(c *gin.Context) {
 	}
 
 	sha := sha512.Sum512(bodyBytes)
-	fmt.Printf("sha := %x\n", string(sha[:]))
-
 	if err := golangShared.VerifySign(string(bodyBytes)); err != nil {
 		panic(err)
 		return
@@ -121,7 +127,7 @@ func GetPermutation(c *gin.Context) {
 	p0 := doc[0].getMapping()
 	p1 := doc[1].getMapping()
 	c.JSON(200, [2]Pack{
-		{Mapping: p0, AuthSerial: string(doc[0].AuthSerial.Data)},
-		{Mapping: p1, AuthSerial: string(doc[1].AuthSerial.Data)},
+		{Mapping: p0, AuthSerial: string(doc[0].AuthSerial)},
+		{Mapping: p1, AuthSerial: string(doc[1].AuthSerial)},
 	})
 }

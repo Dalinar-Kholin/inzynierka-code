@@ -64,7 +64,7 @@ export default function VotingDeviceView() {
                 <p key={code}>
                     {<Button onClick={() =>
                         CastVote(code)
-                    }>{code.toUpperCase()}</Button>}
+                    }>{code}</Button>}
                 </p>
             )}
 

@@ -60,7 +60,7 @@ func main() {
 	signer.SignKey = pKey
 
 	r.POST(golangShared.GetVotingPackEndpoint, endpoint.GetVotingPack)
-	r.POST(golangShared.GetVoteCodesEndpoint, endpoint.GetVoteCodes)
+	r.GET(golangShared.GetVoteCodesEndpoint, endpoint.GetVoteCodes)
 	r.POST(golangShared.GetAuthCodeInitEndpoint, endpoint.GetAuthCodeInit)
 	r.POST(golangShared.GetAuthCodeEndpoint, endpoint.GetAuthCodeFinal)
 	r.POST(golangShared.AcceptVoteEndpoint, endpoint.AcceptVote)

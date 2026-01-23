@@ -17,7 +17,6 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -53,12 +52,7 @@ func AcceptVote(c *gin.Context) {
 		return
 	}
 
-	idFromBody, err := uuid.Parse(body.Body.VoteSerial)
-	if err != nil {
-		ServerResponse.ResponseWithSign(c, http.StatusUnauthorized, body, golangShared.ServerError{Error: "where vote serial"})
-	}
-	bin = primitive.Binary{Subtype: 0x04, Data: idFromBody[:]}
-	filter = bson.D{{"voteSerial", bin}}
+	filter = bson.D{{"voteSerial", body.Body.VoteSerial}}
 	voteAnchorModel, err := getAnchorVoteModel(body.Body)
 	if err != nil {
 		ServerResponse.ResponseWithSign(c, http.StatusUnauthorized, body, golangShared.ServerError{Error: err.Error()})
@@ -109,7 +103,7 @@ func AcceptVote(c *gin.Context) {
 
 type DataToSign struct {
 	Stage    uint8
-	VoteCode [3]byte
+	VoteCode [10]byte
 	AuthCode [64]byte
 }
 
@@ -130,6 +124,7 @@ func getAnchorVoteModel(body AcceptBody) (*helper.Vote, error) {
 	}
 	voteAnchorModel, err := helper.DecodeVoteAnchor(acc.Bytes())
 	if err != nil {
+		fmt.Printf("cant decode vote anchor: %v\n", err)
 		return nil, errors.New("bad data on blockchain")
 	}
 	return &voteAnchorModel, nil

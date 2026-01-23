@@ -5,7 +5,6 @@ import (
 )
 
 type Serial [16]byte
-type CandidateCode [candidatesCodeLength]byte
 
 type Status uint8
 
@@ -13,24 +12,19 @@ const (
 	UNUSED Status = iota
 	USED
 	ACTUAL
+	COMMITED
+	ToOpen
+	ToCount
+	ToOpenButToCountOnSameCard
 )
 
 const NumberOfCandidates = 4
 
-var Candidates = []CandidateCode{{'a', 'l', 'a'}, {'b', 'o', 'b'}, {'c', 'a', 't'}, {'d', 'e', 'f'}}
-
-const candidatesCodeLength = 3
 const NumberOfAuthCodes = 4
 
 const NumberOfPackagesToCreate = 100
 
 const AuthCodeLength = 64
-
-type VotingPackage struct {
-	Codes      [NumberOfCandidates]CandidateCode `bson:"codes" json:"codes"`
-	VoteSerial primitive.Binary                  `bson:"voteSerial" json:"voteSerial"`
-	Used       bool                              `bson:"used"`
-}
 
 type AuthPackage struct {
 	AuthSerial  primitive.Binary                `bson:"authSerial" json:"authSerial"`
@@ -52,4 +46,9 @@ type AuthCodePack struct {
 	Status     Status              `bson:"status"`
 	AccessCode *primitive.Binary   `bson:"accessCode"` // for transaction signing reason
 	SignStatus Status              `bson:"SignStatus"` //
+}
+
+type VotePack struct {
+	EaPack   []EaPack `bson:"eaPack"`
+	PermCode string   `bson:"permCode"`
 }

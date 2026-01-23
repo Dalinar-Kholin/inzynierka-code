@@ -6,7 +6,6 @@ import (
 	"commiter/merkeleTree"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	. "golangShared"
 	"golangShared/commiterStruct"
 	"slices"
@@ -36,9 +35,6 @@ func FinalCommit(c *gin.Context) {
 	slices.SortFunc(h.list, func(a, b sha) int {
 		return bytes.Compare(a, b)
 	})
-	for _, x := range h.list {
-		fmt.Printf("%v\n", x[:3])
-	}
 
 	ct := c.Request.URL.Query().Get("commitment_type")
 	if ct == "" {

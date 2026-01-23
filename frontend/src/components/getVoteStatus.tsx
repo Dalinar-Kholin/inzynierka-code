@@ -56,7 +56,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
                     LockCode: decoder.decode(new Uint8Array(r.account.lockCode)),
                     VotingStage: r.account.stage,
                     AuthSerial: stringify(new Uint8Array(r.account.authSerial)),
-                    VoteSerial: stringify(new Uint8Array(r.account.voteSerial)),
+                    VoteSerial: decoder.decode(new Uint8Array(r.account.voteSerial)),
                     VoteCode: decoder.decode(new Uint8Array(r.account.voteCode)),
                     AuthCode: decoder.decode(new Uint8Array(r.account.authCode)),
                     ServerSign: r.account.serverSign,
@@ -79,7 +79,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
         </p>
         <div>
             {authSerial.length > 0 ? accountData.filter(ad => ad.AuthSerial.substring(0, authSerial.length) === authSerial).map(ad => (
-                <div key={ad.AuthSerial}>
+                <div key={ad.AuthCode}>
                     <p>voting stage := {getStageName(ad.VotingStage)}</p>
                     <p>auth Code := {ad.AuthCode}</p>
                     <p>vote code := {ad.VoteCode}</p>
@@ -87,6 +87,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
                     <p>auth serial := {ad.AuthSerial}</p>
                     <p>lock code := {ad.LockCode}</p>
                     <p>vote Vector := {ad.voteVector}</p>
+                    <p>voter sing := {ad.VoterSign.substring(0, 50)}</p>
                     <p>
                         <Button onClick={async () => {
                             const signedObject: BackendLookPack = {
@@ -95,7 +96,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
                                 AuthCode: stringToByteArray(ad.AuthCode),
                             };
                             const res = await verifyEd25519(key.current, JSON.stringify(signedObject), Buffer.from(ad.ServerSign).toString('base64'), "base64")
-                            res ? setSuccessMessage("good signature") : setErrorMessage("bad signature")
+                            res ? setSuccessMessage(`good signature for authCode := ${ad.AuthCode.substring(0,16)}...`) : setErrorMessage("bad signature")
                         }}>Verify Server Sign</Button>
                     </p>
 

@@ -12,7 +12,7 @@ interface IGetVoteCodeResponse{
 
 
 export default async function getVoteCode({permCode} : IGetVoteCode) {
-    const response = await fetch(consts.SGX_URL + '/voter/codes?perm=' + permCode , {
+    const response = await fetch(consts.API_URL + '/getVoteCodes?perm=' + permCode , {
         method: 'GET',
     })
     const data = await response.json()

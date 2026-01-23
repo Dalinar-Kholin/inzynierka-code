@@ -28,11 +28,3 @@ func cryptoRandInt(n int) int {
 	}
 	return int(v.Int64())
 }
-
-func RandomPerm(s *[golangShared.NumberOfCandidates]golangShared.CandidateCode) {
-	n := len(s)
-	for i := n - 1; i > 0; i-- {
-		j := cryptoRandInt(i + 1)
-		s[i], s[j] = s[j], s[i]
-	}
-}

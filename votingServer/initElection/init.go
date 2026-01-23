@@ -19,40 +19,6 @@ import (
 func CreatePackages() {
 	createAuthPackage()
 	commiterStruct.FinalCommit(common.AuthPack)
-	createVotingPackage()
-	commiterStruct.FinalCommit(common.VotePacks)
-}
-
-func createVotingPackage() {
-	conn := DB.GetDataBase("inz", DB.VoteCollection)
-	for range NumberOfPackagesToCreate {
-		var newCandidates [NumberOfCandidates]CandidateCode
-		copy(newCandidates[:], Candidates)
-		helpers.RandomPerm(&newCandidates)
-		serial := uuid.New()
-		newPackage := VotingPackage{
-			Codes: newCandidates,
-			VoteSerial: primitive.Binary{
-				Subtype: 0x04,
-				Data:    serial[:],
-			},
-		}
-		_, err := conn.InsertOne(context.Background(), newPackage)
-		if err != nil {
-			panic(err)
-		}
-
-		data, err := json.Marshal(newPackage)
-		if err != nil {
-			panic(err)
-		}
-		var votingSerial Serial
-		copy(votingSerial[:], newPackage.VoteSerial.Data)
-		if !commiterStruct.AddToCommit(votingSerial, string(data)) {
-			panic("error when commiting")
-		}
-
-	}
 }
 
 func createAuthPackage() {

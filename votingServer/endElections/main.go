@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
-	"fmt"
 	"golangShared"
+	"io"
 	"slices"
 	"votingServer/DB"
 	"votingServer/helper"
@@ -13,12 +15,6 @@ import (
 	"github.com/gagliardetto/solana-go/rpc"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-)
-
-const (
-	toOpen                     = 4
-	toCount                    = 5
-	toOpenButToCountOnSameCard = 6
 )
 
 func main() {
@@ -35,11 +31,16 @@ func main() {
 	cards := make(map[string][]*helper.Vote)
 
 	for _, vote := range votes {
+		res, err := gunzip(vote.VoterSign)
+		if err != nil {
+			panic(err)
+		}
+		if err := golangShared.VerifySign(string(res)); err != nil {
+			panic(err)
+		}
 		key := string(vote.VoteSerial[:])
 		cards[key] = append(cards[key], vote)
 	}
-
-	fmt.Printf("cards len := %d\n", len(cards))
 
 	for _, cardVotes := range cards {
 		if len(cardVotes) == 0 {
@@ -54,7 +55,7 @@ func main() {
 
 		if index == -1 {
 			for _, v := range cardVotes {
-				if _, err := helper.SendInterpretVote(context.Background(), v.AuthCode[:], toOpen); err != nil {
+				if _, err := helper.SendInterpretVote(context.Background(), v.AuthCode[:], uint8(golangShared.ToOpen)); err != nil {
 					panic(err)
 				}
 			}
@@ -62,9 +63,9 @@ func main() {
 		}
 
 		for i, v := range cardVotes {
-			stage := toOpenButToCountOnSameCard
+			stage := golangShared.ToOpenButToCountOnSameCard
 			if i == index {
-				stage = toCount
+				stage = golangShared.ToCount
 			}
 			if _, err := helper.SendInterpretVote(context.Background(), v.AuthCode[:], uint8(stage)); err != nil {
 				panic(err)
@@ -126,4 +127,14 @@ func accountDiscriminator(name string) []byte {
 
 func WalletFromPrivateKey(pk *solana.PrivateKey) *solana.Wallet {
 	return &solana.Wallet{PrivateKey: *pk}
+}
+
+func gunzip(data []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	return io.ReadAll(r)
 }
