@@ -14,7 +14,7 @@ echo "Uruchamiam $TOTAL serwerów ReleyServer w trybie testowym..."
 for i in $(seq 1 $TOTAL); do
   PORT=$((5000 + i))
   echo "Startuję ReleyServer $i/$TOTAL na porcie $PORT..."
-  nohup python3 server.py "$i" test > /dev/null 2>&1 &
+  nohup python3 server.py "$i"> /dev/null 2>&1 &
   PID=$!
   echo "$PID" >> "$PIDFILE"
   echo "  Serwer $i PID: $PID (port $PORT)"

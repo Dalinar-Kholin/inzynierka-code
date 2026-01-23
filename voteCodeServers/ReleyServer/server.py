@@ -4,6 +4,8 @@ from pydantic import BaseModel
 import uvicorn
 from typing import Optional, List
 import threading
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
 
 
 class DataProvider:
@@ -50,56 +52,118 @@ class DataProvider:
          ]  # Serwer ID 10
     ]
     
+    BATCH_SIZE = 1000
+    
     def __init__(self, server_id: int, test_mode: bool = False):
         self._lock = threading.Lock()
-        self._current_index = 0
         self._test_mode = test_mode
         self._server_id = server_id
+        
+        self._data_buffer = []
+        self._buffer_index = 0
+        
+        self._db_client = None
+        self._db_collection = None
+        self._db_skip = 0
         
         if test_mode:
             # testing mode with hardcoded data
             if 1 <= server_id <= len(self.TEST_DATA_STRUCTURE):
-                self._sample_data = self.TEST_DATA_STRUCTURE[server_id - 1] 
-                print(f"[TEST MODE] Server {server_id} initialized with data: {self._sample_data}")
+                self._data_buffer = self.TEST_DATA_STRUCTURE[server_id - 1] 
+                print(f"[TEST MODE] Server {server_id} initialized with {len(self._data_buffer)} items")
             else:
-                self._sample_data = []
                 print(f"[TEST MODE] Server {server_id} has no test data (only servers 1-{len(self.TEST_DATA_STRUCTURE)} supported)")
         else:
-            # (do implementacji)
-            self._sample_data = []
-            print(f"[PRODUCTION MODE] Server {server_id} ready to load data from database")
+            # production mode - initialize MongoDB connection
+            self._init_mongodb()
+            # load first batch
+            self._load_next_batch()
+    
+    def _init_mongodb(self):
+        try:
+            self._db_client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=5000)
+            self._db_client.admin.command('ping')
+            
+            database = self._db_client[f"server_{self._server_id}"]
+            self._db_collection = database["PartialDecryptions"]
+            
+            print(f"[PRODUCTION MODE] Server {self._server_id} connected to MongoDB")
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to connect to MongoDB: {e}")
+            self._db_collection = None
+    
+    def _load_next_batch(self):
+        if self._db_collection is None:
+            return
+        
+        try:
+            with self._lock:
+                # fetch batch from database
+                documents = list(self._db_collection.find({}).skip(self._db_skip).limit(self.BATCH_SIZE))
+                
+                self._data_buffer.clear()
+                self._buffer_index = 0
+                
+                for doc in documents:
+                    if "PartialDecryption" in doc:
+                        self._data_buffer.append(doc["PartialDecryption"])
+                
+                self._db_skip += self.BATCH_SIZE
+                
+                if self._data_buffer:
+                    print(f"[DB LOAD] Server {self._server_id} loaded batch of {len(self._data_buffer)} items (skip={self._db_skip - self.BATCH_SIZE})")
+                else:
+                    print(f"[DB LOAD] Server {self._server_id} reached end of data")
+                    
+        except Exception as e:
+            print(f"[ERROR] Failed to load batch from database: {e}")
     
     @property
     def current_index(self) -> int:
-        return self._current_index
+        with self._lock:
+            total_served = (self._db_skip - self.BATCH_SIZE) + self._buffer_index
+        return total_served
     
     @property
     def total_data_count(self) -> int:
-        return len(self._sample_data)
+        if self._db_collection is None:
+            return len(self._data_buffer)
+        try:
+            return self._db_collection.count_documents({})
+        except:
+            return -1
     
+    # get the next batch of data
     def get_next_data(self) -> Optional[str]:
-        """Gets the next element and increments the counter"""
         with self._lock:
-            if self._current_index >= len(self._sample_data):
-                return None  # there is no more data
-            
-            data = self._sample_data[self._current_index]
-            self._current_index += 1
-            return data
+            if self._buffer_index >= len(self._data_buffer):
+                if not self._test_mode and self._db_collection is not None:
+                    pass
+        
+        if self._buffer_index >= len(self._data_buffer) and not self._test_mode and self._db_collection is not None:
+            self._load_next_batch()
+        
+        with self._lock:
+            if self._buffer_index < len(self._data_buffer):
+                data = self._data_buffer[self._buffer_index]
+                self._buffer_index += 1
+                return data
+            else:
+                # no more data
+                return None
     
     def reset_index(self):
-        """Resets the counter to the beginning"""
         with self._lock:
-            self._current_index = 0
+            self._buffer_index = 0
+            if not self._test_mode:
+                self._db_skip = 0
     
-    # TODO: Add method to load data from MongoDB
-    # def load_data_from_database(self):
-    #     """Loads data from MongoDB"""
-    #     # Implementation of reading from MongoDB
-    #     with self._lock:
-    #         self._sample_data.clear()
-    #         # self._sample_data.extend(/* data fetched from database */)
-    #         self._current_index = 0
+    def reload_data_from_database(self):
+        if not self._test_mode:
+            self._init_mongodb()
+            self._load_next_batch()
+            self.reset_index()
 
 
 if len(sys.argv) < 2:
@@ -118,8 +182,7 @@ data_provider = DataProvider(server_id, test_mode)
 
 
 @app.get("/api/data/next")
-async def get_next_data():
-    """Gets the next data element"""
+async def get_next_data_endpoint():
     data = data_provider.get_next_data()
     
     if data is not None:
@@ -142,12 +205,11 @@ async def get_next_data():
 
 @app.get("/api/data/status")
 async def get_status():
-    """Checks the server status"""
     return {
         "serverId": server_id,
         "currentIndex": data_provider.current_index,
         "totalDataCount": data_provider.total_data_count,
-        "remainingItems": data_provider.total_data_count - data_provider.current_index
+        "remainingItems": max(0, data_provider.total_data_count - data_provider.current_index) if data_provider.total_data_count > 0 else 0
     }
 
 
