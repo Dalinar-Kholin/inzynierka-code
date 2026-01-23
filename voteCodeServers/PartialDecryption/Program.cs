@@ -31,7 +31,7 @@ if (totalCount == 0)
 
 int processedCount = 0;
 int skip = 0;
-int ballotIdCounter = 1;  // Licznik BallotId od 1
+int ballotIdCounter = 1;
 
 while (skip < totalCount)
 {
