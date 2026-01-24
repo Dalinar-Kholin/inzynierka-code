@@ -72,7 +72,7 @@ if (serverId == totalServers)
 
 
 
-    // receive authCode and queue for processing
+    // curl -X POST http://localhost:5000/api/submitvote/authcode -d 'authCodeValue'
     app.MapPost("/api/submitvote/authcode", async (HttpRequest request, AuthCodeProcessor processor) =>
     {
         // try to read authCode from body as plain text
@@ -93,8 +93,6 @@ if (serverId == totalServers)
         {
             message = "AuthCode queued for processing",
             authCode = authCode,
-            queueSize = processor.GetQueueSize(),
-            serverId = serverId
         });
     });
 

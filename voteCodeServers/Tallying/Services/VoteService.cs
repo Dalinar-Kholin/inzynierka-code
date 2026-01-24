@@ -24,4 +24,11 @@ public class VoteService
             await _votes.InsertManyAsync(votes, new InsertManyOptions { IsOrdered = false });
         }
     }
+
+    public List<VoteData> QueryVotes(List<string> authCodes)
+    {
+        var filter = Builders<VoteData>.Filter.In(v => v.AuthCode, authCodes);
+        var results = _votes.Find(filter).ToList();
+        return results;
+    }
 }
