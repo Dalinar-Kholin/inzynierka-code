@@ -1,6 +1,6 @@
-import React, {useEffect, useMemo, useState} from "react";
-import {sha256Hex} from "../helpers/pedersonCommitments.ts";
-import {sha256} from "@noble/hashes/sha2";
+import React, { useEffect, useMemo, useState } from "react";
+import { sha256Hex } from "../helpers/pedersonCommitments.ts";
+import { sha256 } from "@noble/hashes/sha2";
 
 type InnerMapping = Record<string, number>; // np. { "0": 3, "1": 1, "2": 2, "3": 0 }
 type OuterMapping = Map<string, InnerMapping>;
@@ -33,11 +33,11 @@ async function copyToClipboard(text: string) {
 }
 
 function Row({
-                 label,
-                 value,
-                 mono = false,
-                 wrap = false,
-             }: {
+    label,
+    value,
+    mono = false,
+    wrap = false,
+}: {
     label: string;
     value: string;
     mono?: boolean;
@@ -216,7 +216,7 @@ const styles: Record<string, React.CSSProperties> = {
         padding: "8px 0",
         borderBottom: "1px dashed #e5e7eb",
     },
-    label: { fontSize: 13},
+    label: { fontSize: 13 },
     value: { fontSize: 13 },
     mono: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
     wrap: { wordBreak: "break-all" },

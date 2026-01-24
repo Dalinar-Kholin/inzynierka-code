@@ -25,6 +25,11 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
 
     private AuthCodeProcessor _authCodeProcessor;
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Dodac losowe kolejki typu: jak bedzie wiecej niz 2k rekordów to wybieramy z nich 1k losowo i przetwarzamy
+    // zeby nie pozwolic na korelacje czasowe
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     public ChainEngine(int serverId, int totalServers, int myPort, RecordProcessor processor,
                        int newVotesBatchSize = 1000, int newVotesTriggerSize = 2000)
         : base(serverId, totalServers, myPort, processor)

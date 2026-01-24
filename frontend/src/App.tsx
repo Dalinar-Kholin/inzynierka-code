@@ -3,22 +3,25 @@ import './App.css'
 import { Buffer } from 'buffer';
 
 import { Button } from "@mui/material"
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
+import * as ed from "@noble/ed25519";
+import { sha256, sha512 } from "@noble/hashes/sha2";
+
+if (!(ed as any).hashes) {
+    (ed as any).hashes = {};
+}
+(ed as any).hashes.sha512 = sha512;
 
 if (!(window as any).Buffer) {
     (window as any).Buffer = Buffer;
 }
 
-import * as ed from "@noble/ed25519";
-import { sha512 } from "@noble/hashes/sha2";
 import useGetServerPubKey from "./hooks/useGetServerPubKey.ts";
-
-(ed as any).hashes ??= {};
-(ed as any).hashes.sha512 = sha512;
 
 function App() {
     const navigate = useNavigate();
-    const {pubKey} = useGetServerPubKey()
+    const { pubKey } = useGetServerPubKey()
 
     if (pubKey === "") {
         return <>loading</>;
@@ -26,8 +29,8 @@ function App() {
 
     return (
         <>
-            <Button onClick={()=> navigate("/helperDeviceView")}>helper device</Button>
-            <Button onClick={()=> navigate("/votingDeviceView")}>voter device</Button>
+            <Button onClick={() => navigate("/helperDeviceView")}>helper device</Button>
+            <Button onClick={() => navigate("/votingDeviceView")}>voter device</Button>
         </>
     )
 }

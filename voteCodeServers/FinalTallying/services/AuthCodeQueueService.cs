@@ -44,6 +44,12 @@ public class AuthCodeQueueService
         if (batch.Count > 0)
         {
             var votes = _voteService.QueryVotes(batch);
+
+            ////////////////////////////////////////////////////////////////////////////////
+            // powinna byc dodana jeszcze weryfikacja czy votes jest poprawne z BB:
+            // liczymy merkla od votes, pobieramy z BB korzen i porownujemy
+            ////////////////////////////////////////////////////////////////////////////////
+
             final_ciphertext = AddCiphertexts(final_ciphertext, votes);
             Console.WriteLine($"Processing batch: {string.Join(", ", batch)}");
         }
