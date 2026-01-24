@@ -22,7 +22,7 @@ public class MerkleTreeBuilder
         }
     }
 
-    private string HashPair(string left, string right)
+    private static string HashPair(string left, string right)
     {
         using (var sha512 = SHA512.Create())
         {
@@ -111,5 +111,26 @@ public class MerkleTreeBuilder
         Console.WriteLine($"Root hash to send to BB: {rootHash}");
 
         return rootHash;
+    }
+
+    public static string BuildMerkleRootFromLeaves(List<string> leaves)
+    {
+        if (leaves == null || leaves.Count == 0)
+            throw new ArgumentException("Leaves list must not be empty");
+
+        var currentLevel = new List<string>(leaves);
+        while (currentLevel.Count > 1)
+        {
+            var nextLevel = new List<string>();
+            for (int i = 0; i < currentLevel.Count; i += 2)
+            {
+                string left = currentLevel[i];
+                string right = (i + 1 < currentLevel.Count) ? currentLevel[i + 1] : currentLevel[i];
+                string parentHash = HashPair(left, right);
+                nextLevel.Add(parentHash);
+            }
+            currentLevel = nextLevel;
+        }
+        return currentLevel[0];
     }
 }

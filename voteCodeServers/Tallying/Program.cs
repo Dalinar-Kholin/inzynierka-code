@@ -54,52 +54,60 @@ builder.Services.AddGrpc();
 var processor = new RecordProcessor(serverId, totalServers, numberOfCandidates);
 var engine = new ChainEngine(serverId, totalServers, myPort, processor, batchSettings.VotesBatchSize, batchSettings.VotesTriggerSize);
 var service = new ChainServiceImpl(nextServer, prevServer, myPort, engine);
-var authSerialProcessor = new AuthSerialProcessor(serverId, service);
+var authCodeProcessor = new AuthCodeProcessor(serverId, engine);
 
 engine.SetTransport(service);
+engine.SetAuthCodeProcessor(authCodeProcessor);
 
 builder.Services.AddSingleton(service);
-builder.Services.AddSingleton(authSerialProcessor);
+builder.Services.AddSingleton(authCodeProcessor);
 
 var app = builder.Build();
 app.MapGrpcService<ChainServiceImpl>();
 app.MapGet("/", () => $"Chain node on port {myPort}");
 
-// receive authCode and queue for processing
-app.MapPost("/api/submitvote/authcode", async (HttpRequest request, AuthCodeProcessor processor) =>
+
+if (serverId == totalServers)
 {
-    // try to read authCode from body as plain text
-    string authCode;
-    using (var reader = new StreamReader(request.Body))
-    {
-        authCode = await reader.ReadToEndAsync();
-    }
 
-    if (string.IsNullOrEmpty(authCode))
-    {
-        return Results.BadRequest(new { error = "AuthCode is required" });
-    }
 
-    // add to queue
-    processor.EnqueueAuthCode(authCode);
-    return Results.Accepted(null, new
+
+    // receive authCode and queue for processing
+    app.MapPost("/api/submitvote/authcode", async (HttpRequest request, AuthCodeProcessor processor) =>
     {
-        message = "AuthCode queued for processing",
-        authCode = authCode,
-        queueSize = processor.GetQueueSize(),
-        serverId = serverId
+        // try to read authCode from body as plain text
+        string authCode;
+        using (var reader = new StreamReader(request.Body))
+        {
+            authCode = await reader.ReadToEndAsync();
+        }
+
+        if (string.IsNullOrEmpty(authCode))
+        {
+            return Results.BadRequest(new { error = "AuthCode is required" });
+        }
+
+        // add to queue
+        processor.EnqueueAuthCode(authCode);
+        return Results.Accepted(null, new
+        {
+            message = "AuthCode queued for processing",
+            authCode = authCode,
+            queueSize = processor.GetQueueSize(),
+            serverId = serverId
+        });
     });
-});
 
-// status endpoint
-app.MapGet("/api/submitvote/status", (AuthCodeProcessor processor) =>
-{
-    return Results.Ok(new
+    // status endpoint
+    app.MapGet("/api/submitvote/status", (AuthCodeProcessor processor) =>
     {
-        serverId,
-        queueSize = processor.GetQueueSize()
+        return Results.Ok(new
+        {
+            serverId,
+            queueSize = processor.GetQueueSize()
+        });
     });
-});
+}
 
 if (serverId == totalServers)
 {

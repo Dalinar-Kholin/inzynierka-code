@@ -22,6 +22,7 @@
     <ProjectReference Include="../DataInitLocal/dataInitLocal.csproj" />
     <ProjectReference Include="../BallotDataLocal/ballotDataLocal.csproj" />
     <ProjectReference Include="../../encryption/PaillierLib/PaillierLib.csproj" />
+    <ProjectReference Include="../MerkleTreeBuilder/MerkleTreeBuilder.csproj" />
   </ItemGroup>
 
 

@@ -18,15 +18,12 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
     private long _processedReturningQ2 = 0;
 
     private readonly BlockingCollection<(string, string)> _newVotesQueue = new();
-
-    /////////////////////////////////////////////////
-    // dodac losowe kolejki - teraz dla testow
-    /////////////////////////////////////////////////
-
     private DateTime _votingEndDate = DateTime.Now.AddMinutes(60); // ustawic na koniec glosowania
 
     private readonly int _newVotesBatchSize;
     private readonly int _newVotesTriggerSize;
+
+    private AuthCodeProcessor _authCodeProcessor;
 
     public ChainEngine(int serverId, int totalServers, int myPort, RecordProcessor processor,
                        int newVotesBatchSize = 1000, int newVotesTriggerSize = 2000)
@@ -50,6 +47,11 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
         Task.Run(MonitorTimeout);
         Task.Run(PrintStatsLoop);
         Task.Run(MonitorInitialQueue);
+    }
+
+    public void SetAuthCodeProcessor(AuthCodeProcessor authCodeProcessor)
+    {
+        _authCodeProcessor = authCodeProcessor;
     }
 
     public void OnNewVoteReceived(string voteSerial, string voteCode)
@@ -250,11 +252,6 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
 
     protected override void OnDataCompleted(VoteRecord data, string? voteSerial)
     {
-        ////////////////////////////////////////////////////////////
-        // zapisywanie wyniku do pliku czyli vote oraz voteSerial - test tylko - potem usunac
-        // powinno byc wysylanie wyniku na bb
-        ////////////////////////////////////////////////////////////
-
         var filename = $"tallied_votes_server{_serverId}.txt";
         using (var writer = new StreamWriter(filename, append: true))
         {
@@ -266,10 +263,11 @@ public class ChainEngine : ChainEngineBase<VoteRecord, int, RecordProcessor, IEx
             writer.WriteLine();
         }
 
-        // wyslij VS i wektor glosow na BB (przez BBproxy)
-        Console.WriteLine($"[{_myPort}] VoteRecord tallied for BallotId: {data.BallotId}");
-        // var externalServerUrl = $"http://
-
+        // send VoteVector to BB via AuthCodeProcessor
+        if (_authCodeProcessor != null)
+        {
+            _authCodeProcessor.NotifyVoteTallied(voteSerial, data.VoteVector);
+        }
     }
 
     // create VoteCodeRecord from new votes batch and send to previous server
