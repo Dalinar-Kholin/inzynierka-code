@@ -56,7 +56,7 @@ func (t *TPack) getMapping() map[uint8]uint8 {
 	return mapa
 }
 
-func popDocuments() [2]TPack {
+func takeDAta() [2]TPack {
 	var eaPack [2]TPack
 	var err error
 	if eaPack[0].AuthSerial, eaPack[0].primaryPerm, err = helpers.ProcessServerData(helpers.FetchDataFromServers()); err != nil {
@@ -71,8 +71,22 @@ func popDocuments() [2]TPack {
 	if eaPack[1].permut() != nil {
 		panic(err)
 	}
-
 	return eaPack
+}
+
+var packs [][2]TPack = make([][2]TPack, 0)
+
+var i = 0
+
+func popDocuments() [2]TPack {
+	if len(packs) == 0 {
+		for _ = range 10 {
+			packs = append(packs, takeDAta())
+		}
+	}
+	i += 1
+
+	return packs[i]
 }
 
 func LinkPackToHashReturnPermuted(c *gin.Context) {

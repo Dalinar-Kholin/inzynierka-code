@@ -48,6 +48,7 @@ export function useHelperDevice() {
         content,
         GetBallot,
         setPublicKey,
-        showError,showSuccess
+        showError,
+        showSuccess,
     }
 }

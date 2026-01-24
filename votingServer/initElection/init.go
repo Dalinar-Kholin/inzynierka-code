@@ -12,7 +12,6 @@ import (
 	"votingServer/DB"
 	"votingServer/obliviousTransfer"
 
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -27,11 +26,11 @@ func createAuthPackage() {
 		if i%10_000 == 0 {
 			fmt.Printf("stworzono := %v\n", i)
 		}
-		guid := uuid.New()
+		guid := helpers.SecureRandomString()
 		newAuth := &AuthPackage{
 			AuthSerial: primitive.Binary{
-				Subtype: 0x04,    // UUID (standard) – BSON subtype 4
-				Data:    guid[:], // 16 bajtów
+				Subtype: 0x00,      // UUID (standard) – BSON subtype 4
+				Data:    guid[:16], // 16 bajtów
 			},
 			AuthCode: [NumberOfAuthCodes]AuthCodePack{
 				*generateAuthCodePack(), *generateAuthCodePack(), *generateAuthCodePack(), *generateAuthCodePack(),

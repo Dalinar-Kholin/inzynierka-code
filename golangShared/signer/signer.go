@@ -15,6 +15,11 @@ func Sign(message []byte) []byte {
 	return signature
 }
 
+func Verify(message []byte, signature []byte) bool {
+	publicKey := SignKey.Public().(ed25519.PublicKey)
+	return ed25519.Verify(publicKey, message, signature)
+}
+
 func LoadEd25519PrivateKey(path string) (ed25519.PrivateKey, error) {
 	pemBytes, err := os.ReadFile(path)
 	if err != nil {

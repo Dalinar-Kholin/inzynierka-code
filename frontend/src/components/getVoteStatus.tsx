@@ -3,7 +3,6 @@ import {useEffect, useRef, useState} from "react";
 import type {IdlAccounts} from "@coral-xyz/anchor";
 import type {Counter} from "../counter.ts";
 
-import {stringify} from "uuid";
 import {Button} from "@mui/material";
 
 type VoteAccountType = IdlAccounts<Counter>["vote"];
@@ -55,7 +54,7 @@ export default function GetVoteStatus({setErrorMessage, setSuccessMessage}: IGet
                 const newItem: accountData = {
                     LockCode: decoder.decode(new Uint8Array(r.account.lockCode)),
                     VotingStage: r.account.stage,
-                    AuthSerial: stringify(new Uint8Array(r.account.authSerial)),
+                    AuthSerial: decoder.decode(new Uint8Array(r.account.authSerial)),
                     VoteSerial: decoder.decode(new Uint8Array(r.account.voteSerial)),
                     VoteCode: decoder.decode(new Uint8Array(r.account.voteCode)),
                     AuthCode: decoder.decode(new Uint8Array(r.account.authCode)),

@@ -8,13 +8,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"golangShared"
-	"votingServer/DB"
-
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golangShared"
+	"votingServer/DB"
 )
 
 type UserResponse struct {
@@ -33,17 +31,12 @@ type EncryptResponse struct {
 }
 
 func Encrypt(userResponse *UserResponse) (*EncryptResponse, error) {
-	authSerial, err := uuid.Parse(userResponse.AuthSerial)
-	if err != nil {
-		return nil, err
-	}
-
 	var Auth golangShared.AuthPackage
 	if err := DB.GetDataBase("inz", DB.AuthCollection).FindOne(
 		context2.Background(),
 		bson.M{"authSerial": primitive.Binary{
-			Subtype: 0x04,
-			Data:    authSerial[:],
+			Subtype: 0x00,
+			Data:    []byte(userResponse.AuthSerial),
 		}},
 	).Decode(&Auth); errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, err

@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, {useEffect, useMemo, useState} from "react";
+import {sha256Hex} from "../helpers/pedersonCommitments.ts";
+import {sha256} from "@noble/hashes/sha2";
 
 type InnerMapping = Record<string, number>; // np. { "0": 3, "1": 1, "2": 2, "3": 0 }
 type OuterMapping = Map<string, InnerMapping>;
@@ -66,6 +68,7 @@ function Row({
 
 export default function VotingPackCard({ pack, title = "Voting package" }: Props) {
     const [showCommitmentFull, setShowCommitmentFull] = useState(false);
+    const [commitmentShown, setCommitmentShown] = useState("")
 
     const mappingNormalized = useMemo(() => {
         const out: Array<{
@@ -90,9 +93,13 @@ export default function VotingPackCard({ pack, title = "Voting package" }: Props
         return out;
     }, [pack.mapping]);
 
-    const commitmentShown = showCommitmentFull
-        ? pack.lockCodeCommitment
-        : shortenMiddle(pack.lockCodeCommitment, 18, 18);
+    useEffect(() => {
+        (async () => {
+            const h1 = sha256(pack.lockCodeCommitment);
+            const h2 = await sha256Hex(h1);
+            setCommitmentShown(h2);
+        })();
+    }, [pack.lockCodeCommitment]);
 
     return (
         <div style={styles.card}>

@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/net/context"
 
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -28,15 +27,11 @@ type ObliviousTransferInitData struct {
 
 func InitProtocol(initOt *InitOT) (*InitOutput, error) {
 	var Auth golangShared.AuthPackage
-	authSerial, err := uuid.Parse(initOt.AuthSerial)
-	if err != nil {
-		return nil, err
-	}
 
 	filter := bson.M{
 		"authSerial": primitive.Binary{
-			Subtype: 0x04,          // standard UUID
-			Data:    authSerial[:], // 16 bytes
+			Subtype: 0x00,                      // standard UUID
+			Data:    []byte(initOt.AuthSerial), // 16 bytes
 		},
 		"authCode": bson.M{
 			"$elemMatch": bson.M{"status": golangShared.ACTUAL},
@@ -57,7 +52,7 @@ func InitProtocol(initOt *InitOT) (*InitOutput, error) {
 		},
 	})
 
-	_, err = DB.GetDataBase("inz", DB.AuthCollection).UpdateMany(
+	_, err := DB.GetDataBase("inz", DB.AuthCollection).UpdateMany(
 		context.Background(),
 		filter,
 		update,
@@ -71,8 +66,8 @@ func InitProtocol(initOt *InitOT) (*InitOutput, error) {
 		context2.Background(),
 		bson.M{
 			"authSerial": primitive.Binary{
-				Subtype: 0x04,
-				Data:    authSerial[:],
+				Subtype: 0x00,
+				Data:    []byte(initOt.AuthSerial),
 			},
 		},
 	).Decode(&Auth); errors.Is(err, mongo.ErrNoDocuments) {
@@ -86,8 +81,8 @@ func InitProtocol(initOt *InitOT) (*InitOutput, error) {
 	if _, err := DB.GetDataBase("inz", DB.AuthCollection).ReplaceOne(
 		context2.Background(),
 		bson.M{"authSerial": primitive.Binary{
-			Subtype: 0x04,
-			Data:    authSerial[:],
+			Subtype: 0x00,
+			Data:    []byte(initOt.AuthSerial),
 		}},
 		Auth,
 	); err != nil {

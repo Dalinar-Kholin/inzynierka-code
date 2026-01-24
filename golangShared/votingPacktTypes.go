@@ -18,8 +18,6 @@ const (
 	ToOpenButToCountOnSameCard
 )
 
-const NumberOfCandidates = 4
-
 const NumberOfAuthCodes = 4
 
 const NumberOfPackagesToCreate = 100
@@ -51,4 +49,10 @@ type AuthCodePack struct {
 type VotePack struct {
 	EaPack   []EaPack `bson:"eaPack"`
 	PermCode string   `bson:"permCode"`
+}
+
+type DataToSign struct {
+	Stage    uint8
+	VoteCode [10]byte
+	AuthCode [64]byte
 }

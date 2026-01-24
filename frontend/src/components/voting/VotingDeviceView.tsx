@@ -4,7 +4,8 @@ import DownloadXMLFile from "../downloadXMLFile.tsx";
 import UploadSignedVote from "../UploadSignedVote.tsx";
 import ResponsiveDialog from "../obliviousTransferDialog.tsx";
 import useVoting from "../../hooks/useVoting.ts";
-import Vote, {serializeVoteToXML} from "../../XMLbuilder.ts";
+import Vote, {serializeVoteToXML} from "../../helpers/XMLbuilder.ts";
+import InputForm from "../InputForm.tsx";
 
 export default function VotingDeviceView() {
     const {
@@ -20,6 +21,7 @@ export default function VotingDeviceView() {
         serverSign,
         accessCode,
         lockCode,
+        commitment,
         PingForAccept,
         setVoteSerial,
         setAuthSerial,
@@ -33,31 +35,11 @@ export default function VotingDeviceView() {
     } = useVoting()
 
     return (<>
-            <form>
-                <div>
-                    <p>lockCode</p>
-                    <p>
-                        <input onChange={e => {
-                            setLockCode(e.target.value)
-                        }} value={lockCode}/>
-                    </p>
-                </div>
-                <div>
-                    <p>auth serial</p>
-                    <p>
-                        <input onChange={e => {
-                            setAuthSerial(e.target.value)
-                        }} value={authSerial}/>
-                    </p>
-                </div>
-                <div>
-                    <p>vote serial</p>
-                    <p>
-                        <input onChange={e => {setVoteSerial(e.target.value)}}
-                               value={voteSerial}/>
-                    </p>
-                </div>
-            </form>
+
+
+            <InputForm name={"lockCode"} fn={setLockCode} value={lockCode} />
+            <InputForm name={"authSerial"} fn={setAuthSerial} value={authSerial} />
+            <InputForm name={"voteSerial"} fn={setVoteSerial} value={voteSerial} />
 
             <p></p>
             {voteCodes?.map(code =>
@@ -95,7 +77,9 @@ export default function VotingDeviceView() {
             </p>
 
             <BallotDataPrint
-                voteSerial={voteSerial} authSerial={authSerial} authCode={otPack?.authCode || ""}/>
+                voteSerial={voteSerial} authSerial={authSerial} authCode={otPack?.authCode || ""}
+            />
+            <p>{otPack?.r}</p>
 
             <DownloadXMLFile content={serializeVoteToXML(
                 new Vote(
@@ -108,6 +92,9 @@ export default function VotingDeviceView() {
                 voterSign={voterSign || ""}
                 accessCode={ accessCode || ""}
             />
+            <p>
+                {commitment}
+            </p>
             {successMessage !== null ? <Alert severity="success">{successMessage}</Alert> : <></>}
             {errorMessage !== null ? <Alert severity="error">{errorMessage}</Alert> : <></>}
         </>

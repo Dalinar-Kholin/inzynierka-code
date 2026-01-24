@@ -1,12 +1,13 @@
-import {useCallback, useState} from "react";
+import { useCallback, useEffect, useState} from "react";
 import {useAnchor} from "./useAnchor.ts";
 import getVoteCode from "../api/getVoteCode.ts";
 import {useStatusMessages} from "./useAlertMessage.ts";
-import {stringify} from "uuid";
 import useGetServerPubKey from "./useGetServerPubKey.ts";
 import useGetAuthCode, {type IOtResponse} from "../api/getAuthCode.ts";
 import usePingServerForAcceptVote from "../api/pingServerForAcceptVote.ts";
 import useCastVoteCode from "../api/castVote.ts";
+import {createCommitment, sha256Hex} from "../helpers/pedersonCommitments.ts";
+import {sha256} from "@noble/hashes/sha2";
 
 function useVoting() {
     const [otPack, setOtPack] = useState<IOtResponse | undefined>(undefined);
@@ -20,6 +21,7 @@ function useVoting() {
     const [accessCode, setAccessCode] = useState<string | undefined>()
     const [bit, setBit] = useState<boolean | undefined>(undefined);
     const [lockCode, setLockCode] = useState<string>("")
+    const [commitment, setCommitment] = useState<string>("")
 
     const {getProgram, getProvider} = useAnchor();
     const {successMessage, errorMessage, showError, showSuccess} = useStatusMessages()
@@ -27,6 +29,14 @@ function useVoting() {
     const {getCode} = useGetAuthCode()
     const {ping} = usePingServerForAcceptVote()
     const {castVote} = useCastVoteCode()
+
+    useEffect(() => {
+        (async () => {
+            if (otPack?.r && lockCode !== ""){
+                setCommitment(await sha256Hex(sha256(await createCommitment(lockCode, otPack.r) + "")))
+            }
+        })()
+    }, [otPack, lockCode])
 
     const CastVote = useCallback(async (code: string) => {
         setSelectedCode(code)
@@ -55,7 +65,7 @@ function useVoting() {
     }, [otPack])
 
     const GetAuthCodes = useCallback(async () => {
-            if (authSerial?.length !== 36 || bit === undefined) {
+            if (authSerial?.length !== 16 || bit === undefined) {
                 showError(`Invalid auth serial length := ${authSerial?.length}`)
                 return;
             }
@@ -85,11 +95,11 @@ function useVoting() {
             const decoder = new TextDecoder("utf-8");
             const item = res
                 .filter(a =>
-                    stringify(new Uint8Array(a.account.authSerial)) === authSerial
+                    decoder.decode(new Uint8Array(a.account.authSerial)) === authSerial
                 ).pop()
             if (item !== undefined) {
-                setAuthSerial(stringify(new Uint8Array(item.account.authSerial)))
-                setVoteSerial(stringify(new Uint8Array(item.account.voteSerial)))
+                setAuthSerial(decoder.decode(new Uint8Array(item.account.authSerial)))
+                setVoteSerial(decoder.decode(new Uint8Array(item.account.voteSerial)))
                 setSelectedCode(decoder.decode(new Uint8Array(item.account.voteCode)))
                 setOtPack({authCode: decoder.decode(new Uint8Array(item.account.authCode))})
                 setServerSign(item.account.serverSign)
@@ -117,6 +127,7 @@ function useVoting() {
         serverSign,
         accessCode,
         lockCode,
+        commitment,
         // funckcje
         setAuthSerial,
         setVoteSerial,

@@ -13,7 +13,6 @@ import (
 	"votingServer/obliviousTransfer"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -54,14 +53,13 @@ func GetAuthCodeFinal(c *gin.Context) {
 		return
 	}
 
-	u, err := uuid.Parse(body.Body.AuthSerial)
 	var Auth golangShared.AuthPackage
 	if err := DB.GetDataBase("inz", DB.AuthCollection).FindOne(
 		context.Background(),
 		bson.M{
 			"authSerial": primitive.Binary{
-				Subtype: 0x04,
-				Data:    u[:],
+				Subtype: 0x00,
+				Data:    []byte(body.Body.AuthSerial),
 			},
 		},
 	).Decode(&Auth); errors.Is(err, mongo.ErrNoDocuments) {

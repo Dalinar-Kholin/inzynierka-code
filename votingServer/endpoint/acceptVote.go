@@ -60,7 +60,7 @@ func AcceptVote(c *gin.Context) {
 	}
 
 	data, _ := json.Marshal(
-		DataToSign{
+		golangShared.DataToSign{
 			AuthCode: voteAnchorModel.AuthCode,
 			VoteCode: voteAnchorModel.VoteCode,
 			Stage:    voteAnchorModel.Stage,
@@ -77,20 +77,11 @@ func AcceptVote(c *gin.Context) {
 		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, golangShared.ServerError{Error: err.Error()})
 		return
 	}
-	var content struct {
-		AuthCode string `json:"authCode"`
-	}
-	content.AuthCode = string(voteAnchorModel.AuthCode[:])
-	fmt.Printf("content %v\n", content)
 
-	cnt, err := json.Marshal(content)
-	if err != nil {
-		panic(err)
-	}
 	_, err = (&http.Client{}).Post(
-		"http://localhost:5000/api/submitvote/authserial",
+		"http://localhost:5000/api/submitvote/authcode",
 		"application/json",
-		bytes.NewBuffer(cnt))
+		bytes.NewBuffer(voteAnchorModel.AuthCode[:]))
 	if err != nil {
 		//panic(err)
 	}
@@ -99,12 +90,6 @@ func AcceptVote(c *gin.Context) {
 	}*/
 
 	ServerResponse.ResponseWithSign(c, 200, body, Response{Code: 200})
-}
-
-type DataToSign struct {
-	Stage    uint8
-	VoteCode [10]byte
-	AuthCode [64]byte
 }
 
 func getAnchorVoteModel(body AcceptBody) (*helper.Vote, error) {

@@ -5,8 +5,13 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
+	"encoding/xml"
+	"fmt"
 	"golangShared"
+	"golangShared/signer"
 	"io"
+	"net/http"
 	"slices"
 	"votingServer/DB"
 	"votingServer/helper"
@@ -31,13 +36,13 @@ func main() {
 	cards := make(map[string][]*helper.Vote)
 
 	for _, vote := range votes {
-		res, err := gunzip(vote.VoterSign)
+		_, err := gunzip(vote.VoterSign)
 		if err != nil {
 			panic(err)
 		}
-		if err := golangShared.VerifySign(string(res)); err != nil {
-			panic(err)
-		}
+		/*		if err := golangShared.VerifySign(string(res)); err != nil {
+				panic(err)
+			}*/
 		key := string(vote.VoteSerial[:])
 		cards[key] = append(cards[key], vote)
 	}
@@ -63,9 +68,23 @@ func main() {
 		}
 
 		for i, v := range cardVotes {
+			// res, _ := gunzip(v.VoterSign)
+			/*data := parseXML(res)
+			if checkCorrectness(data, authPack) {
+				panic("correctness fail XD")
+			}*/
 			stage := golangShared.ToOpenButToCountOnSameCard
 			if i == index {
 				stage = golangShared.ToCount
+				// curl -X POST http://localhost:5000/api/forCounting -d 'authCodeValue'
+				_, err = (&http.Client{}).Post(
+					"http://localhost:5000/api/forCounting",
+					"application/json",
+					bytes.NewBuffer(v.AuthCode[:]))
+				if err != nil {
+					fmt.Printf("coś nie bangle := \n\n%v\n\n", err)
+					//panic(err)
+				}
 			}
 			if _, err := helper.SendInterpretVote(context.Background(), v.AuthCode[:], uint8(stage)); err != nil {
 				panic(err)
@@ -74,8 +93,34 @@ func main() {
 	}
 }
 
+func parseXML(data []byte) *golangShared.CommitedBallot {
+	var cb golangShared.CommitedBallot
+	if err := xml.Unmarshal(data, &cb); err != nil {
+		panic(err)
+		return nil
+	}
+	return &cb
+}
+
+func checkCorrectness(cb *golangShared.CommitedBallot, auth *golangShared.AuthPackage) bool {
+	var ac [64]byte
+	copy(ac[:], cb.AuthCode)
+	var vc [10]byte
+	copy(vc[:], cb.VoteCode)
+	data, _ := json.Marshal(
+		golangShared.DataToSign{
+			AuthCode: ac,
+			VoteCode: vc,
+			Stage:    uint8(golangShared.USED),
+		})
+
+	return cb.AuthSerial == string(auth.AuthSerial.Data) && slices.IndexFunc(auth.AuthCode[:], func(e golangShared.AuthCodePack) bool {
+		return string(e.Code[0].Data) == cb.AuthCode || string(e.Code[1].Data) == cb.AuthCode
+	}) != -1 && signer.Verify(data, []byte(cb.ServerSign))
+}
+
 func getAuthPack(authSerial []byte) *golangShared.AuthPackage {
-	bin := primitive.Binary{Subtype: 0x04, Data: authSerial}
+	bin := primitive.Binary{Subtype: 0x00, Data: authSerial}
 	filter := bson.D{{"authSerial", bin}}
 	var authPack golangShared.AuthPackage
 	if err := DB.GetDataBase("inz", DB.AuthCollection).FindOne(context.Background(), filter).Decode(&authPack); err != nil {

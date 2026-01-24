@@ -15,7 +15,7 @@ export default function HelperDeviceView() {
         GetBallot,
         showError,
         setPublicKey,
-        showSuccess
+        showSuccess,
     } = useHelperDevice()
 
     return (
@@ -28,7 +28,7 @@ export default function HelperDeviceView() {
             <UploadContentToState setContent={setPublicKey} name={"set Public Key"}></UploadContentToState>
             {successMessage !== null ? <Alert severity="success">{successMessage}</Alert> : <></>}
             {errorMessage !== null ? <Alert severity="error">{errorMessage}</Alert> : <></>}
-            {votePack && <VotingPackCard pack={votePack} title="Pack #1" />}
+            {votePack && <VotingPackCard pack={votePack} title="Pack #1"/>}
         </>
     )
 }

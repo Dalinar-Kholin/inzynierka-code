@@ -39,6 +39,7 @@ func GetAuthCodeInit(c *gin.Context) {
 	output, err := obliviousTransfer.InitProtocol(&body.Body)
 	if err != nil {
 		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, body, golangShared.ServerError{Error: err.Error()})
+		return
 	}
 
 	ServerResponse.ResponseWithSign(c, http.StatusOK, body, output)

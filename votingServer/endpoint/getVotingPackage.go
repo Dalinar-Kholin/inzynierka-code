@@ -17,7 +17,6 @@ import (
 	. "golangShared"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -99,18 +98,13 @@ func communicateWithFakeSgx(xml []byte, authSerial string) [2]string {
 
 	based := base64.URLEncoding.EncodeToString(sha[:])
 
-	u, err := uuid.Parse(authSerial)
-	if err != nil {
-		panic(err)
-	}
-
 	permCodeBytes := helpers.SecureRandomString()
 	PermCodeString := base64.URLEncoding.EncodeToString(permCodeBytes[:])
 
 	filter := bson.M{
 		"authSerial": primitive.Binary{
-			Subtype: 0x04, // standard UUID
-			Data:    u[:], // 16 bytes
+			Subtype: 0x00,               // standard UUID
+			Data:    []byte(authSerial), // 16 bytes
 		},
 	}
 
@@ -121,7 +115,7 @@ func communicateWithFakeSgx(xml []byte, authSerial string) [2]string {
 		},
 	}
 
-	_, err = DB.GetDataBase("inz", DB.AuthCollection).UpdateOne(
+	_, err := DB.GetDataBase("inz", DB.AuthCollection).UpdateOne(
 		context.Background(),
 		filter,
 		update,
@@ -166,10 +160,8 @@ func GetVotingPackage() (*VotingPack, error) {
 		return nil, err
 	}
 
-	authSerial, _ := uuid.FromBytes(authPackage.AuthSerial.Data)
-
 	return &VotingPack{
-		AuthSerial:         authSerial.String(),
+		AuthSerial:         string(authPackage.AuthSerial.Data),
 		LockCode:           authPackage.LockPackage.LockCode,
 		LockCodeCommitment: authPackage.LockPackage.LockCodeCommitment,
 	}, nil

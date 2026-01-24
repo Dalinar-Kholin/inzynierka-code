@@ -1,4 +1,4 @@
-import {consts} from "../const.ts";
+import {consts} from "../helpers/const.ts";
 
 
 interface IGetVoteCode {

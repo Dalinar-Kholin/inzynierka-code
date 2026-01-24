@@ -1,5 +1,5 @@
 import {web3} from "@coral-xyz/anchor";
-import {consts} from "../const.ts";
+import {consts} from "../helpers/const.ts";
 import {
     type FetchWithAuthFnType,
     IsBadSignError,

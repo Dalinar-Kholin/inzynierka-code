@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using static MerkleTreeBuilder;
 
@@ -18,11 +20,6 @@ public class AuthCodeProcessor
 
     public AuthCodeProcessor(int serverId, ChainEngine chainEngine)
     {
-        // TESTOWE DANE do usuniecia gdy ostateczny test
-        _voteSerialToAuthCode["Hzoh5Sxx3m"] = "ABRGREAGGRAEGERFBNRHEHWERHddsfEHW";
-        _voteSerialToAuthCode["lSDKTgJlAw"] = "124346324723462462347738393567452";
-        _voteSerialToAuthCode["AEFEcAnFsw"] = "BSERF5FE7AWF7WE68652384HQ34G67343";
-
         _serverId = serverId;
         _chainEngine = chainEngine;
 
@@ -108,7 +105,10 @@ public class AuthCodeProcessor
 
             var voteData = await response.Content.ReadFromJsonAsync<VoteDataResponse>();
 
-            if (voteData == null || string.IsNullOrEmpty(voteData.VoteSerial) || string.IsNullOrEmpty(voteData.VoteCode))
+            var voteCode = Encoding.UTF8.GetString(voteData?.VoteCode.ToArray() ?? []);
+            var voteSerial = Encoding.UTF8.GetString(voteData?.VoteSerial.ToArray() ?? []);
+            
+            if (voteData == null || string.IsNullOrEmpty(voteSerial) || string.IsNullOrEmpty(voteCode))
             {
                 Console.WriteLine($"[Server {_serverId}] Invalid response from external server for {authCode}");
                 return;
@@ -117,8 +117,8 @@ public class AuthCodeProcessor
             Console.WriteLine($"[Server {_serverId}] Retrieved for {authCode} -> voteSerial: {voteData.VoteSerial}, voteCode: {voteData.VoteCode}");
 
             // send to processing chain
-            _chainEngine.OnNewVoteReceived(voteData.VoteSerial, voteData.VoteCode);
-            _voteSerialToAuthCode[voteData.VoteSerial] = authCode;
+            _chainEngine.OnNewVoteReceived(voteSerial, voteCode);
+            _voteSerialToAuthCode[voteSerial] = authCode;
 
             Console.WriteLine($"[Server {_serverId}] Data sent to chain for authCode: {authCode}");
         }
@@ -128,7 +128,7 @@ public class AuthCodeProcessor
         }
     }
 
-    public void NotifyVoteTallied(string voteSerial, List<string> voteVectors)
+    public async Task NotifyVoteTallied(string voteSerial, List<string> voteVectors)
     {
         // Hzoh5Sxx3m
         // HeYy7XwzAd HlYyGXTzAd rlY67KTDAV HeYy7XwDSV reYyGXTDAV
@@ -179,10 +179,10 @@ public class AuthCodeProcessor
             _voteDataBatchQueue.Enqueue(voteData);
 
             // a na BB wysyłamy authCode i root(voteVector)
-            // string externalServerUrl = "http://127.0.0.1:8080/updateVoteVector";
+            string externalServerUrl = "http://127.0.0.1:8080/updateVoteVector";
 
-            // var payload = new { authCode = authCode, voteVectorRoot = rootHash };
-            // await _httpClient.PostAsJsonAsync(externalServerUrl, payload);
+            var payload = new { authCode = authCode, voteVector = rootHash };
+            await _httpClient.PostAsJsonAsync(externalServerUrl, payload);
         }
         else
         {
@@ -196,4 +196,8 @@ public class AuthCodeProcessor
     }
 }
 
-record VoteDataResponse(string VoteSerial, string VoteCode);
+public class VoteDataResponse
+{
+    public List<byte> VoteSerial { get; set; } = default!;
+    public List<byte> VoteCode   { get; set; } = default!;
+}

@@ -48,6 +48,14 @@ type BallotRequest struct {
 	Timestamp int64    `xml:"timestamp"`
 }
 
+type CommitedBallot struct {
+	XMLName    xml.Name `xml:"vote"`
+	AuthSerial string   `xml:"AuthSerial"`
+	AuthCode   string   `xml:"AuthCode"`
+	VoteCode   string   `xml:"VoteCode"`
+	ServerSign string   `xml:"ServerSign"`
+}
+
 type EaPack struct {
 	VoteCodes  []string `json:"voteCodes"`
 	AuthSerial string   `json:"authSerial"`
