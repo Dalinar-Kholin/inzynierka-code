@@ -6,7 +6,7 @@ use (
 	golangShared
 	./simpleSolanaSignerServer
 	./votingServer
-	SignerVeryfier
+	./SignerVerifier
 	voteCodeServers/SharedRandomness
 	voteCodeServers/SharedRandomness/EaServer
 	bbProxy

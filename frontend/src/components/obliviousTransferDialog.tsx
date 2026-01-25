@@ -37,7 +37,7 @@ export default function ResponsiveDialog({setUseFirstAuthCode}: IResponsiveDialo
                 aria-labelledby="responsive-dialog-title"
             >
                 <DialogTitle id="responsive-dialog-title">
-                    {"Use Google's location service?"}
+                        {"Select which auth code get"}
                 </DialogTitle>
                 <DialogContent>
                     <DialogContentText>
