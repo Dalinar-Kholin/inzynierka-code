@@ -74,19 +74,21 @@ func takeDAta() [2]TPack {
 	return eaPack
 }
 
-var packs [][2]TPack = make([][2]TPack, 0)
+func LoadData() {
+	if len(Packs) == 0 {
+		for _ = range 100 {
+			Packs = append(Packs, takeDAta())
+		}
+	}
+	i += 1
+}
+
+var Packs [][2]TPack = make([][2]TPack, 0)
 
 var i = 0
 
 func popDocuments() [2]TPack {
-	if len(packs) == 0 {
-		for _ = range 10 {
-			packs = append(packs, takeDAta())
-		}
-	}
-	i += 1
-
-	return packs[i]
+	return Packs[i]
 }
 
 func LinkPackToHashReturnPermuted(c *gin.Context) {

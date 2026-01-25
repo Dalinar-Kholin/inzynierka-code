@@ -41,14 +41,14 @@ func main() {
 			return
 		}
 
-		jarPath := "/home/dalinarkholin/uczelnia/inzynierka/inzynierka-code/SignerVeryfier/dss-cli-validator/target/dss-cli-validator-1.0-SNAPSHOT.jar"
+		jarPath := "./dss-cli-validator/target/dss-cli-validator-1.0-SNAPSHOT.jar"
 
 		cmd := exec.Command(
 			"java",
 			"-jar",
 			jarPath,
 			tmpName,
-			"/home/dalinarkholin/Desktop/certificate.pem",
+			"../certificate.pem",
 		)
 
 		cmd.Stdout = os.Stdout

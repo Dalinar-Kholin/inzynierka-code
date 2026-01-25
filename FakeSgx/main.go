@@ -14,7 +14,7 @@ import (
 
 // take data from trustee
 func initialize() {
-
+	endpoints.LoadData()
 }
 
 func main() {
