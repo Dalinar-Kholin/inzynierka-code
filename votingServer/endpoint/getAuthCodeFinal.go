@@ -6,7 +6,6 @@ import (
 	"errors"
 	"golangShared"
 	"golangShared/ServerResponse"
-	"inz/Storer/StoreClient"
 	"io"
 	"net/http"
 	"votingServer/DB"
@@ -36,7 +35,7 @@ func GetAuthCodeFinal(c *gin.Context) {
 		ServerResponse.ResponseWithSign(c, http.StatusBadRequest, bodyBytes, golangShared.ServerError{Error: err.Error()})
 		return
 	}
-	jsoned, _ := ServerResponse.ToJSONNoEscape(body) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+	/*jsoned, _ := ServerResponse.ToJSONNoEscape(body) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
 	err = StoreClient.Client(StoreClient.RequestBody{
 		AuthSerial: &body.Body.AuthSerial,
 		AuthCode:   nil,
@@ -45,7 +44,7 @@ func GetAuthCodeFinal(c *gin.Context) {
 	if err != nil {
 		ServerResponse.ResponseWithSign(c, http.StatusInternalServerError, body, golangShared.ServerError{Error: err.Error()}) // to raczej nie powinno się wydarzyć chyba że server przestanie działać
 		return
-	}
+	}*/
 
 	response, err := obliviousTransfer.Encrypt(&body.Body)
 	if err != nil {

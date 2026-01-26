@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { sha256Hex } from "../helpers/pedersonCommitments.ts";
 import { sha256 } from "@noble/hashes/sha2";
+import {candidateMapping} from "../helpers/candidateMapping.ts";
 
 type InnerMapping = Record<string, number>; // np. { "0": 3, "1": 1, "2": 2, "3": 0 }
 type OuterMapping = Map<string, InnerMapping>;
@@ -66,7 +67,7 @@ function Row({
     );
 }
 
-export default function VotingPackCard({ pack, title = "Voting package" }: Props) {
+export function VotingPackCard({pack, title = "Voting package"}: Props) {
     const [showCommitmentFull, setShowCommitmentFull] = useState(false);
     const [commitmentShown, setCommitmentShown] = useState("")
 
@@ -81,11 +82,11 @@ export default function VotingPackCard({ pack, title = "Voting package" }: Props
         for (const [serial, inner] of pack.mapping.entries()) {
             // inner jest obiektem { "0": 3, "1": 1, ... }
             const entries = Object.entries(inner)
-                .map(([k, v]) => ({ fromIdx: Number(k), toIdx: Number(v) }))
+                .map(([k, v]) => ({fromIdx: Number(k), toIdx: Number(v)}))
                 .filter(e => Number.isFinite(e.fromIdx) && Number.isFinite(e.toIdx))
                 .sort((a, b) => a.fromIdx - b.fromIdx);
 
-            out.push({ serial, entries });
+            out.push({serial, entries});
         }
 
         // stabilnie sortuj po serialu (opcjonalnie)
@@ -109,11 +110,11 @@ export default function VotingPackCard({ pack, title = "Voting package" }: Props
             </div>
 
             <div style={styles.section}>
-                <Row label="authSerial" value={pack.authSerial} mono />
-                <Row label="lockCode" value={pack.lockCode} mono />
-                <div style={{ ...styles.row, alignItems: "flex-start" }}>
+                <Row label="authSerial" value={pack.authSerial} mono/>
+                <Row label="lockCode" value={pack.lockCode} mono/>
+                <div style={{...styles.row, alignItems: "flex-start"}}>
                     <div style={styles.label}>lockCodeCommitment</div>
-                    <div style={{ ...styles.value, ...styles.mono, ...styles.wrap }}>{commitmentShown}</div>
+                    <div style={{...styles.value, ...styles.mono, ...styles.wrap}}>{commitmentShown}</div>
                     <div style={styles.commitmentBtns}>
                         <button
                             type="button"
@@ -165,7 +166,7 @@ export default function VotingPackCard({ pack, title = "Voting package" }: Props
                                     {block.entries.map(e => (
                                         <div key={`${block.serial}:${e.fromIdx}`} style={styles.tr}>
                                             <div style={styles.tdMono}>{e.fromIdx}</div>
-                                            <div style={styles.tdMono}>{e.toIdx}</div>
+                                            <div style={styles.tdMono}>{candidateMapping[e.toIdx]}</div>
                                         </div>
                                     ))}
                                 </div>

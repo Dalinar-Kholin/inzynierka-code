@@ -3,7 +3,7 @@ import { Alert, Stack } from "@mui/material";
 import { useHelperDevice } from "../../hooks/useHelperDevice.ts";
 import DownloadXMLFile from "../downloadXMLFile.tsx";
 import { UploadContentToState, UploadSignedVoteRequest } from "../UploadSignedVote.tsx";
-import VotingPackCard from "../showData.tsx";
+import {VotingPackCard} from "../showData.tsx";
 
 export default function HelperDeviceView() {
     const {
@@ -20,6 +20,8 @@ export default function HelperDeviceView() {
 
     return (
         <Stack spacing={2}>
+            {successMessage && (<Alert severity="success">{successMessage}</Alert>)}
+            {errorMessage && (<Alert severity="error">{errorMessage}</Alert>)}
             <DownloadXMLFile
                 content={content}
                 filename="voteRequest.xml"
@@ -37,14 +39,6 @@ export default function HelperDeviceView() {
                 setContent={setPublicKey}
                 name="Set Public Key"
             />
-
-            {successMessage && (
-                <Alert severity="success">{successMessage}</Alert>
-            )}
-
-            {errorMessage && (
-                <Alert severity="error">{errorMessage}</Alert>
-            )}
 
             {votePack && (
                 <VotingPackCard pack={votePack} title="Pack #1" />

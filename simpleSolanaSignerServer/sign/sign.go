@@ -3,13 +3,11 @@ package sign
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"golangShared"
 	"golangShared/ServerResponse"
 	"helpers"
-	"inz/Storer/StoreClient"
 	"net/http"
 	"votingServer/DB"
 
@@ -102,7 +100,7 @@ func Verify(c *gin.Context, signRequestData *SignRequestData) (*string, error) {
 			})
 			return nil, err
 		}
-		jsoned, _ := json.Marshal(signRequestData) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+		/*jsoned, _ := json.Marshal(signRequestData) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
 		err := StoreClient.Client(StoreClient.RequestBody{
 			AuthSerial: nil,
 			AuthCode:   signRequestData.AuthCode,
@@ -110,7 +108,7 @@ func Verify(c *gin.Context, signRequestData *SignRequestData) (*string, error) {
 		})
 		if err != nil {
 			panic(err)
-		}
+		}*/
 	} else if !golangShared.IsNullOrEmpty(signRequestData.AccessCode) {
 		bin = primitive.Binary{Subtype: 0x00, Data: []byte(*signRequestData.AccessCode)}
 		filter = bson.D{{"authCode.accessCode", bin}}
@@ -121,15 +119,15 @@ func Verify(c *gin.Context, signRequestData *SignRequestData) (*string, error) {
 			})
 			return nil, err
 		}
-		jsoned, _ := json.Marshal(signRequestData) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
-		err := StoreClient.Client(StoreClient.RequestBody{
-			AuthSerial: nil,
-			AuthCode:   signRequestData.AuthCode,
-			Data:       string(jsoned),
-		})
-		if err != nil {
-			panic(err)
-		}
+		/*		jsoned, _ := json.Marshal(signRequestData) // parsuejy 2 razy do jsona na razie ale nie mam siły tego teraz zmieniać
+				err := StoreClient.Client(StoreClient.RequestBody{
+					AuthSerial: nil,
+					AuthCode:   signRequestData.AuthCode,
+					Data:       string(jsoned),
+				})
+				if err != nil {
+					panic(err)
+				}*/
 	} else {
 		c.JSON(401, gin.H{"error": "bad Request Body"})
 		return nil, errors.New("bad Request")
