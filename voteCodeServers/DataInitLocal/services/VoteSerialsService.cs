@@ -58,4 +58,22 @@ public class VoteSerialsService
             .ToListAsync();
         return results.ToDictionary(r => r.VoteSerial, r => r.BallotId);
     }
+
+    public async Task MarkVoteSerialsAsInvalid(List<string> voteSerials)
+    {
+        var filter = Builders<VoteSerialData>.Filter.In(x => x.VoteSerial, voteSerials);
+        var update = Builders<VoteSerialData>.Update.Set(x => x.AreVoteCodesCorrect, false);
+        await _voteSerials.UpdateManyAsync(filter, update);
+    }
+
+    public async Task<List<string>> GetInvalidVoteSerials()
+    {
+        var filter = Builders<VoteSerialData>.Filter.Eq(x => x.AreVoteCodesCorrect, false);
+        var projection = Builders<VoteSerialData>.Projection.Include(x => x.VoteSerial);
+        var results = await _voteSerials
+            .Find(filter)
+            .Project<VoteSerialData>(projection)
+            .ToListAsync();
+        return results.Select(r => r.VoteSerial).ToList();
+    }
 }
