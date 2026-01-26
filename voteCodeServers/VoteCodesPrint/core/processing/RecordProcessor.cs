@@ -13,6 +13,7 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, int, string)>
     private readonly int _totalServers;
     private readonly bool _isLastServer;
     private readonly int _numberOfCandidates;
+    private readonly List<string> _invalidVoteCodes;
 
     private readonly BallotService _ballotService;
     private readonly BallotLinkingService _ballotLinkingService;
@@ -33,6 +34,8 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, int, string)>
         _voteSerialsService = new VoteSerialsService(serverId);
         _codeSettingService = new CodeSettingService(serverId);
         _paillierPublic = new PaillierPublicKey("../../encryption/paillierKeys");
+
+        _invalidVoteCodes = _voteSerialsService.GetInvalidVoteSerials().Result;
     }
 
     public async Task<Dictionary<int, (int, int, string)>> ProcessBatchFirstPassAsync(List<int> ballotIds)
@@ -95,10 +98,11 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, int, string)>
 
     public string FinnalizeEncryptedVoteCodes(string encryptedVoteCodes, string voteSerial)
     {
-
-        ///////////////////////////////////////////////////////////////////
-        // dodac sprawdzenie czy dany voteSerial jest AreVoteCodeCorrect //
-        ///////////////////////////////////////////////////////////////////
+        if (_invalidVoteCodes.Contains(voteSerial))
+        {
+            Console.WriteLine($"Vote serial {voteSerial} is marked as invalid, skipping finalization.");
+            return null;
+        }
 
         BigInteger encodedVoteSerial = BigInteger.Zero;
         foreach (char c in voteSerial)
@@ -109,12 +113,6 @@ public class RecordProcessor : IRecordProcessor<DataRecord, (int, int, string)>
         encodedVoteSerial = _paillierPublic.Encrypt(encodedVoteSerial);
 
         return (new BigInteger(encryptedVoteCodes).Multiply(encodedVoteSerial).Mod(_paillierPublic.n_squared)).ToString();
-    }
-
-    public async Task PersistRecordAsync(DataRecord record)
-    {
-        // zapisac commitmenty do DB chyba
-        await Task.CompletedTask;
     }
 }
 

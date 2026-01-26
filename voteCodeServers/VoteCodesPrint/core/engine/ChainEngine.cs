@@ -74,9 +74,18 @@ public class ChainEngine : ChainEngineBase<DataRecord, (int, int, string), Recor
         // add encrypted vote codes to list
         lock (_voteCodesListLock)
         {
+            var encryptedVoteCodes = _processor.FinnalizeEncryptedVoteCodes(data.EncryptedVoteCodes, voteSerial);
+
+            // skip if null
+            if (encryptedVoteCodes == null)
+            {
+                Console.WriteLine($"Encrypted vote codes is null for vote serial {voteSerial}, skipping...");
+                return;
+            }
+
             var voteCodesData = new VoteCodesData
             {
-                EncryptedVoteCodes = _processor.FinnalizeEncryptedVoteCodes(data.EncryptedVoteCodes, voteSerial),
+                EncryptedVoteCodes = encryptedVoteCodes,
             };
             _voteCodesList.Add(voteCodesData);
             Console.WriteLine($"Added to vote codes list. Count: {_voteCodesList.Count}");

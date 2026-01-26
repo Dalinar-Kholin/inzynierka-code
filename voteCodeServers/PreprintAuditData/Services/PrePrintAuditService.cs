@@ -23,4 +23,14 @@ public class PrePrintAuditService
             await _ballots.InsertManyAsync(ballots, new InsertManyOptions { IsOrdered = false });
         }
     }
+
+    public async Task<List<PrePrintAuditData>> GetPrePrintAuditBatch(int batchSize, int skip)
+    {
+        var filter = Builders<PrePrintAuditData>.Filter.Empty;
+        var ballots = await _ballots.Find(filter)
+                                    .Skip(skip)
+                                    .Limit(batchSize)
+                                    .ToListAsync();
+        return ballots;
+    }
 }
