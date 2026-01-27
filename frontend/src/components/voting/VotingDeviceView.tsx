@@ -48,6 +48,10 @@ export default function VotingDeviceView() {
 
     return (
         <Stack spacing={2}>
+
+            {/* Messages */}
+            {successMessage && <Alert severity="success">{successMessage}</Alert>}
+            {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
             {/* Inputs */}
             <Stack spacing={1}>
                 <InputForm name="authSerial" fn={setAuthSerial} value={authSerial} />
@@ -56,21 +60,6 @@ export default function VotingDeviceView() {
             </Stack>
 
             {/* Vote codes */}
-            <Box>
-                <Stack spacing={1}>
-                    <Button onClick={GetVoteCodes} variant="outlined">
-                        get vote codes
-                    </Button>
-
-                    <Stack spacing={1}>
-                        {voteCodes?.map((code) => (
-                            <Button key={code} onClick={() => CastVote(code)}>
-                                {code}
-                            </Button>
-                        ))}
-                    </Stack>
-                </Stack>
-            </Box>
 
             {/* Auth code OT */}
             <Box>
@@ -86,6 +75,22 @@ export default function VotingDeviceView() {
                     ) : (
                         <Button onClick={GetAuthCodes}>get AuthCode</Button>
                     )}
+                </Stack>
+            </Box>
+
+            <Box>
+                <Stack spacing={1}>
+                    <Button onClick={GetVoteCodes} variant="outlined">
+                        get vote codes
+                    </Button>
+
+                    <Stack spacing={1}>
+                        {voteCodes?.map((code, i) => (
+                            <Button key={code} onClick={() => CastVote(code)}>
+                                {i} - {code}
+                            </Button>
+                        ))}
+                    </Stack>
                 </Stack>
             </Box>
 
@@ -119,7 +124,7 @@ export default function VotingDeviceView() {
                 <Stack spacing={1}>
                     <DownloadXMLFile
                         content={voteXml}
-                        filename="vote"
+                        filename="vote.xml"
                         name="DownloadXMLVoteFile"
                     />
 
@@ -133,10 +138,6 @@ export default function VotingDeviceView() {
                     {commitment && <Typography variant="body2">{commitment}</Typography>}
                 </Stack>
             </Box>
-
-            {/* Messages */}
-            {successMessage && <Alert severity="success">{successMessage}</Alert>}
-            {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
         </Stack>
     );
 }
